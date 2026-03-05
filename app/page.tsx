@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import VLibras from 'vlibras-nextjs'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
@@ -97,36 +98,13 @@ declare global {
 export default function HomePage() {
   const [fontSize, setFontSize] = useState(16)
   const [highContrast, setHighContrast] = useState(false)
-  const [vlibrasReady, setVlibrasReady] = useState(false)
 
   const adjustFontSize = (change: number) => {
     setFontSize(prev => Math.max(12, Math.min(24, prev + change)))
   }
 
   // VLibras - Versão que FUNCIONA
-  useEffect(() => {
-    // Adiciona o script
-    const script = document.createElement('script')
-    script.src = 'https://vlibras.gov.br/app/vlibras-plugin.js'
-    script.async = false // Importante: sync!
-    
-    script.onload = () => {
-      setTimeout(() => {
-        if (window.VLibras) {
-          new window.VLibras.Widget('https://vlibras.gov.br/app')
-          setVlibrasReady(true)
-          console.log('✅ VLibras FUNCIONANDO!')
-        }
-      }, 500)
-    }
-    
-    document.body.appendChild(script)
-
-    return () => {
-      const s = document.querySelector('script[src*="vlibras"]')
-      if (s) s.remove()
-    }
-  }, [])
+ 
 
   return (
     <div 
@@ -485,12 +463,7 @@ export default function HomePage() {
       </footer>
 
       {/* VLibras */}
-{vlibrasReady && (
-        <div>
-          <div vw-access-button="true" className="enabled"></div>
-          <div vw-plugin-wrapper="true"></div>
-        </div>
-      )}
+      <VLibras forceOnload />
     </div>
   )
 }
