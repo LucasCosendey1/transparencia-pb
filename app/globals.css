@@ -5,6 +5,50 @@
   --foreground: #171717;
 }
 
+/* VLibras - Forçar visibilidade */
+[data-vw] {
+  position: fixed !important;
+  z-index: 99999 !important;
+}
+
+[data-vw-access-button] {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  width: 60px !important;
+  height: 60px !important;
+  background: #1351B4 !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  z-index: 99999 !important;
+  display: block !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+}
+
+[data-vw-plugin-wrapper] {
+  z-index: 99998 !important;
+}
+
+/* Garante que o botão do VLibras apareça */
+div[data-vw-access-button] {
+  display: block !important;
+}
+
+/* Força o ícone a aparecer */
+div[data-vw-access-button]::before {
+  content: "♿";
+  font-size: 32px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: #1351B4;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
