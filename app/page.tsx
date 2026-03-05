@@ -1,7 +1,7 @@
 // src/app/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
@@ -86,13 +86,47 @@ import {
 } from 'react-icons/fa'
 import { IconType } from 'react-icons'
 
+  
+
+declare global {
+  interface Window {
+    VLibras: any;
+  }
+}
+
 export default function HomePage() {
   const [fontSize, setFontSize] = useState(16)
   const [highContrast, setHighContrast] = useState(false)
+  const [vlibrasReady, setVlibrasReady] = useState(false)
 
   const adjustFontSize = (change: number) => {
     setFontSize(prev => Math.max(12, Math.min(24, prev + change)))
   }
+
+  // VLibras - Versão que FUNCIONA
+  useEffect(() => {
+    // Adiciona o script
+    const script = document.createElement('script')
+    script.src = 'https://vlibras.gov.br/app/vlibras-plugin.js'
+    script.async = false // Importante: sync!
+    
+    script.onload = () => {
+      setTimeout(() => {
+        if (window.VLibras) {
+          new window.VLibras.Widget('https://vlibras.gov.br/app')
+          setVlibrasReady(true)
+          console.log('✅ VLibras FUNCIONANDO!')
+        }
+      }, 500)
+    }
+    
+    document.body.appendChild(script)
+
+    return () => {
+      const s = document.querySelector('script[src*="vlibras"]')
+      if (s) s.remove()
+    }
+  }, [])
 
   return (
     <div 
@@ -137,56 +171,63 @@ export default function HomePage() {
       </div>
 
       {/* Header Principal */}
-      <header className={`${highContrast ? 'bg-black border-b-4 border-yellow-300' : 'bg-white shadow-sm'}`}>
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between py-6">
-            {/* Logo */}
-            <Link href="/" className="flex items-center">
-              <Image 
-                src="/ItabaianaCidadeDoTrabalho.png" 
-                alt="Itabaiana - Cidade do Trabalho" 
-                width={300}
-                height={100}
-                className="object-contain"
-                priority
-              />
-            </Link>
+    <header className={`${highContrast ? 'bg-black border-b-4 border-yellow-300' : 'bg-white shadow-sm'}`}>
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        {/* Linha 1: Logo + Menu */}
+        <div className="flex items-center justify-between mb-4">
+          {/* Logo */}
+          <Link href="/" className="flex-shrink-0">
+            <Image 
+              src="/ItabaianaCidadeDoTrabalho.png" 
+              alt="Itabaiana - Cidade do Trabalho" 
+              width={250}
+              height={80}
+              className="object-contain"
+              priority
+            />
+          </Link>
 
-            {/* Menu Superior */}
-            <nav className="hidden lg:block">
-              <ul className="flex space-x-6 text-sm">
-                <li><Link href="/" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107] font-medium`}>Início</Link></li>
-                <li><Link href="/sobre" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Sobre</Link></li>
-                <li><Link href="/legislacao" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Legislação</Link></li>
-                <li><Link href="/faq" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>FAQ</Link></li>
-                <li><Link href="/contato" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Contato</Link></li>
-              </ul>
-            </nav>
-          </div>
-
-          {/* Barra de Busca */}
-          <div className="pb-6">
-            <form className="flex">
-              <input
-                type="search"
-                placeholder="O que você está procurando?"
-                className={`flex-1 px-4 py-3 border ${highContrast ? 'bg-black text-yellow-300 border-yellow-300' : 'border-gray-300'} rounded-l focus:outline-none focus:ring-2 focus:ring-[#0d6efd]`}
-              />
-              <button 
-                type="submit"
-                className="bg-[#0d6efd] text-white px-8 rounded-r hover:bg-[#0a58ca] transition"
-              >
-                🔍
-              </button>
-            </form>
-          </div>
+          {/* Menu Superior */}
+          <nav className="hidden lg:block">
+            <ul className="flex space-x-6 text-sm">
+              <li><Link href="/" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107] font-medium`}>Início</Link></li>
+              <li><Link href="/sobre" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Sobre</Link></li>
+              <li><Link href="/legislacao" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Legislação</Link></li>
+              <li><Link href="/faq" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>FAQ</Link></li>
+              <li><Link href="/contato" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Contato</Link></li>
+            </ul>
+          </nav>
         </div>
-      </header>
+
+        {/* Linha 2: Barra de Busca pequena */}
+        <div className="flex justify-end">
+          <form className="flex w-full max-w-md">
+            <input
+              type="search"
+              placeholder="Estou procurando por..."
+              className={`flex-1 px-3 py-2 text-sm border ${highContrast ? 'bg-black text-yellow-300 border-yellow-300' : 'text-black border-gray-300'} rounded-l focus:outline-none focus:ring-2 focus:ring-[#0d6efd]`}
+            />
+            <button 
+              type="submit"
+              className="bg-[#ffffff] text-white px-6 py-2 rounded-r hover:bg-[#0a58ca] transition text-sm"
+            >
+              🔍
+            </button>
+          </form>
+        </div>
+      </div>
+    </header>
 
       {/* Linha Decorativa */}
       <div className="h-1 bg-gradient-to-r from-[#ffc107] via-[#0d6efd] to-[#ffc107]"></div>
 
-      {/* Conteúdo Principal */}
+      {/* Carrossel de Banners */}
+      <section className={`${highContrast ? 'bg-black' : 'bg-gray-100'} py-8`}>
+        <div className="max-w-7xl mx-auto px-4">
+          <Carousel highContrast={highContrast} />
+        </div>
+      </section>
+
       <main className={`${highContrast ? 'bg-black' : 'bg-gray-50'} py-12`}>
         <div className="max-w-7xl mx-auto px-4">
           
@@ -442,6 +483,14 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* VLibras */}
+{vlibrasReady && (
+        <div>
+          <div vw-access-button="true" className="enabled"></div>
+          <div vw-plugin-wrapper="true"></div>
+        </div>
+      )}
     </div>
   )
 }
@@ -492,20 +541,149 @@ function CategoryCard({ icon: Icon, title, description, link, highContrast }: Ca
     <Link href={link || '#'}>
       <div className={`group relative ${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 p-6 h-full border-2 border-gray-100 overflow-hidden`}>
         {/* Fundo colorido que aparece no hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0d6efd] to-[#ffc107] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute inset-0 bg-[#0d6efd] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
         
         {/* Conteúdo */}
         <div className="relative z-10">
-          <Icon className={`w-12 h-12 mb-3 ${highContrast ? 'text-black' : 'text-gray-600'} group-hover:text-white transition-all duration-300 group-hover:scale-110`} />
-          <h3 className={`font-bold text-sm leading-tight mb-2 ${highContrast ? 'text-black' : 'text-gray-800'} group-hover:text-white transition-colors`}>
+            <Icon className={`w-12 h-12 mb-3 mx-auto ${highContrast ? 'text-black' : 'text-gray-600'} group-hover:text-white transition-all duration-300 group-hover:scale-110`} />
+
+          <h3 className={`font-bold text-sm leading-tight mb-2 text-center ${highContrast ? 'text-black' : 'text-gray-800'} group-hover:text-white transition-colors`}>
             {title}
           </h3>
           {/* Descrição que aparece no hover */}
-          <p className="text-xs text-black opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-medium">
+          <p className="text-xs text-black opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-medium text-center">
+
             {description}
           </p>
         </div>
       </div>
     </Link>
+  )
+}
+
+
+// Componente Carousel
+interface CarouselProps {
+  highContrast: boolean
+}
+
+function Carousel({ highContrast }: CarouselProps) {
+  const [currentSlide, setCurrentSlide] = useState(0)
+
+  const slides = [
+    {
+      image: '/banner1.jpg', // Coloque suas imagens na pasta public
+      title: 'Novas informações sobre saúde estão disponíveis no Portal de Dados Abertos',
+      link: '' // Deixe vazio por enquanto
+    },
+    {
+      image: '/banner2.jpg',
+      title: 'Transparência: Acompanhe as obras da sua cidade',
+      link: ''
+    },
+    {
+      image: '/banner3.jpg',
+      title: 'Consulte o orçamento municipal de forma fácil e rápida',
+      link: ''
+    },
+  ]
+
+  // Auto-play: muda de slide a cada 30 segundos
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length)
+  }, 30000)
+
+    return () => clearInterval(interval)
+  }, [slides.length])
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index)
+  }
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length)
+  }
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
+  }
+
+  return (
+    <div className="relative rounded-lg overflow-hidden shadow-xl">
+      {/* Slides */}
+      <div className="relative h-[150px] md:h-[200px]">
+        {slides.map((slide, index) => (
+          <Link 
+            key={index}
+            href={slide.link || '#'}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              index === currentSlide ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <div className="relative w-full h-full">
+              {/* Imagem de fundo */}
+              <div 
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ 
+                  backgroundImage: `url(${slide.image})`,
+                  filter: 'brightness(0.7)'
+                }}
+              />
+              
+              {/* Overlay com gradiente */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
+              
+              {/* Conteúdo do slide */}
+              <div className="relative h-full flex items-center px-8 md:px-16">
+                <div className="max-w-2xl">
+                  <h2 className="text-white text-3xl md:text-5xl font-bold leading-tight drop-shadow-lg">
+                    {slide.title}
+                  </h2>
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Setas de navegação */}
+      <button
+        onClick={prevSlide}
+        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white rounded-full p-3 transition backdrop-blur-sm"
+        aria-label="Slide anterior"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      
+      <button
+        onClick={nextSlide}
+        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white rounded-full p-3 transition backdrop-blur-sm"
+        aria-label="Próximo slide"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {/* Indicadores (bolinhas) */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+        {slides.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => goToSlide(index)}
+            className={`w-3 h-3 rounded-full transition-all ${
+              index === currentSlide 
+                ? 'bg-white w-8' 
+                : 'bg-white/50 hover:bg-white/75'
+            }`}
+            aria-label={`Ir para slide ${index + 1}`}
+          />
+        ))}
+      </div>
+    </div>
   )
 }
