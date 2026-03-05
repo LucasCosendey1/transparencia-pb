@@ -168,11 +168,14 @@ export default function HomePage() {
           {/* Menu Superior */}
           <nav className="hidden lg:block">
             <ul className="flex space-x-6 text-sm">
-              <li><Link href="/" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107] font-medium`}>Início</Link></li>
-              <li><Link href="/sobre" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Sobre</Link></li>
-              <li><Link href="/legislacao" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Legislação</Link></li>
-              <li><Link href="/faq" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>FAQ</Link></li>
-              <li><Link href="/contato" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Contato</Link></li>
+              <li><Link href="/portal" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107] font-medium`}>O Portal</Link></li>
+              <li><Link href="https://portal.itabaiana.pb.gov.br/mrosc/" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Parcerias (Chamamentos)</Link></li>
+              <li><Link href="/legislacao" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Fale Conosco</Link></li>
+              <li><Link href="https://portal.itabaiana.pb.gov.br/perguntas-frequentes/" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>FAQ</Link></li>
+              <li><Link href="/glossario" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Glossário</Link></li>
+                            <li><Link href="https://transparencia.elmartecnologia.com.br/DadosAbertos?e=201089&ctx=201089" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Dados Abertos</Link></li>
+              <li><Link href="https://transparencia.itabaiana.pb.gov.br/page-sitemap.xml" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Mapa do Site</Link></li>
+
             </ul>
           </nav>
         </div>
