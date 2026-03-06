@@ -1,6 +1,7 @@
-// src/app/page.tsx
+// app/page.tsx
 'use client'
 
+import Header from '../components/Header'
 import { useState, useEffect } from 'react'
 import VLibras from 'vlibras-nextjs'
 import Link from 'next/link'
@@ -100,8 +101,27 @@ export default function HomePage() {
   const [highContrast, setHighContrast] = useState(false)
 
   const adjustFontSize = (change: number) => {
-    setFontSize(prev => Math.max(12, Math.min(24, prev + change)))
+  setFontSize(prev => Math.max(12, Math.min(24, prev + change)))
+}
+
+  const [showBackToTop, setShowBackToTop] = useState(false)
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 300)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+
+
+
 
   // VLibras - Versão que FUNCIONA
  
@@ -111,96 +131,87 @@ export default function HomePage() {
       className={`min-h-screen ${highContrast ? 'bg-black' : 'bg-white'}`}
       style={{ fontSize: `${fontSize}px` }}
     >
-      {/* Barra de Acessibilidade */}
-      <div className={`${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} border-b`}>
-        <div className="max-w-7xl mx-auto px-4 py-2 flex justify-end items-center text-xs">
-          <span className={`${highContrast ? 'text-black' : 'text-gray-600'} mr-3`}>Acessibilidade</span>
-          <span className="text-gray-400 mx-2">|</span>
-          <button 
-            onClick={() => adjustFontSize(1)}
-            className={`mx-2 ${highContrast ? 'text-black bg-yellow-400' : 'text-[#0d6efd]'} font-bold hover:underline px-2 py-1 rounded`}
-            title="Aumentar fonte"
-          >
-            A+
-          </button>
-          <button 
-            onClick={() => adjustFontSize(-1)}
-            className={`mx-2 ${highContrast ? 'text-black bg-yellow-400' : 'text-[#0d6efd]'} font-bold hover:underline px-2 py-1 rounded`}
-            title="Diminuir fonte"
-          >
-            A-
-          </button>
-          <button 
-            onClick={() => setFontSize(16)}
-            className={`mx-2 ${highContrast ? 'text-black bg-yellow-400' : 'text-[#0d6efd]'} font-bold hover:underline px-2 py-1 rounded`}
-            title="Tamanho normal"
-          >
-            A
-          </button>
-          <span className="text-gray-400 mx-2">|</span>
-          <button 
-            onClick={() => setHighContrast(!highContrast)}
-            className={`mx-2 ${highContrast ? 'text-black bg-yellow-400' : 'text-[#0d6efd]'} hover:underline px-2 py-1 rounded`}
-            title={highContrast ? "Desativar contraste" : "Ativar alto contraste"}
-          >
-            ◐
-          </button>
-        </div>
-      </div>
+      {/* Estilos CSS personalizados para animação */}
+      <style jsx global>{`
 
-      {/* Header Principal */}
-    <header className={`${highContrast ? 'bg-black border-b-4 border-yellow-300' : 'bg-white shadow-sm'}`}>
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        {/* Linha 1: Logo + Menu */}
-        <div className="flex items-center justify-between mb-4">
-          {/* Logo */}
-          <Link href="/" className="flex-shrink-0">
-            <Image 
-              src="/ItabaianaCidadeDoTrabalho.png" 
-              alt="Itabaiana - Cidade do Trabalho" 
-              width={250}
-              height={80}
-              className="object-contain"
-              priority
-            />
-          </Link>
+     
+  /* Estado inicial das camadas - invisíveis */
+  .card-bg-yellow,
+  /* Efeito de redemoinho no azul - CIRCULAR */
+.card-bg-blue {
+  border-radius: 50%;
+  transform-origin: center;
+}
 
-          {/* Menu Superior */}
-          <nav className="hidden lg:block">
-            <ul className="flex space-x-6 text-sm">
-              <li><Link href="/portal" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107] font-medium`}>O Portal</Link></li>
-              <li><Link href="https://portal.itabaiana.pb.gov.br/mrosc/" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Parcerias (Chamamentos)</Link></li>
-              <li><Link href="/legislacao" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Fale Conosco</Link></li>
-              <li><Link href="https://portal.itabaiana.pb.gov.br/perguntas-frequentes/" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>FAQ</Link></li>
-              <li><Link href="/glossario" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Glossário</Link></li>
-                            <li><Link href="https://transparencia.elmartecnologia.com.br/DadosAbertos?e=201089&ctx=201089" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Dados Abertos</Link></li>
-              <li><Link href="https://transparencia.itabaiana.pb.gov.br/page-sitemap.xml" className={`${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107]`}>Mapa do Site</Link></li>
+/* Animação: Azul cresce das 4 bordas para o centro */
+.card-animated:hover .card-bg-blue {
+  animation: blueGrowFromEdges 0.6s 0.2s ease-out forwards;
+}
 
-            </ul>
-          </nav>
-        </div>
+@keyframes blueGrowFromEdges {
+  0% { 
+    opacity: 1;
+    transform: scale(0) rotate(0deg);
+  }
+  100% { 
+    opacity: 1;
+    transform: scale(3) rotate(180deg);
+  }
+}
 
-        {/* Linha 2: Barra de Busca pequena */}
-        <div className="flex justify-end">
-          <form className="flex w-full max-w-md">
-            <input
-              type="search"
-              placeholder="Estou procurando por..."
-              className={`flex-1 px-3 py-2 text-sm border ${highContrast ? 'bg-black text-yellow-300 border-yellow-300' : 'text-black border-gray-300'} rounded-l focus:outline-none focus:ring-2 focus:ring-[#0d6efd]`}
-            />
-            <button 
-              type="submit"
-              className="bg-[#ffffff] text-white px-6 py-2 rounded-r hover:bg-[#0a58ca] transition text-sm"
-            >
-              🔍
-            </button>
-          </form>
-        </div>
-      </div>
-    </header>
+  /* Animação: Ícone desaparece e volta */
+  .card-animated:hover .card-icon {
+    animation: iconFade 1.2s ease-in-out forwards;
+  }
 
-      {/* Linha Decorativa */}
-      <div className="h-1 bg-gradient-to-r from-[#ffc107] via-[#0d6efd] to-[#ffc107]"></div>
+  @keyframes iconFade {
+    0% { opacity: 1; }
+    30% { opacity: 0; }
+    70% { opacity: 0; }
+    100% { opacity: 1; color: white; }
+  }
+
+  /* Animação: "Itabaiana" aparece e desaparece */
+  .card-animated:hover .card-itabaiana {
+    animation: itabaianaShow 1.2s ease-in-out forwards;
+  }
+
+  @keyframes itabaianaShow {
+    0% { opacity: 0; transform: scale(0.5); }
+    30% { opacity: 1; transform: scale(1); }
+    70% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.5); }
+  }
+
+  /* Título fica branco no hover */
+  .card-animated:hover .card-title {
+    animation: titleWhite 0.7s 0.2s ease-out forwards;
+  }
+
+  @keyframes titleWhite {
+    0% { color: inherit; }
+    100% { color: white; }
+  }
+
+  /* Descrição aparece */
+  .card-animated:hover .card-description {
+    animation: descriptionShow 0.3s 0.7s ease-out forwards;
+  }
+
+  @keyframes descriptionShow {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+      `}</style>
+
+    <Header 
+      highContrast={highContrast}
+      fontSize={fontSize}
+      adjustFontSize={adjustFontSize}
+      setHighContrast={setHighContrast}
+      setFontSize={setFontSize}
+    />
+
 
       {/* Carrossel de Banners */}
       <section className={`${highContrast ? 'bg-black' : 'bg-gray-100'} py-8`}>
@@ -209,10 +220,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <main className={`${highContrast ? 'bg-black' : 'bg-gray-50'} py-12`}>
+      <main className={`${highContrast ? 'bg-black' : 'bg-gray-50'} py-12 pt-32`}>
         <div className="max-w-7xl mx-auto px-4">
           
           {/* Seção: LGPD & Governo Digital */}
+          <div>
           <Section 
             title="LGPD & Governo Digital" 
             color="yellow"
@@ -227,8 +239,10 @@ export default function HomePage() {
             <CategoryCard icon={FaSave} title="Regulamentação LGPD" description="Normas de proteção de dados" link="" highContrast={highContrast} />
             <CategoryCard icon={FaBars} title="Regulamentação LAI" description="Lei de Acesso à Informação" link="" highContrast={highContrast} />
           </Section>
+          </div>
 
           {/* Seção: Consultas sobre receitas */}
+          <div>
           <Section 
             title="Consultas sobre receitas" 
             color="blue"
@@ -248,8 +262,10 @@ export default function HomePage() {
             <CategoryCard icon={FaDollarSign} title="Execução de Emendas PIX" description="Transferências diretas de emendas" link="" highContrast={highContrast} />
             <CategoryCard icon={FaUniversity} title="Recursos Federais Recebidos" description="Transferências da União" link="" highContrast={highContrast} />
           </Section>
+          </div>
 
           {/* Seção: Consultas sobre recursos humanos */}
+          <div>
           <Section 
             title="Consultas sobre recursos humanos" 
             color="pink"
@@ -266,8 +282,10 @@ export default function HomePage() {
             <CategoryCard icon={FaLock} title="Terceirizados" description="Serviços terceirizados" link="" highContrast={highContrast} />
             <CategoryCard icon={FaCheckDouble} title="Seleções" description="Processos seletivos" link="" highContrast={highContrast} />
           </Section>
+          </div>
 
           {/* Seção: Consultas sobre licitações, contratos e obras */}
+          <div>
           <Section 
             title="Consultas sobre licitações, contratos e obras" 
             color="orange"
@@ -289,8 +307,10 @@ export default function HomePage() {
             <CategoryCard icon={FaPause} title="Obras Paralisadas" description="Obras interrompidas" link="" highContrast={highContrast} />
             <CategoryCard icon={FaHardHat} title="Fiscais de Obras" description="Responsáveis por obras" link="" highContrast={highContrast} />
           </Section>
+          </div>
 
           {/* Seção: Consultas sobre responsabilidade fiscal */}
+          <div>
           <Section 
             title="Consultas sobre responsabilidade fiscal" 
             color="indigo"
@@ -307,8 +327,10 @@ export default function HomePage() {
             <CategoryCard icon={FaFileSignature} title="Lei de Diretrizes Orçamentárias 2025" description="LDO do ano" link="" highContrast={highContrast} />
             <CategoryCard icon={FaEdit} title="Projeto de Lei de Diretrizes Orçamentárias 2026" description="Proposta de LDO" link="" highContrast={highContrast} />
           </Section>
+          </div>
 
           {/* Seção: Consultas sobre a gestão municipal */}
+          <div>
           <Section 
             title="Consultas sobre a gestão municipal" 
             color="green"
@@ -324,8 +346,10 @@ export default function HomePage() {
             <CategoryCard icon={FaQuestionCircle} title="Perguntas Frequentes" description="Dúvidas comuns" link="" highContrast={highContrast} />
             <CategoryCard icon={FaUserFriends} title="Conselhos Municipais" description="Conselhos participativos" link="" highContrast={highContrast} />
           </Section>
+          </div>
 
           {/* Seção: Consultas sobre participação cidadã */}
+          <div>
           <Section 
             title="Consultas sobre participação cidadã" 
             color="cyan"
@@ -340,8 +364,10 @@ export default function HomePage() {
             <CategoryCard icon={FaPhoneSquareAlt} title="Ouvidoria (Fala.BR)" description="Ouvidoria federal" link="" highContrast={highContrast} />
             <CategoryCard icon={FaDesktop} title="Carta de Serviços ao Usuário" description="Serviços disponíveis" link="" highContrast={highContrast} />
           </Section>
+          </div>
 
           {/* Seção: Consultas sobre educação & saúde */}
+          <div>
           <Section 
             title="Consultas sobre educação & saúde" 
             color="yellow"
@@ -360,6 +386,7 @@ export default function HomePage() {
             <CategoryCard icon={FaPills} title="Lista de Medicamentos" description="Medicamentos disponíveis" link="" highContrast={highContrast} />
             <CategoryCard icon={FaSyringe} title="Estoque Farmácia" description="Estoque atual" link="" highContrast={highContrast} />
           </Section>
+          </div>
 
 
         </div>
@@ -465,6 +492,15 @@ export default function HomePage() {
         </div>
       </footer>
 
+      {/* Botão Voltar ao Topo */}
+        <button 
+          className={`back-to-top ${showBackToTop ? 'visible' : ''}`}
+          onClick={scrollToTop}
+          aria-label="Voltar ao topo"
+        >
+          ↑
+        </button>
+
       {/* VLibras */}
       <VLibras forceOnload />
     </div>
@@ -478,6 +514,8 @@ interface SectionProps {
   children: React.ReactNode
   highContrast: boolean
 }
+
+
 
 function Section({ title, color, children, highContrast }: SectionProps) {
   const underlineColors = {
@@ -503,7 +541,7 @@ function Section({ title, color, children, highContrast }: SectionProps) {
   )
 }
 
-// Componente CategoryCard
+// Componente CategoryCard com animação customizada
 interface CategoryCardProps {
   icon: IconType
   title: string
@@ -515,21 +553,27 @@ interface CategoryCardProps {
 function CategoryCard({ icon: Icon, title, description, link, highContrast }: CategoryCardProps) {
   return (
     <Link href={link || '#'}>
-      <div className={`group relative ${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 p-6 h-full border-2 border-gray-100 overflow-hidden`}>
-        {/* Fundo colorido que aparece no hover */}
-        <div className="absolute inset-0 bg-[#0d6efd] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div className={`card-animated group relative ${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 p-6 h-full border-2 border-gray-100 overflow-hidden`}>
+        {/* Camadas de animação - inicialmente invisíveis */}
+<div className="card-bg-yellow absolute inset-0 bg-[#ffc107] opacity-0"></div>
+<div className="card-bg-blue absolute inset-0 bg-[#0d6efd] opacity-0"></div>
 
-        
         {/* Conteúdo */}
         <div className="relative z-10">
-            <Icon className={`w-12 h-12 mb-3 mx-auto ${highContrast ? 'text-black' : 'text-gray-600'} group-hover:text-white transition-all duration-300 group-hover:scale-110`} />
+          {/* Container do ícone e texto Itabaiana */}
+          <div className="relative w-12 h-12 mb-3 mx-auto">
+            <Icon className={`card-icon absolute inset-0 w-12 h-12 ${highContrast ? 'text-black' : 'text-gray-600'} transition-all duration-300`} />
+            <span className="card-itabaiana absolute inset-0 flex items-center justify-center text-[#ffc107] font-black text-lg opacity-0">
+              Itabaiana
+            </span>
+          </div>
 
-          <h3 className={`font-bold text-sm leading-tight mb-2 text-center ${highContrast ? 'text-black' : 'text-gray-800'} group-hover:text-white transition-colors`}>
+          <h3 className={`card-title font-bold text-sm leading-tight mb-2 text-center ${highContrast ? 'text-black' : 'text-gray-800'} transition-colors`}>
             {title}
           </h3>
+          
           {/* Descrição que aparece no hover */}
-          <p className="text-xs text-black opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-medium text-center">
-
+          <p className="card-description text-xs text-white opacity-0 transition-opacity duration-300 font-medium text-center">
             {description}
           </p>
         </div>
