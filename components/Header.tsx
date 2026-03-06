@@ -15,17 +15,23 @@ interface HeaderProps {
 export default function Header({ highContrast, fontSize, adjustFontSize, setHighContrast, setFontSize }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [headerColor, setHeaderColor] = useState('#ffc107')
+  const [isScrollingDown, setIsScrollingDown] = useState(true)
+  const [lastScrollY, setLastScrollY] = useState(0)
 
   useEffect(() => {
   let ticking = false
+  let prevScrollY = 0
 
   const handleScroll = () => {
     if (!ticking) {
       window.requestAnimationFrame(() => {
-        
-        const scrolled = window.scrollY > 50
+        const currentScrollY = window.scrollY
+        const scrolled = currentScrollY > 50
         setIsScrolled(scrolled)
-
+        
+        // Detectar direção do scroll
+        setIsScrollingDown(currentScrollY > prevScrollY)
+        prevScrollY = currentScrollY
 
         // Detectar seção atual e mudar cor
         const sections = [
@@ -143,8 +149,19 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
           </div>
         </div>
         
-        {/* Linha colorida dinâmica */}
-        <div className="header-color-line" style={{ background: headerColor }}></div>
+        {/* Linha colorida dinâmica com animação */}
+        <div className="relative h-1 w-full overflow-hidden bg-gray-200">
+          <div 
+            key={`${headerColor}-${isScrollingDown}`}
+            className="absolute inset-0 h-full"
+            style={{ 
+              background: headerColor,
+              animation: isScrollingDown 
+                ? 'spreadFromCenter 0.6s ease-out forwards' 
+                : 'spreadFromEdges 0.6s ease-out forwards'
+            }}
+          ></div>
+        </div>
       </header>
 
       {/* Linha Decorativa */}
