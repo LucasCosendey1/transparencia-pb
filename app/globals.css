@@ -17,6 +17,20 @@ body {
   overflow-y: auto !important;
 }
 
+@keyframes spreadFromCenter {
+  0% { clip-path: polygon(50% 0, 50% 0, 50% 100%, 50% 100%); }
+  100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+}
+
+@keyframes spreadFromEdges {
+  0% { 
+    clip-path: inset(0 50% 0 50%);
+  }
+  100% { 
+    clip-path: inset(0 0% 0 0%);
+  }
+}
+
 /* Hover underline nos links do menu */
 .menu-link {
   position: relative;
