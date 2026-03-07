@@ -228,10 +228,10 @@ export default function HomePage() {
             <CategoryCard icon={FaCreditCard} title="Receita Prevista" description="Previsão de arrecadação" link="" highContrast={highContrast} />
             <CategoryCard icon={FaChartBar} title="Receita Realizada" description="Receitas já arrecadadas" link="" highContrast={highContrast} />
             <CategoryCard icon={FaMoneyBillWave} title="Receita Extra Orçamentária" description="Receitas fora do orçamento" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaFileInvoiceDollar} title="Inscritos em Dívida Ativa" description="Devedores do município" link="" highContrast={highContrast} />
+            <CategoryCard icon={FaFileInvoiceDollar} title="Inscritos em Dívida Ativa" description="Devedores do município" link="\inscritos-divida-ativa" highContrast={highContrast} />
             <CategoryCard icon={FaVirus} title="Receitas Covid-19" description="Recursos para combate à pandemia" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaHandHoldingUsd} title="Desonerações Fiscais Concedidas" description="Isenções e benefícios fiscais" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaCoins} title="Renúncia Fiscal Prevista e Realizada" description="Valores de renúncias fiscais" link="" highContrast={highContrast} />
+            <CategoryCard icon={FaHandHoldingUsd} title="Desonerações Fiscais Concedidas" description="Isenções e benefícios fiscais" link="/desoneracoes-fiscais" highContrast={highContrast} />
+            <CategoryCard icon={FaCoins} title="Renúncia Fiscal Prevista e Realizada" description="Valores de renúncias fiscais" link="/renuncia-fiscal-prevista-e-realizada" highContrast={highContrast} />
             <CategoryCard icon={FaUserTie} title="Beneficiários das Desonerações e Renúncias" description="Quem recebe benefícios fiscais" link="" highContrast={highContrast} />
             <CategoryCard icon={FaPalette} title="Projetos de Incentivo à Cultura" description="Apoio a projetos culturais" link="" highContrast={highContrast} />
             <CategoryCard icon={FaLandmark} title="Emendas Parlamentares Federais" description="Emendas de deputados federais" link="" highContrast={highContrast} />
@@ -255,7 +255,7 @@ export default function HomePage() {
 
           <Section title="Consultas sobre licitações, contratos e obras" color="orange" highContrast={highContrast}>
             <CategoryCard icon={FaCheckCircle} title="Licitações" description="Processos licitatórios" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaFileAlt} title="Editais" description="Editais publicados" link="" highContrast={highContrast} />
+            <CategoryCard icon={FaFileAlt} title="Editais" description="Editais publicados" link="/editais" highContrast={highContrast} />
             <CategoryCard icon={FaFileContract} title="Documentos Fase Interna e Externa" description="Documentação das licitações" link="" highContrast={highContrast} />
             <CategoryCard icon={FaUserSlash} title="Inexigibilidade" description="Contratações inexigíveis" link="" highContrast={highContrast} />
             <CategoryCard icon={FaTimesCircle} title="Dispensas de Licitação" description="Contratações dispensadas" link="" highContrast={highContrast} />
