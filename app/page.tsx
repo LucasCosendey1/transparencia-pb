@@ -1,26 +1,20 @@
-// app/page.tsx
 'use client'
 
 import Header from '../components/Header'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image' 
+import VLibras from 'vlibras-nextjs'
 import { 
   FaDollarSign, 
   FaMoneyBillWave, 
   FaUsers,
-  FaBriefcase,
-  FaHandshake,
   FaFileContract,
   FaBuilding,
   FaChartLine,
-  FaDatabase,
   FaUserFriends,
   FaGavel,
-  FaCar,
   FaLandmark,
   FaBalanceScale,
-  FaBookOpen,
   FaComments,
   FaHeartbeat,
   FaGraduationCap,
@@ -58,7 +52,6 @@ import {
   FaFileContract as FaContract,
   FaUserCog,
   FaCalendarAlt,
-  FaHammer,
   FaPause,
   FaHardHat,
   FaFileArchive,
@@ -87,21 +80,13 @@ import {
 } from 'react-icons/fa'
 import { IconType } from 'react-icons'
 
-  
-
-declare global {
-  interface Window {
-    VLibras: any;
-  }
-}
-
 export default function HomePage() {
   const [fontSize, setFontSize] = useState(16)
   const [highContrast, setHighContrast] = useState(false)
 
   const adjustFontSize = (change: number) => {
-  setFontSize(prev => Math.max(12, Math.min(24, prev + change)))
-}
+    setFontSize(prev => Math.max(12, Math.min(24, prev + change)))
+  }
 
   const [showBackToTop, setShowBackToTop] = useState(false)
 
@@ -118,129 +103,107 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-
-
-
-
-  // VLibras - Versão que FUNCIONA
- 
-
   return (
     <div 
       className={`min-h-screen ${highContrast ? 'bg-black' : 'bg-white'}`}
       style={{ fontSize: `${fontSize}px` }}
     >
-      {/* Estilos CSS personalizados para animação */}
       <style jsx global>{`
-  /* Estado inicial das camadas */
-  .card-bg-yellow,
-  .card-bg-blue {
-    transform-origin: center;
-  }
+        .card-bg-yellow,
+        .card-bg-blue {
+          transform-origin: center;
+        }
 
-  /* Animação 1: Círculo crescente com rotação */
-  .card-anim-1:hover .card-bg-blue {
-    border-radius: 50%;
-    animation: blueCircle 0.6s 0.2s ease-out forwards;
-  }
-  
-  /* Animação 2: Quadrado que cresce */
-  .card-anim-2:hover .card-bg-blue {
-    border-radius: 0%;
-    animation: blueSquare 0.7s ease-out forwards;
-  }
-  
-  /* Animação 3: Da esquerda para direita */
-  .card-anim-3:hover .card-bg-blue {
-    border-radius: 0%;
-    animation: blueSlide 0.6s ease-in-out forwards;
-  }
-  
-  /* Animação 4: Explosão do centro */
-  .card-anim-4:hover .card-bg-blue {
-    border-radius: 50%;
-    animation: blueExplode 0.5s ease-out forwards;
-  }
+        .card-anim-1:hover .card-bg-blue {
+          border-radius: 50%;
+          animation: blueCircle 0.6s 0.2s ease-out forwards;
+        }
+        
+        .card-anim-2:hover .card-bg-blue {
+          border-radius: 0%;
+          animation: blueSquare 0.7s ease-out forwards;
+        }
+        
+        .card-anim-3:hover .card-bg-blue {
+          border-radius: 0%;
+          animation: blueSlide 0.6s ease-in-out forwards;
+        }
+        
+        .card-anim-4:hover .card-bg-blue {
+          border-radius: 50%;
+          animation: blueExplode 0.5s ease-out forwards;
+        }
 
-  @keyframes blueCircle {
-    0% { opacity: 1; transform: scale(0) rotate(0deg); }
-    100% { opacity: 1; transform: scale(3) rotate(180deg); }
-  }
+        @keyframes blueCircle {
+          0% { opacity: 1; transform: scale(0) rotate(0deg); }
+          100% { opacity: 1; transform: scale(3) rotate(180deg); }
+        }
 
-  @keyframes blueSquare {
-    0% { opacity: 1; transform: scale(0) rotate(45deg); }
-    100% { opacity: 1; transform: scale(2.5) rotate(0deg); }
-  }
+        @keyframes blueSquare {
+          0% { opacity: 1; transform: scale(0) rotate(45deg); }
+          100% { opacity: 1; transform: scale(2.5) rotate(0deg); }
+        }
 
-  @keyframes blueSlide {
-    0% { 
-      opacity: 1; 
-      transform: translateX(-150%) scaleY(2);
-    }
-    100% { 
-      opacity: 1; 
-      transform: translateX(0%) scaleY(2);
-    }
-  }
+        @keyframes blueSlide {
+          0% { opacity: 1; transform: translateX(-150%) scaleY(2); }
+          100% { opacity: 1; transform: translateX(0%) scaleY(2); }
+        }
 
-  @keyframes blueExplode {
-    0% { opacity: 0; transform: scale(0); }
-    50% { opacity: 1; transform: scale(4); }
-    100% { opacity: 1; transform: scale(3); }
-  }
+        @keyframes blueExplode {
+          0% { opacity: 0; transform: scale(0); }
+          50% { opacity: 1; transform: scale(4); }
+          100% { opacity: 1; transform: scale(3); }
+        }
 
-  /* Animações comuns a todos os cards */
-  .card-animated:hover .card-icon {
-    animation: iconFade 1.2s ease-in-out forwards;
-  }
+        .card-animated:hover .card-icon {
+          animation: iconFade 1.2s ease-in-out forwards;
+        }
 
-  @keyframes iconFade {
-    0% { opacity: 1; }
-    30% { opacity: 0; }
-    70% { opacity: 0; }
-    100% { opacity: 1; color: white; }
-  }
+        @keyframes iconFade {
+          0% { opacity: 1; }
+          30% { opacity: 0; }
+          70% { opacity: 0; }
+          100% { opacity: 1; color: white; }
+        }
 
-  .card-animated:hover .card-itabaiana {
-    animation: itabaianaShow 1.2s ease-in-out forwards;
-  }
+        .card-animated:hover .card-itabaiana {
+          animation: itabaianaShow 1.2s ease-in-out forwards;
+        }
 
-  @keyframes itabaianaShow {
-    0% { opacity: 0; transform: scale(0.5); }
-    30% { opacity: 1; transform: scale(1); }
-    70% { opacity: 1; transform: scale(1); }
-    100% { opacity: 0; transform: scale(0.5); }
-  }
+        @keyframes itabaianaShow {
+          0% { opacity: 0; transform: scale(0.5); }
+          30% { opacity: 1; transform: scale(1); }
+          70% { opacity: 1; transform: scale(1); }
+          100% { opacity: 0; transform: scale(0.5); }
+        }
 
-  .card-animated:hover .card-title {
-    animation: titleWhite 0.7s 0.2s ease-out forwards;
-  }
+        .card-animated:hover .card-title {
+          animation: titleWhite 0.7s 0.2s ease-out forwards;
+        }
 
-  @keyframes titleWhite {
-    0% { color: inherit; }
-    100% { color: white; }
-  }
+        @keyframes titleWhite {
+          0% { color: inherit; }
+          100% { color: white; }
+        }
 
-  .card-animated:hover .card-description {
-    animation: descriptionShow 0.3s 0.7s ease-out forwards;
-  }
+        .card-animated:hover .card-description {
+          animation: descriptionShow 0.3s 0.7s ease-out forwards;
+        }
 
-  @keyframes descriptionShow {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
-  }
-`}</style>
+        @keyframes descriptionShow {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+      `}</style>
 
-    <Header 
-      highContrast={highContrast}
-      fontSize={fontSize}
-      adjustFontSize={adjustFontSize}
-      setHighContrast={setHighContrast}
-      setFontSize={setFontSize}
-    />
+      <Header 
+        highContrast={highContrast}
+        fontSize={fontSize}
+        adjustFontSize={adjustFontSize}
+        setHighContrast={setHighContrast}
+        setFontSize={setFontSize}
+      />
 
-
-      {/* Carrossel de Banners */}
       <section className={`${highContrast ? 'bg-black' : 'bg-gray-100'} py-8 pt-40`}>
         <div className="max-w-7xl mx-auto px-4">
           <Carousel highContrast={highContrast} />
@@ -250,31 +213,18 @@ export default function HomePage() {
       <main className={`${highContrast ? 'bg-black' : 'bg-gray-50'} py-12 pt-32`}>
         <div className="max-w-7xl mx-auto px-4">
           
-          {/* Seção: LGPD & Governo Digital */}
-          <div>
-          <Section 
-            title="LGPD & Governo Digital" 
-            color="yellow"
-            highContrast={highContrast}
-          >
-            <CategoryCard icon={FaUserCircle} title="Encarregado pelo Tratamento de Dados" description="Responsável pela proteção de dados" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaShieldAlt} title="Política de Privacidade e Proteção dos Dados" description="Veja como protegemos seus dados" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaKeyboard} title="Prefeitura Digital" description="Serviços digitais da prefeitura" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaRegistered} title="Decreto Governo Digital" description="Legislação sobre governo digital" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaClipboardCheck} title="Pesquisa de Satisfação" description="Avalie nossos serviços" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaCrosshairs} title="Governança Pública & Compliance" description="Práticas de boa governança" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaSave} title="Regulamentação LGPD" description="Normas de proteção de dados" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaBars} title="Regulamentação LAI" description="Lei de Acesso à Informação" link="" highContrast={highContrast} />
-          </Section>
-          </div>
+          <Section title="LGPD & Governo Digital" color="yellow" highContrast={highContrast}>
+            <CategoryCard icon={FaUserCircle} title="Encarregado pelo Tratamento de Dados" description="Responsável pela proteção de dados" link="/encarregado-pelo-tratamento-de-dados" highContrast={highContrast} />
+            <CategoryCard icon={FaShieldAlt} title="Política de Privacidade e Proteção dos Dados" description="Veja como protegemos seus dados" link="/politica-de-privacidade-e-protecao-dos-dados" highContrast={highContrast} />
+            <CategoryCard icon={FaKeyboard} title="Prefeitura Digital" description="Serviços digitais da prefeitura" link="https://itabaiana.flowdocs.com.br:2087/public/home" target="_blank"  highContrast={highContrast} />
+            <CategoryCard icon={FaRegistered} title="Decreto Governo Digital" description="Legislação sobre governo digital" link="/decreto-governo-digital" highContrast={highContrast} />
+            <CategoryCard icon={FaClipboardCheck} title="Pesquisa de Satisfação" description="Avalie nossos serviços" link="https://serpromais.serpro.gov.br/index.php/apps/forms/s/xnJjiAfeBXHm8F5iPawkSCiN" target="_blank"  highContrast={highContrast} />
+            <CategoryCard icon={FaCrosshairs} title="Governança Pública & Compliance" description="Práticas de boa governança" link="https://sapl.itabaiana.pb.leg.br/media/sapl/public/normajuridica/2025/751/decreto_0112025_-_dispoe_sobre_a_politica_de_governanca_publica_risco_e_compliance_no_ambito_do_poder_executivo_do_municipio_de_itabaiana__pb.pdf" target="_blank"  highContrast={highContrast} />
+            <CategoryCard icon={FaSave} title="Regulamentação LGPD" description="Normas de proteção de dados" link="https://sapl.itabaiana.pb.leg.br/media/sapl/public/normajuridica/2025/752/decreto_012_2025.pdf"target="_blank"  highContrast={highContrast} />
+            <CategoryCard icon={FaBars} title="Regulamentação LAI" description="Lei de Acesso à Informação" link="https://portal.itabaiana.pb.gov.br/wp-content/uploads/2025/01/A-FOLHA-12-23-de-Janeiro.pdf" target="_blank" highContrast={highContrast} />          
+            </Section>
 
-          {/* Seção: Consultas sobre receitas */}
-          <div>
-          <Section 
-            title="Consultas sobre receitas" 
-            color="blue"
-            highContrast={highContrast}
-          >
+          <Section title="Consultas sobre receitas" color="blue" highContrast={highContrast}>
             <CategoryCard icon={FaCreditCard} title="Receita Prevista" description="Previsão de arrecadação" link="" highContrast={highContrast} />
             <CategoryCard icon={FaChartBar} title="Receita Realizada" description="Receitas já arrecadadas" link="" highContrast={highContrast} />
             <CategoryCard icon={FaMoneyBillWave} title="Receita Extra Orçamentária" description="Receitas fora do orçamento" link="" highContrast={highContrast} />
@@ -289,15 +239,8 @@ export default function HomePage() {
             <CategoryCard icon={FaDollarSign} title="Execução de Emendas PIX" description="Transferências diretas de emendas" link="" highContrast={highContrast} />
             <CategoryCard icon={FaUniversity} title="Recursos Federais Recebidos" description="Transferências da União" link="" highContrast={highContrast} />
           </Section>
-          </div>
 
-          {/* Seção: Consultas sobre recursos humanos */}
-          <div>
-          <Section 
-            title="Consultas sobre recursos humanos" 
-            color="pink"
-            highContrast={highContrast}
-          >
+          <Section title="Consultas sobre recursos humanos" color="pink" highContrast={highContrast}>
             <CategoryCard icon={FaListAlt} title="Folha de Pagamento" description="Remuneração dos servidores" link="" highContrast={highContrast} />
             <CategoryCard icon={FaUsers} title="Quadro Funcional" description="Lista completa de servidores" link="" highContrast={highContrast} />
             <CategoryCard icon={FaUserCheck} title="Servidores Temporários" description="Contratos temporários" link="" highContrast={highContrast} />
@@ -309,15 +252,8 @@ export default function HomePage() {
             <CategoryCard icon={FaLock} title="Terceirizados" description="Serviços terceirizados" link="" highContrast={highContrast} />
             <CategoryCard icon={FaCheckDouble} title="Seleções" description="Processos seletivos" link="" highContrast={highContrast} />
           </Section>
-          </div>
 
-          {/* Seção: Consultas sobre licitações, contratos e obras */}
-          <div>
-          <Section 
-            title="Consultas sobre licitações, contratos e obras" 
-            color="orange"
-            highContrast={highContrast}
-          >
+          <Section title="Consultas sobre licitações, contratos e obras" color="orange" highContrast={highContrast}>
             <CategoryCard icon={FaCheckCircle} title="Licitações" description="Processos licitatórios" link="" highContrast={highContrast} />
             <CategoryCard icon={FaFileAlt} title="Editais" description="Editais publicados" link="" highContrast={highContrast} />
             <CategoryCard icon={FaFileContract} title="Documentos Fase Interna e Externa" description="Documentação das licitações" link="" highContrast={highContrast} />
@@ -334,15 +270,8 @@ export default function HomePage() {
             <CategoryCard icon={FaPause} title="Obras Paralisadas" description="Obras interrompidas" link="" highContrast={highContrast} />
             <CategoryCard icon={FaHardHat} title="Fiscais de Obras" description="Responsáveis por obras" link="" highContrast={highContrast} />
           </Section>
-          </div>
 
-          {/* Seção: Consultas sobre responsabilidade fiscal */}
-          <div>
-          <Section 
-            title="Consultas sobre responsabilidade fiscal" 
-            color="indigo"
-            highContrast={highContrast}
-          >
+          <Section title="Consultas sobre responsabilidade fiscal" color="indigo" highContrast={highContrast}>
             <CategoryCard icon={FaFileArchive} title="Prestações de Contas" description="Contas públicas" link="" highContrast={highContrast} />
             <CategoryCard icon={FaClipboardList} title="Relatório de Gestão e Atividades" description="Gestão administrativa" link="" highContrast={highContrast} />
             <CategoryCard icon={FaFolder} title="Pareceres do Tribunal de Contas" description="Análises do TCE" link="" highContrast={highContrast} />
@@ -354,15 +283,8 @@ export default function HomePage() {
             <CategoryCard icon={FaFileSignature} title="Lei de Diretrizes Orçamentárias 2025" description="LDO do ano" link="" highContrast={highContrast} />
             <CategoryCard icon={FaEdit} title="Projeto de Lei de Diretrizes Orçamentárias 2026" description="Proposta de LDO" link="" highContrast={highContrast} />
           </Section>
-          </div>
 
-          {/* Seção: Consultas sobre a gestão municipal */}
-          <div>
-          <Section 
-            title="Consultas sobre a gestão municipal" 
-            color="green"
-            highContrast={highContrast}
-          >
+          <Section title="Consultas sobre a gestão municipal" color="green" highContrast={highContrast}>
             <CategoryCard icon={FaChartLine} title="Plano Estratégico Institucional" description="Planejamento estratégico" link="" highContrast={highContrast} />
             <CategoryCard icon={FaBuilding} title="Estrutura Organizacional" description="Organograma da prefeitura" link="" highContrast={highContrast} />
             <CategoryCard icon={FaFileAlt} title="Competências e Atribuições" description="Funções de cada setor" link="" highContrast={highContrast} />
@@ -373,15 +295,8 @@ export default function HomePage() {
             <CategoryCard icon={FaQuestionCircle} title="Perguntas Frequentes" description="Dúvidas comuns" link="" highContrast={highContrast} />
             <CategoryCard icon={FaUserFriends} title="Conselhos Municipais" description="Conselhos participativos" link="" highContrast={highContrast} />
           </Section>
-          </div>
 
-          {/* Seção: Consultas sobre participação cidadã */}
-          <div>
-          <Section 
-            title="Consultas sobre participação cidadã" 
-            color="cyan"
-            highContrast={highContrast}
-          >
+          <Section title="Consultas sobre participação cidadã" color="cyan" highContrast={highContrast}>
             <CategoryCard icon={FaComments} title="Serviço de Informação ao Cidadão" description="SIC presencial" link="" highContrast={highContrast} />
             <CategoryCard icon={FaEnvelope} title="Serviço Eletrônico de Informação ao Cidadão" description="E-SIC online" link="" highContrast={highContrast} />
             <CategoryCard icon={FaClipboard} title="Relatório Anual do SIC" description="Balanço do SIC" link="" highContrast={highContrast} />
@@ -391,15 +306,8 @@ export default function HomePage() {
             <CategoryCard icon={FaPhoneSquareAlt} title="Ouvidoria (Fala.BR)" description="Ouvidoria federal" link="" highContrast={highContrast} />
             <CategoryCard icon={FaDesktop} title="Carta de Serviços ao Usuário" description="Serviços disponíveis" link="" highContrast={highContrast} />
           </Section>
-          </div>
 
-          {/* Seção: Consultas sobre educação & saúde */}
-          <div>
-          <Section 
-            title="Consultas sobre educação & saúde" 
-            color="yellow"
-            highContrast={highContrast}
-          >
+          <Section title="Consultas sobre educação & saúde" color="yellow" highContrast={highContrast}>
             <CategoryCard icon={FaGraduationCap} title="Plano Municipal de Educação" description="PME vigente" link="" highContrast={highContrast} />
             <CategoryCard icon={FaBook} title="Relatório do Plano Municipal de Educação" description="Acompanhamento do PME" link="" highContrast={highContrast} />
             <CategoryCard icon={FaBriefcaseMedical} title="Lista de Espera Creches" description="Fila de creches" link="" highContrast={highContrast} />
@@ -413,13 +321,10 @@ export default function HomePage() {
             <CategoryCard icon={FaPills} title="Lista de Medicamentos" description="Medicamentos disponíveis" link="" highContrast={highContrast} />
             <CategoryCard icon={FaSyringe} title="Estoque Farmácia" description="Estoque atual" link="" highContrast={highContrast} />
           </Section>
-          </div>
-
 
         </div>
       </main>
 
-      {/* Footer Profissional */}
       <footer className="bg-gradient-to-r from-[#0d6efd] to-[#0a58ca] text-white">
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -430,9 +335,9 @@ export default function HomePage() {
               </h3>
               <ul className="space-y-2 text-sm mt-4">
                 <li><Link href="/" className="hover:text-[#ffc107] transition">Início</Link></li>
-                <li><Link href="/sobre" className="hover:text-[#ffc107] transition">Sobre o Portal</Link></li>
-                <li><Link href="/legislacao" className="hover:text-[#ffc107] transition">Legislação</Link></li>
-                <li><Link href="/faq" className="hover:text-[#ffc107] transition">Perguntas Frequentes</Link></li>
+                <li><Link href="/portal" className="hover:text-[#ffc107] transition">O Portal</Link></li>
+                <li><Link href="/glossario" className="hover:text-[#ffc107] transition">Glossário</Link></li>
+                <li><Link href="/contato" className="hover:text-[#ffc107] transition">Fale Conosco</Link></li>
               </ul>
             </div>
 
@@ -456,9 +361,6 @@ export default function HomePage() {
                 <li><Link href="#lgpd" className="hover:text-[#ffc107] transition">LGPD</Link></li>
                 <li><Link href="#participacao" className="hover:text-[#ffc107] transition">Participação Cidadã</Link></li>
                 <li><Link href="#educacao" className="hover:text-[#ffc107] transition">Educação e Saúde</Link></li>
-                <li><Link href="/analise" className="hover:text-[#ffc107] transition flex items-center">
-                 
-                </Link></li>
               </ul>
             </div>
 
@@ -519,29 +421,25 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {/* Botão Voltar ao Topo */}
-        <button 
-          className={`back-to-top ${showBackToTop ? 'visible' : ''}`}
-          onClick={scrollToTop}
-          aria-label="Voltar ao topo"
-        >
-          ↑
-        </button>
+      <button 
+        className={`back-to-top ${showBackToTop ? 'visible' : ''}`}
+        onClick={scrollToTop}
+        aria-label="Voltar ao topo"
+      >
+        ↑
+      </button>
 
-
+      <VLibras forceOnload />
     </div>
   )
 }
 
-// Componente Section
 interface SectionProps {
   title: string
   color: 'yellow' | 'blue' | 'pink' | 'orange' | 'indigo' | 'green' | 'cyan'
   children: React.ReactNode
   highContrast: boolean
 }
-
-
 
 function Section({ title, color, children, highContrast }: SectionProps) {
   const underlineColors = {
@@ -567,41 +465,38 @@ function Section({ title, color, children, highContrast }: SectionProps) {
   )
 }
 
-// Componente CategoryCard com animação customizada
 interface CategoryCardProps {
   icon: IconType
   title: string
   description: string
   link: string
+  target?: string
   highContrast: boolean
 }
 
-function CategoryCard({ icon: Icon, title, description, link, highContrast }: CategoryCardProps) {
-  // Gera um índice consistente baseado no título
-  const termIndex = useMemo(() => {
-    let hash = 0
-    for (let i = 0; i < title.length; i++) {
-      hash = ((hash << 5) - hash) + title.charCodeAt(i)
-      hash = hash & hash
-    }
-    return Math.abs(hash) % 8
-  }, [title])
-  
-  const animIndex = useMemo(() => {
-    let hash = 0
-    for (let i = 0; i < title.length; i++) {
-      hash = ((hash << 3) - hash) + title.charCodeAt(i)
-      hash = hash & hash
-    }
-    return Math.abs(hash) % 4
-  }, [title])
+function CategoryCard({ icon: Icon, title, description, link, target, highContrast }: CategoryCardProps) {
+  const [randomTerm, setRandomTerm] = useState('')
+  const [animationClass, setAnimationClass] = useState('')
 
   const terms = ['Itabaiana', 'Transparência', 'Acesso', 'Informação', 'Cidadão', 'Público', 'Gestão', 'Municipal']
   const animations = ['card-anim-1', 'card-anim-2', 'card-anim-3', 'card-anim-4']
 
+  const handleMouseEnter = () => {
+    setRandomTerm(terms[Math.floor(Math.random() * terms.length)])
+    setAnimationClass(animations[Math.floor(Math.random() * animations.length)])
+  }
+
   return (
-    <Link href={link || '#'}>
-      <div className={`card-animated ${animations[animIndex]} group relative ${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 p-6 h-full border-2 border-gray-100 overflow-hidden`}>
+    <Link 
+      href={link || '#'}
+      target={target}
+      rel={target === '_blank' ? 'noopener noreferrer' : undefined}
+    >
+
+      <div 
+        className={`card-animated ${animationClass} group relative ${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 p-6 h-full border-2 border-gray-100 overflow-hidden`}
+        onMouseEnter={handleMouseEnter}
+      >
         <div className="card-bg-yellow absolute inset-0 bg-[#ffc107] opacity-0"></div>
         <div className="card-bg-blue absolute inset-0 bg-[#0d6efd] opacity-0"></div>
 
@@ -609,7 +504,7 @@ function CategoryCard({ icon: Icon, title, description, link, highContrast }: Ca
           <div className="relative w-12 h-12 mb-3 mx-auto">
             <Icon className={`card-icon absolute inset-0 w-12 h-12 ${highContrast ? 'text-black' : 'text-gray-600'} transition-all duration-300`} />
             <span className="card-itabaiana absolute inset-0 flex items-center justify-center text-[#ffc107] font-black text-lg opacity-0">
-              {terms[termIndex]}
+              {randomTerm}
             </span>
           </div>
 
@@ -626,8 +521,6 @@ function CategoryCard({ icon: Icon, title, description, link, highContrast }: Ca
   )
 }
 
-
-// Componente Carousel
 interface CarouselProps {
   highContrast: boolean
 }
@@ -637,9 +530,9 @@ function Carousel({ highContrast }: CarouselProps) {
 
   const slides = [
     {
-      image: '/banner1.jpg', // Coloque suas imagens na pasta public
+      image: '/banner1.jpg',
       title: 'Novas informações sobre saúde estão disponíveis no Portal de Dados Abertos',
-      link: '' // Deixe vazio por enquanto
+      link: ''
     },
     {
       image: '/banner2.jpg',
@@ -653,11 +546,10 @@ function Carousel({ highContrast }: CarouselProps) {
     },
   ]
 
-  // Auto-play: muda de slide a cada 30 segundos
   useEffect(() => {
-  const interval = setInterval(() => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length)
-  }, 30000)
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length)
+    }, 30000)
 
     return () => clearInterval(interval)
   }, [slides.length])
@@ -676,7 +568,6 @@ function Carousel({ highContrast }: CarouselProps) {
 
   return (
     <div className="relative rounded-lg overflow-hidden shadow-xl">
-      {/* Slides */}
       <div className="relative h-[150px] md:h-[200px]">
         {slides.map((slide, index) => (
           <Link 
@@ -687,7 +578,6 @@ function Carousel({ highContrast }: CarouselProps) {
             }`}
           >
             <div className="relative w-full h-full">
-              {/* Imagem de fundo */}
               <div 
                 className="absolute inset-0 bg-cover bg-center"
                 style={{ 
@@ -696,10 +586,8 @@ function Carousel({ highContrast }: CarouselProps) {
                 }}
               />
               
-              {/* Overlay com gradiente */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
               
-              {/* Conteúdo do slide */}
               <div className="relative h-full flex items-center px-8 md:px-16">
                 <div className="max-w-2xl">
                   <h2 className="text-white text-3xl md:text-5xl font-bold leading-tight drop-shadow-lg">
@@ -712,7 +600,6 @@ function Carousel({ highContrast }: CarouselProps) {
         ))}
       </div>
 
-      {/* Setas de navegação */}
       <button
         onClick={prevSlide}
         className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white rounded-full p-3 transition backdrop-blur-sm"
@@ -733,7 +620,6 @@ function Carousel({ highContrast }: CarouselProps) {
         </svg>
       </button>
 
-      {/* Indicadores (bolinhas) */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
         {slides.map((_, index) => (
           <button

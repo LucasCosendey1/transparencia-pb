@@ -59,7 +59,7 @@ body {
 /* Botão Voltar ao Topo */
 .back-to-top {
   position: fixed;
-  bottom: 80px;
+  bottom: 90px;
   right: 20px;
   width: 50px;
   height: 50px;
@@ -128,18 +128,18 @@ body {
 /* VLibras - Padrão dos sites do governo */
 [vw] {
   position: fixed !important;
-  z-index: 99999 !important;
+  z-index: 999999 !important;
 }
 
 [vw-access-button] {
   position: fixed !important;
   bottom: 20px !important;
   right: 20px !important;
-  z-index: 99999 !important;
+  z-index: 999999 !important;
 }
 
 [vw-plugin-wrapper] {
-  z-index: 99998 !important;
+  z-index: 999998 !important;
 }
 
 /* Header fixo que acompanha o scroll */
