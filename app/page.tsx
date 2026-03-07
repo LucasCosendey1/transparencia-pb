@@ -308,7 +308,7 @@ export default function HomePage() {
           </Section>
 
           <Section title="Consultas sobre educação & saúde" color="yellow" highContrast={highContrast}>
-            <CategoryCard icon={FaGraduationCap} title="Plano Municipal de Educação" description="PME vigente" link="" highContrast={highContrast} />
+            <CategoryCard icon={FaGraduationCap} title="Plano Municipal de Educação" description="PME vigente" link="/plano-municipal-de-educacao" highContrast={highContrast} />
             <CategoryCard icon={FaBook} title="Relatório do Plano Municipal de Educação" description="Acompanhamento do PME" link="" highContrast={highContrast} />
             <CategoryCard icon={FaBriefcaseMedical} title="Lista de Espera Creches" description="Fila de creches" link="" highContrast={highContrast} />
             <CategoryCard icon={FaUsers} title="Diagnóstico Primeira Infância" description="Situação da primeira infância" link="" highContrast={highContrast} />
