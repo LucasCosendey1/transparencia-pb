@@ -153,7 +153,7 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
           <div className="relative h-1 w-full overflow-hidden">
             {/* Gradiente padrão de fundo */}
             <div 
-              className="absolute inset-0 h-full bg-gradient-to-r from-[#ffc107] via-[#0d6efd] to-[#ffc107]"
+              className="absolute inset-0 h-full bg-gradient-to-r from-[#0d6efd] via-[#ffc107] to-[#0d6efd]"
             ></div>
             
             {/* Camada animada que aparece ao scolar */}
@@ -171,7 +171,7 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
       </header>
 
       {/* Linha Decorativa */}
-      <div className="h-1 bg-gradient-to-r from-[#ffc107] via-[#0d6efd] to-[#ffc107]"></div>
+      <div className="h-1 bg-gradient-to-r from-[#] via-[#0d6efd] toffc107-[#ffc107]"></div>
     </>
   )
 }

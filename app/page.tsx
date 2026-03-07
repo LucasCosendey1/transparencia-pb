@@ -3,9 +3,8 @@
 
 import Header from '../components/Header'
 import { useState, useEffect, useMemo } from 'react'
-import VLibras from 'vlibras-nextjs'
 import Link from 'next/link'
-import Image from 'next/image'
+import Image from 'next/image' 
 import { 
   FaDollarSign, 
   FaMoneyBillWave, 
@@ -529,8 +528,7 @@ export default function HomePage() {
           ↑
         </button>
 
-      {/* VLibras */}
-      <VLibras forceOnload />
+
     </div>
   )
 }

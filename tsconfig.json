@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "app/contato/page.js"  ],
+, "app/contato/page.js", "components/VLibrasWidget.jsx"  ],
   "exclude": ["node_modules"]
 }
