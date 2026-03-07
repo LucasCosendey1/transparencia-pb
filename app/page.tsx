@@ -2,7 +2,7 @@
 'use client'
 
 import Header from '../components/Header'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import VLibras from 'vlibras-nextjs'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -133,33 +133,64 @@ export default function HomePage() {
     >
       {/* Estilos CSS personalizados para animação */}
       <style jsx global>{`
-
-     
-  /* Estado inicial das camadas - invisíveis */
+  /* Estado inicial das camadas */
   .card-bg-yellow,
-  /* Efeito de redemoinho no azul - CIRCULAR */
-.card-bg-blue {
-  border-radius: 50%;
-  transform-origin: center;
-}
-
-/* Animação: Azul cresce das 4 bordas para o centro */
-.card-animated:hover .card-bg-blue {
-  animation: blueGrowFromEdges 0.6s 0.2s ease-out forwards;
-}
-
-@keyframes blueGrowFromEdges {
-  0% { 
-    opacity: 1;
-    transform: scale(0) rotate(0deg);
+  .card-bg-blue {
+    transform-origin: center;
   }
-  100% { 
-    opacity: 1;
-    transform: scale(3) rotate(180deg);
-  }
-}
 
-  /* Animação: Ícone desaparece e volta */
+  /* Animação 1: Círculo crescente com rotação */
+  .card-anim-1:hover .card-bg-blue {
+    border-radius: 50%;
+    animation: blueCircle 0.6s 0.2s ease-out forwards;
+  }
+  
+  /* Animação 2: Quadrado que cresce */
+  .card-anim-2:hover .card-bg-blue {
+    border-radius: 0%;
+    animation: blueSquare 0.7s ease-out forwards;
+  }
+  
+  /* Animação 3: Da esquerda para direita */
+  .card-anim-3:hover .card-bg-blue {
+    border-radius: 0%;
+    animation: blueSlide 0.6s ease-in-out forwards;
+  }
+  
+  /* Animação 4: Explosão do centro */
+  .card-anim-4:hover .card-bg-blue {
+    border-radius: 50%;
+    animation: blueExplode 0.5s ease-out forwards;
+  }
+
+  @keyframes blueCircle {
+    0% { opacity: 1; transform: scale(0) rotate(0deg); }
+    100% { opacity: 1; transform: scale(3) rotate(180deg); }
+  }
+
+  @keyframes blueSquare {
+    0% { opacity: 1; transform: scale(0) rotate(45deg); }
+    100% { opacity: 1; transform: scale(2.5) rotate(0deg); }
+  }
+
+  @keyframes blueSlide {
+    0% { 
+      opacity: 1; 
+      transform: translateX(-150%) scaleY(2);
+    }
+    100% { 
+      opacity: 1; 
+      transform: translateX(0%) scaleY(2);
+    }
+  }
+
+  @keyframes blueExplode {
+    0% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(4); }
+    100% { opacity: 1; transform: scale(3); }
+  }
+
+  /* Animações comuns a todos os cards */
   .card-animated:hover .card-icon {
     animation: iconFade 1.2s ease-in-out forwards;
   }
@@ -171,7 +202,6 @@ export default function HomePage() {
     100% { opacity: 1; color: white; }
   }
 
-  /* Animação: "Itabaiana" aparece e desaparece */
   .card-animated:hover .card-itabaiana {
     animation: itabaianaShow 1.2s ease-in-out forwards;
   }
@@ -183,7 +213,6 @@ export default function HomePage() {
     100% { opacity: 0; transform: scale(0.5); }
   }
 
-  /* Título fica branco no hover */
   .card-animated:hover .card-title {
     animation: titleWhite 0.7s 0.2s ease-out forwards;
   }
@@ -193,7 +222,6 @@ export default function HomePage() {
     100% { color: white; }
   }
 
-  /* Descrição aparece */
   .card-animated:hover .card-description {
     animation: descriptionShow 0.3s 0.7s ease-out forwards;
   }
@@ -202,7 +230,7 @@ export default function HomePage() {
     0% { opacity: 0; }
     100% { opacity: 1; }
   }
-      `}</style>
+`}</style>
 
     <Header 
       highContrast={highContrast}
@@ -214,7 +242,7 @@ export default function HomePage() {
 
 
       {/* Carrossel de Banners */}
-      <section className={`${highContrast ? 'bg-black' : 'bg-gray-100'} py-8`}>
+      <section className={`${highContrast ? 'bg-black' : 'bg-gray-100'} py-8 pt-40`}>
         <div className="max-w-7xl mx-auto px-4">
           <Carousel highContrast={highContrast} />
         </div>
@@ -551,20 +579,39 @@ interface CategoryCardProps {
 }
 
 function CategoryCard({ icon: Icon, title, description, link, highContrast }: CategoryCardProps) {
+  // Gera um índice consistente baseado no título
+  const termIndex = useMemo(() => {
+    let hash = 0
+    for (let i = 0; i < title.length; i++) {
+      hash = ((hash << 5) - hash) + title.charCodeAt(i)
+      hash = hash & hash
+    }
+    return Math.abs(hash) % 8
+  }, [title])
+  
+  const animIndex = useMemo(() => {
+    let hash = 0
+    for (let i = 0; i < title.length; i++) {
+      hash = ((hash << 3) - hash) + title.charCodeAt(i)
+      hash = hash & hash
+    }
+    return Math.abs(hash) % 4
+  }, [title])
+
+  const terms = ['Itabaiana', 'Transparência', 'Acesso', 'Informação', 'Cidadão', 'Público', 'Gestão', 'Municipal']
+  const animations = ['card-anim-1', 'card-anim-2', 'card-anim-3', 'card-anim-4']
+
   return (
     <Link href={link || '#'}>
-      <div className={`card-animated group relative ${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 p-6 h-full border-2 border-gray-100 overflow-hidden`}>
-        {/* Camadas de animação - inicialmente invisíveis */}
-<div className="card-bg-yellow absolute inset-0 bg-[#ffc107] opacity-0"></div>
-<div className="card-bg-blue absolute inset-0 bg-[#0d6efd] opacity-0"></div>
+      <div className={`card-animated ${animations[animIndex]} group relative ${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 p-6 h-full border-2 border-gray-100 overflow-hidden`}>
+        <div className="card-bg-yellow absolute inset-0 bg-[#ffc107] opacity-0"></div>
+        <div className="card-bg-blue absolute inset-0 bg-[#0d6efd] opacity-0"></div>
 
-        {/* Conteúdo */}
         <div className="relative z-10">
-          {/* Container do ícone e texto Itabaiana */}
           <div className="relative w-12 h-12 mb-3 mx-auto">
             <Icon className={`card-icon absolute inset-0 w-12 h-12 ${highContrast ? 'text-black' : 'text-gray-600'} transition-all duration-300`} />
             <span className="card-itabaiana absolute inset-0 flex items-center justify-center text-[#ffc107] font-black text-lg opacity-0">
-              Itabaiana
+              {terms[termIndex]}
             </span>
           </div>
 
@@ -572,7 +619,6 @@ function CategoryCard({ icon: Icon, title, description, link, highContrast }: Ca
             {title}
           </h3>
           
-          {/* Descrição que aparece no hover */}
           <p className="card-description text-xs text-white opacity-0 transition-opacity duration-300 font-medium text-center">
             {description}
           </p>

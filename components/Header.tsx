@@ -111,7 +111,7 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
 
       {/* Header Principal */}
       <header className={`sticky-header ${isScrolled ? 'scrolled' : ''} ${highContrast ? 'bg-black border-b-4 border-yellow-300' : 'bg-white shadow-sm'} relative`}>
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className={`max-w-7xl mx-auto px-4 transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4'}`}>
           <div className="flex items-center justify-between gap-8">
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
@@ -150,18 +150,24 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
         </div>
         
         {/* Linha colorida dinâmica com animação */}
-        <div className="relative h-1 w-full overflow-hidden bg-gray-200">
-          <div 
-            key={`${headerColor}-${isScrollingDown}`}
-            className="absolute inset-0 h-full"
-            style={{ 
-              background: headerColor,
-              animation: isScrollingDown 
-                ? 'spreadFromCenter 0.6s ease-out forwards' 
-                : 'spreadFromEdges 0.6s ease-out forwards'
-            }}
-          ></div>
-        </div>
+          <div className="relative h-1 w-full overflow-hidden">
+            {/* Gradiente padrão de fundo */}
+            <div 
+              className="absolute inset-0 h-full bg-gradient-to-r from-[#ffc107] via-[#0d6efd] to-[#ffc107]"
+            ></div>
+            
+            {/* Camada animada que aparece ao scolar */}
+            {isScrolled && (
+              <div 
+                key={headerColor}
+                className="absolute inset-0 h-full"
+                style={{ 
+                  background: headerColor,
+                  animation: 'spreadFromCenter 0.6s ease-out forwards'
+                }}
+              ></div>
+            )}
+          </div>
       </header>
 
       {/* Linha Decorativa */}

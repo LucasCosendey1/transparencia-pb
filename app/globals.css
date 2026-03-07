@@ -18,18 +18,23 @@ body {
 }
 
 @keyframes spreadFromCenter {
-  0% { clip-path: polygon(50% 0, 50% 0, 50% 100%, 50% 100%); }
-  100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+  0% { 
+    clip-path: polygon(50% 0, 50% 0, 50% 100%, 50% 100%);
+  }
+  100% { 
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
 }
 
 @keyframes spreadFromEdges {
   0% { 
-    clip-path: inset(0 50% 0 50%);
+    clip-path: polygon(0 0, 0 0, 0 100%, 0 100%, 100% 100%, 100% 100%, 100% 0, 100% 0);
   }
   100% { 
-    clip-path: inset(0 0% 0 0%);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
   }
 }
+
 
 /* Hover underline nos links do menu */
 .menu-link {
@@ -133,10 +138,19 @@ body {
   to { opacity: 1; }
 }
 
-/* VLibras - Forçar visibilidade */
-[data-vw] {
-  position: fixed !important;
-  z-index: 99999 !important;
+/* VLibras - Aparece apenas no hover */
+[vw-access-button] {
+  opacity: 0.3 !important;
+  transition: opacity 0.3s ease !important;
+}
+
+[vw-access-button]:hover {
+  opacity: 1 !important;
+}
+
+/* Esconde a barra azul do VLibras */
+div[vw-plugin-wrapper] > div:first-child {
+  display: none !important;
 }
 
 [data-vw-access-button] {
@@ -190,8 +204,7 @@ div[data-vw-access-button]::before {
 
 .sticky-header.scrolled {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding-top: 0.5rem !important;
-  padding-bottom: 0.5rem !important;
+
 }
 
 .sticky-header.scrolled .logo-image {
