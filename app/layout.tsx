@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
+import VLibrasWidget from "../components/VLibrasWidget";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -16,24 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
-
-        <div dangerouslySetInnerHTML={{ __html: `
-          <div vw class="enabled">
-            <div vw-access-button class="active"></div>
-            <div vw-plugin-wrapper></div>
-          </div>
-        `}} />
-
-        <Script id="vlibras-init" strategy="afterInteractive">
-          {`
-            var s = document.createElement('script');
-            s.src = 'https://vlibras.gov.br/app/vlibras-plugin.js';
-            s.onload = function() {
-              new window.VLibras.Widget('https://vlibras.gov.br/app');
-            };
-            document.body.appendChild(s);
-          `}
-        </Script>
+        <VLibrasWidget />
       </body>
     </html>
   );
