@@ -297,29 +297,35 @@ export default function HomePage() {
           </Section>
 
           <Section title="Consultas sobre participação cidadã" color="cyan" highContrast={highContrast}>
+            
             <CategoryCard icon={FaComments} title="Serviço de Informação ao Cidadão" description="SIC presencial" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaEnvelope} title="Serviço Eletrônico de Informação ao Cidadão" description="E-SIC online" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaClipboard} title="Relatório Anual do SIC" description="Balanço do SIC" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaFileAlt} title="Documentos Classificados" description="Docs sigilosos" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaInfoCircle} title="Informações Desclassificadas" description="Docs tornados públicos" link="" highContrast={highContrast} />
+
+            <CategoryCard icon={FaEnvelope} title="Serviço Eletrônico de Informação ao Cidadão" description="E-SIC online" link="https://falabr.cgu.gov.br/web/PB/Itabaiana/manifestacao/criar?tipo=8" target="_blank" highContrast={highContrast} />
+            <CategoryCard icon={FaClipboard} title="Relatório Anual do SIC" description="Balanço do SIC" link="/relatorio-anual-do-sic" highContrast={highContrast} />
+            <CategoryCard icon={FaFileAlt} title="Documentos Classificados" description="Docs sigilosos" link="/documentos-classificados" highContrast={highContrast} />
+            <CategoryCard icon={FaInfoCircle} title="Informações Desclassificadas" description="Docs tornados públicos" link="/informacoes-desclassificadas" highContrast={highContrast} />
+            
             <CategoryCard icon={FaUserCircle} title="Ouvidoria" description="Canal de ouvidoria" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaPhoneSquareAlt} title="Ouvidoria (Fala.BR)" description="Ouvidoria federal" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaDesktop} title="Carta de Serviços ao Usuário" description="Serviços disponíveis" link="" highContrast={highContrast} />
+            
+            <CategoryCard icon={FaPhoneSquareAlt} title="Ouvidoria (Fala.BR)" description="Ouvidoria federal" link="https://falabr.cgu.gov.br/web/PB/Itabaiana?modoOuvidoria=1&ouvidoriaInterna=false" target="_blank" highContrast={highContrast} />
+            <CategoryCard icon={FaDesktop} title="Carta de Serviços ao Usuário" description="Serviços disponíveis" link="https://portal.itabaiana.pb.gov.br/category/carta-de-servicos-ao-usuario/" target="_blank" highContrast={highContrast} />
           </Section>
 
           <Section title="Consultas sobre educação & saúde" color="yellow" highContrast={highContrast}>
             <CategoryCard icon={FaGraduationCap} title="Plano Municipal de Educação" description="PME vigente" link="/plano-municipal-de-educacao" highContrast={highContrast} />
-            <CategoryCard icon={FaBook} title="Relatório do Plano Municipal de Educação" description="Acompanhamento do PME" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaBriefcaseMedical} title="Lista de Espera Creches" description="Fila de creches" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaUsers} title="Diagnóstico Primeira Infância" description="Situação da primeira infância" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaHeartbeat} title="Plano Municipal de Saúde" description="PMS vigente" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaCalendarAlt} title="Programação Anual da Saúde" description="Planejamento de saúde" link="" highContrast={highContrast} />
+            <CategoryCard icon={FaBook} title="Relatório do Plano Municipal de Educação" description="Acompanhamento do PME" link="/relatorio-do-plano-municipal-de-educacao" highContrast={highContrast} />
+            <CategoryCard icon={FaBriefcaseMedical} title="Lista de Espera Creches" description="Fila de creches" link="/lista-de-espera-creches" highContrast={highContrast} />
+            <CategoryCard icon={FaUsers} title="Diagnóstico Primeira Infância" description="Situação da primeira infância" link="https://fastly.primeirainfanciaprimeiro.fmcsv.org.br/embed/diagnostico/itabaiana-pb" target="_blank" highContrast={highContrast} />
+            <CategoryCard icon={FaHeartbeat} title="Plano Municipal de Saúde" description="PMS vigente" link="/programacao-anual-da-saude" highContrast={highContrast} />
+            <CategoryCard icon={FaCalendarAlt} title="Programação Anual da Saúde" description="Planejamento de saúde" link="/programacao-anual-da-saude" highContrast={highContrast} />
+            
             <CategoryCard icon={FaChart} title="Relatório de Gestão da Saúde" description="Prestação de contas saúde" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaHospital} title="Serviços de Saúde" description="Unidades de saúde" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaMedkit} title="Especialidades" description="Especialidades médicas" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaListAlt} title="Lista de Espera para Regulação" description="Fila de consultas/exames" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaPills} title="Lista de Medicamentos" description="Medicamentos disponíveis" link="" highContrast={highContrast} />
-            <CategoryCard icon={FaSyringe} title="Estoque Farmácia" description="Estoque atual" link="" highContrast={highContrast} />
+
+            <CategoryCard icon={FaHospital} title="Serviços de Saúde" description="Unidades de saúde" link="https://portal.itabaiana.pb.gov.br/2025/02/27/carta-de-servicos-saude/" target="_blank" highContrast={highContrast} />
+            <CategoryCard icon={FaMedkit} title="Especialidades" description="Especialidades médicas" link="/especialidades" highContrast={highContrast} />
+            <CategoryCard icon={FaListAlt} title="Lista de Espera para Regulação" description="Fila de consultas/exames" link="/lista-de-espera-para-regulacao" highContrast={highContrast} />
+            <CategoryCard icon={FaPills} title="Lista de Medicamentos" description="Medicamentos disponíveis" link="/lista-de-medicamentos" highContrast={highContrast} />
+            <CategoryCard icon={FaSyringe} title="Estoque Farmácia" description="Estoque atual" link="https://portal.itabaiana.pb.gov.br/farmacia/" target="_blank" highContrast={highContrast} />
           </Section>
 
         </div>
@@ -478,7 +484,7 @@ function CategoryCard({ icon: Icon, title, description, link, target, highContra
   const [randomTerm, setRandomTerm] = useState('')
   const [animationClass, setAnimationClass] = useState('')
 
-  const terms = ['Itabaiana', 'Transparência', 'Acesso', 'Informação', 'Cidadão', 'Público', 'Gestão', 'Municipal']
+  const terms = ['Itabaiana', 'Transparência', 'Informação', 'Cidadão', 'Público', 'Municipal']
   const animations = ['card-anim-1', 'card-anim-2', 'card-anim-3', 'card-anim-4']
 
   const handleMouseEnter = () => {

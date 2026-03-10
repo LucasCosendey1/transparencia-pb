@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { FaHome, FaDownload, FaFilePdf } from 'react-icons/fa'
 import VLibras from 'vlibras-nextjs'
 
-export default function DecretoGovernoDigitalPage() {
+export default function DesoneracoesFiscaisPage() {
   const [fontSize, setFontSize] = useState(16)
   const [highContrast, setHighContrast] = useState(false)
 
@@ -34,7 +34,7 @@ export default function DecretoGovernoDigitalPage() {
               <FaHome className="mr-1" /> Início
             </Link>
             <span className="mx-2 text-gray-400">&gt;</span>
-            <span className={highContrast ? 'text-yellow-300' : 'text-gray-600'}>Plano Municipal de Educação</span>
+            <span className={highContrast ? 'text-yellow-300' : 'text-gray-600'}>Relatório Anual do SIC</span>
           </div>
         </div>
       </div>
@@ -43,17 +43,19 @@ export default function DecretoGovernoDigitalPage() {
         <div className="max-w-7xl mx-auto px-4">
           
           <h1 className={`text-4xl font-bold mb-8 ${highContrast ? 'text-yellow-300' : 'text-gray-800'}`}>
-           Plano Municipal de Educação
+            Relatório Anual do SIC
+
           </h1>
 
           {/* Botão de Download */}
           <div className="mb-8">
             <a 
-              href="/lei_695_2015p.pdf" 
-              download
+              href="/Relatorio-Anual-do-SIC.pdf" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition shadow-md"
             >
-              <FaDownload /> Baixar Decreto (PDF)
+              <FaDownload /> Baixar Documento (PDF)
             </a>
           </div>
 
@@ -62,15 +64,15 @@ export default function DecretoGovernoDigitalPage() {
             <div className="flex items-center gap-2 mb-4 pb-4 border-b">
               <FaFilePdf className="text-red-600 text-2xl" />
               <h2 className={`text-xl font-semibold ${highContrast ? 'text-yellow-300' : 'text-gray-800'}`}>
-                Visualizar Plano Municipal de Educação
+                Visualizar Relatório Anual do SIC
               </h2>
             </div>
             
             <div className="w-full" style={{ height: '800px' }}>
               <iframe
-                src="/lei_695_2015p.pdf"
+                src="/Relatorio-Anual-do-SIC.pdf"
                 className="w-full h-full border-0 rounded"
-                title="Decreto Governo Digital"
+                title="Desonerações Fiscais Concedidas"
               />
             </div>
           </div>
