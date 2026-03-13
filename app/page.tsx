@@ -4,6 +4,7 @@ import Header from '../components/Header'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import VLibras from 'vlibras-nextjs'
+
 import { 
   FaDollarSign, 
   FaMoneyBillWave, 
