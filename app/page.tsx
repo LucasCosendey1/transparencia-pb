@@ -86,13 +86,41 @@ interface ButtonData {
   caminho: string | null
 }
 
+interface FooterData {
+  chave: string
+  titulo: string
+  caminho: string | null
+}
+
 export default function HomePage() {
   const [fontSize, setFontSize] = useState(16)
   const [highContrast, setHighContrast] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [buttonsData, setButtonsData] = useState<Record<string, ButtonData>>({})
+  const [footerData, setFooterData] = useState<Record<string, FooterData>>({})
+  const [editingFooter, setEditingFooter] = useState<string | null>(null)
   const [editingButton, setEditingButton] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ titulo: '', caminho: '' })
+
+  const fetchFooterData = async () => {
+    try {
+      const response = await fetch('/api/footer')
+      const data = await response.json()
+      
+      if (!Array.isArray(data)) {
+        console.log('Dados do rodapé inválidos:', data)
+        return
+      }
+      
+      const footerMap: Record<string, FooterData> = {}
+      data.forEach((item: FooterData) => {
+        footerMap[item.chave] = item
+      })
+      setFooterData(footerMap)
+    } catch (error) {
+      console.log('Erro ao carregar rodapé:', error)
+    }
+  }
 
   useEffect(() => {
     // Verificar se é admin (via localStorage ou cookie)
@@ -101,6 +129,7 @@ export default function HomePage() {
 
     // Buscar dados dos botões do banco
     fetchButtonsData()
+    fetchFooterData()
   }, [])
 
   const fetchButtonsData = async () => {
@@ -127,10 +156,20 @@ export default function HomePage() {
   })
 }
 
-  const handleSaveEdit = async () => {
-    if (!editingButton) return
+const handleEditFooter = (chave: string) => {
+  setEditingFooter(chave)
+  setEditForm({
+    titulo: footerData[chave]?.titulo || '',
+    caminho: footerData[chave]?.caminho || ''
+  })
+}
 
-    try {
+  const handleSaveEdit = async () => {
+  if (!editingButton && !editingFooter) return
+
+  try {
+    if (editingButton) {
+      // Salvar botão
       await fetch('/api/buttons/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -141,7 +180,6 @@ export default function HomePage() {
         })
       })
 
-      // Atualizar estado local
       setButtonsData(prev => ({
         ...prev,
         [editingButton]: {
@@ -152,10 +190,35 @@ export default function HomePage() {
       }))
 
       setEditingButton(null)
-    } catch (error) {
-      console.error('Erro ao atualizar botão:', error)
     }
+
+    if (editingFooter) {
+      // Salvar rodapé
+      await fetch('/api/footer/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chave: editingFooter,
+          titulo: editForm.titulo,
+          caminho: editForm.caminho || null
+        })
+      })
+
+      setFooterData(prev => ({
+        ...prev,
+        [editingFooter]: {
+          ...prev[editingFooter],
+          titulo: editForm.titulo,
+          caminho: editForm.caminho || null
+        }
+      }))
+
+      setEditingFooter(null)
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar:', error)
   }
+}
 
   const adjustFontSize = (change: number) => {
     setFontSize(prev => Math.max(12, Math.min(24, prev + change)))
@@ -429,154 +492,152 @@ export default function HomePage() {
       </main>
 
       {/* Modal de edição */}
-      {editingButton && (
-        <>
-          <div className="edit-overlay" onClick={() => setEditingButton(null)} />
-          <div className="edit-modal">
-            <h3 className="text-xl font-bold mb-4 text-gray-800">Editar Botão</h3>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nome do Botão
-              </label>
-              <input
-                type="text"
-                value={editForm.titulo}
-                onChange={(e) => setEditForm({...editForm, titulo: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
-              />
-            </div>
+{(editingButton || editingFooter) && (
+  <>
+    <div className="edit-overlay" onClick={() => { setEditingButton(null); setEditingFooter(null); }} />
+    <div className="edit-modal">
+      <h3 className="text-xl font-bold mb-4 text-gray-800">
+        {editingButton ? 'Editar Botão' : 'Editar Link do Rodapé'}
+      </h3>
+      
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {editingButton ? 'Nome do Botão' : 'Texto do Link'}
+        </label>
+        <input
+          type="text"
+          value={editForm.titulo}
+          onChange={(e) => setEditForm({...editForm, titulo: e.target.value})}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+        />
+      </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Caminho (opcional)
-              </label>
-              <input
-                type="text"
-                value={editForm.caminho}
-                onChange={(e) => setEditForm({...editForm, caminho: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
-                placeholder="/caminho ou https://..."
-              />
-            </div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Caminho (opcional)
+        </label>
+        <input
+          type="text"
+          value={editForm.caminho}
+          onChange={(e) => setEditForm({...editForm, caminho: e.target.value})}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
+          placeholder="/caminho ou https://..."
+        />
+      </div>
 
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setEditingButton(null)}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition"
-              >
-                Salvar
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="flex justify-end space-x-3">
+        <button
+          onClick={() => { setEditingButton(null); setEditingFooter(null); }}
+          className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleSaveEdit}
+          className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition"
+        >
+          Salvar
+        </button>
+      </div>
+    </div>
+  </>
+)}
 
       <footer className="bg-gradient-to-r from-[#0d6efd] to-[#0a58ca] text-white">
-        <div className="max-w-7xl mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            
-            <div>
-              <h3 className="font-bold mb-4 text-sm uppercase tracking-wide border-b-2 border-[#ffc107] pb-2 inline-block">
-                Navegação
-              </h3>
-              <ul className="space-y-2 text-sm mt-4">
-                <li><Link href="/" className="hover:text-[#ffc107] transition">Início</Link></li>
-                <li><Link href="/portal" className="hover:text-[#ffc107] transition">O Portal</Link></li>
-                <li><Link href="/glossario" className="hover:text-[#ffc107] transition">Glossário</Link></li>
-                <li><Link href="/contato" className="hover:text-[#ffc107] transition">Fale Conosco</Link></li>
-              </ul>
-            </div>
+  <div className="max-w-7xl mx-auto px-4 py-12">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+      
+      <div className="relative">
+        <h3 className="font-bold mb-4 text-sm uppercase tracking-wide border-b-2 border-[#ffc107] pb-2 inline-block">
+          Navegação
+        </h3>
+        <ul className="space-y-2 text-sm mt-4">
+          <FooterLink chave="inicio" defaultTitulo="Início" defaultCaminho="/" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+          <FooterLink chave="portal" defaultTitulo="O Portal" defaultCaminho="/portal" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+          <FooterLink chave="glossario" defaultTitulo="Glossário" defaultCaminho="/glossario" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+          <FooterLink chave="contato" defaultTitulo="Fale Conosco" defaultCaminho="/contato" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+        </ul>
+      </div>
 
-            <div>
-              <h3 className="font-bold mb-4 text-sm uppercase tracking-wide border-b-2 border-[#ffc107] pb-2 inline-block">
-                Serviços
-              </h3>
-              <ul className="space-y-2 text-sm mt-4">
-                <li><Link href="#receitas" className="hover:text-[#ffc107] transition">Receitas</Link></li>
-                <li><Link href="#pessoal" className="hover:text-[#ffc107] transition">Recursos Humanos</Link></li>
-                <li><Link href="#licitacoes" className="hover:text-[#ffc107] transition">Licitações e Contratos</Link></li>
-                <li><Link href="#fiscal" className="hover:text-[#ffc107] transition">Responsabilidade Fiscal</Link></li>
-              </ul>
-            </div>
+      <div className="relative">
+        <h3 className="font-bold mb-4 text-sm uppercase tracking-wide border-b-2 border-[#ffc107] pb-2 inline-block">
+          Serviços
+        </h3>
+        <ul className="space-y-2 text-sm mt-4">
+          <FooterLink chave="receitas" defaultTitulo="Receitas" defaultCaminho="#receitas" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+          <FooterLink chave="recursos-humanos" defaultTitulo="Recursos Humanos" defaultCaminho="#pessoal" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+          <FooterLink chave="licitacoes" defaultTitulo="Licitações e Contratos" defaultCaminho="#licitacoes" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+          <FooterLink chave="responsabilidade-fiscal" defaultTitulo="Responsabilidade Fiscal" defaultCaminho="#fiscal" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+        </ul>
+      </div>
 
-            <div>
-              <h3 className="font-bold mb-4 text-sm uppercase tracking-wide border-b-2 border-[#ffc107] pb-2 inline-block">
-                Acesso Rápido
-              </h3>
-              <ul className="space-y-2 text-sm mt-4">
-                <li><Link href="#lgpd" className="hover:text-[#ffc107] transition">LGPD</Link></li>
-                <li><Link href="#participacao" className="hover:text-[#ffc107] transition">Participação Cidadã</Link></li>
-                <li><Link href="#educacao" className="hover:text-[#ffc107] transition">Educação e Saúde</Link></li>
-              </ul>
-            </div>
+      <div className="relative">
+        <h3 className="font-bold mb-4 text-sm uppercase tracking-wide border-b-2 border-[#ffc107] pb-2 inline-block">
+          Acesso Rápido
+        </h3>
+        <ul className="space-y-2 text-sm mt-4">
+          <FooterLink chave="lgpd" defaultTitulo="LGPD" defaultCaminho="#lgpd" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+          <FooterLink chave="participacao" defaultTitulo="Participação Cidadã" defaultCaminho="#participacao" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+          <FooterLink chave="educacao" defaultTitulo="Educação e Saúde" defaultCaminho="#educacao" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} />
+        </ul>
+      </div>
 
-            <div>
-              <h3 className="font-bold mb-4 text-sm uppercase tracking-wide border-b-2 border-[#ffc107] pb-2 inline-block">
-                Contato
-              </h3>
-              <div className="text-sm space-y-3 mt-4">
-                <div>
-                  <p className="font-semibold mb-1">PREFEITURA MUNICIPAL DE ITABAIANA</p>
-                  <p className="text-xs opacity-90">Itabaiana - PB</p>
-                </div>
-                
-                <div className="flex items-start space-x-2">
-                  <span className="text-[#ffc107]">📍</span>
-                  <p className="text-xs opacity-90">
-                    Endereço da prefeitura<br/>
-                    CEP: 00000-000
-                  </p>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <span className="text-[#ffc107]">📞</span>
-                  <p className="text-xs opacity-90">(83) 0000-0000</p>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <span className="text-[#ffc107]">✉️</span>
-                  <p className="text-xs opacity-90">contato@itabaiana.pb.gov.br</p>
-                </div>
-
-                <div className="pt-3">
-                  <p className="text-xs font-semibold mb-2">Redes Sociais:</p>
-                  <div className="flex space-x-3">
-                    <a href="#" className="hover:text-[#ffc107] transition text-xl">📘</a>
-                    <a href="#" className="hover:text-[#ffc107] transition text-xl">📷</a>
-                    <a href="#" className="hover:text-[#ffc107] transition text-xl">▶️</a>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div>
+        <h3 className="font-bold mb-4 text-sm uppercase tracking-wide border-b-2 border-[#ffc107] pb-2 inline-block">
+          Contato
+        </h3>
+        <div className="text-sm space-y-3 mt-4">
+          <div>
+            <p className="font-semibold mb-1">PREFEITURA MUNICIPAL DE ITABAIANA</p>
+            <p className="text-xs opacity-90">Itabaiana - PB</p>
+          </div>
+          
+          <div className="flex items-start space-x-2">
+            <span className="text-[#ffc107]">📍</span>
+            <p className="text-xs opacity-90">
+              Endereço da prefeitura<br/>
+              CEP: 00000-000
+            </p>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <span className="text-[#ffc107]">📞</span>
+            <p className="text-xs opacity-90">(83) 0000-0000</p>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <span className="text-[#ffc107]">✉️</span>
+            <p className="text-xs opacity-90">contato@itabaiana.pb.gov.br</p>
           </div>
 
-          <div className="border-t border-white/20 pt-6 flex flex-col md:flex-row justify-between items-center text-xs">
-            <p className="opacity-90">
-              © 2025 Prefeitura Municipal de Itabaiana - Todos os direitos reservados
-            </p>
-            <div className="flex space-x-4 mt-4 md:mt-0">
-              <Link href="/politica-privacidade" className="hover:text-[#ffc107] transition opacity-90">
-                Política de Privacidade
-              </Link>
-              <span className="opacity-50">|</span>
-              <Link href="/admin" className="hover:text-[#ffc107] transition opacity-90">
-                Seção de Administrador
-              </Link>
-              <span className="opacity-50">|</span>
-              <Link href="/termos-uso" className="hover:text-[#ffc107] transition opacity-90">
-                Termos de Uso
-              </Link>
+          <div className="pt-3">
+            <p className="text-xs font-semibold mb-2">Redes Sociais:</p>
+            <div className="flex space-x-3">
+              <a href="#" className="hover:text-[#ffc107] transition text-xl">📘</a>
+              <a href="#" className="hover:text-[#ffc107] transition text-xl">📷</a>
+              <a href="#" className="hover:text-[#ffc107] transition text-xl">▶️</a>
             </div>
           </div>
         </div>
-      </footer>
+      </div>
+    </div>
+
+    <div className="border-t border-white/20 pt-6 flex flex-col md:flex-row justify-between items-center text-xs">
+      <p className="opacity-90">
+        © 2025 Prefeitura Municipal de Itabaiana - Todos os direitos reservados
+      </p>
+      <div className="flex space-x-4 mt-4 md:mt-0 relative">
+        <FooterLink chave="politica-privacidade" defaultTitulo="Política de Privacidade" defaultCaminho="/politica-privacidade" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} inline />
+        <span className="opacity-50">|</span>
+        <Link href="/admin" className="hover:text-[#ffc107] transition opacity-90">
+          Seção de Administrador
+        </Link>
+        <span className="opacity-50">|</span>
+        <FooterLink chave="termos-uso" defaultTitulo="Termos de Uso" defaultCaminho="/termos-uso" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} inline />
+      </div>
+    </div>
+  </div>
+</footer>
 
       <button 
         className={`back-to-top ${showBackToTop ? 'visible' : ''}`}
@@ -810,5 +871,48 @@ function Carousel({ highContrast }: CarouselProps) {
         ))}
       </div>
     </div>
+  )
+}
+
+// COMPONENTE FOOTERLINK - ADICIONE AQUI, FORA DO CAROUSEL
+interface FooterLinkProps {
+  chave: string
+  defaultTitulo: string
+  defaultCaminho: string
+  isAdmin: boolean
+  footerData: Record<string, FooterData>
+  onEdit: (chave: string) => void
+  inline?: boolean
+}
+
+function FooterLink({ chave, defaultTitulo, defaultCaminho, isAdmin, footerData, onEdit, inline }: FooterLinkProps) {
+  const titulo = footerData[chave]?.titulo || defaultTitulo
+  const caminho = footerData[chave]?.caminho || defaultCaminho
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onEdit(chave)
+  }
+
+  const linkClass = inline 
+    ? "hover:text-[#ffc107] transition opacity-90"
+    : "hover:text-[#ffc107] transition block"
+
+  return (
+    <li className="relative group">
+      <Link href={caminho} className={linkClass}>
+        {titulo}
+      </Link>
+      {isAdmin && (
+  <button
+    onClick={handleEdit}
+    className="absolute -right-5 top-0.5 opacity-0 group-hover:opacity-100 bg-blue-600 text-white p-1.5 rounded-full hover:bg-blue-700 transition shadow-md"
+    title="Editar"
+  >
+    <FaEdit size={14} />
+  </button>
+)}
+    </li>
   )
 }

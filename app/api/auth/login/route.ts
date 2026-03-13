@@ -1,4 +1,3 @@
-// app/api/auth/login/route.ts
 import { NextResponse } from 'next/server'
 import mysql from 'mysql2/promise'
 import bcrypt from 'bcryptjs'
@@ -7,9 +6,9 @@ import jwt from 'jsonwebtoken'
 const dbConfig = {
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT || '3306'),
-  database: process.env.DB_NAME_Transparencia,
   user: process.env.DB_USER_Transparencia,
   password: process.env.DB_PASSWORD_Transparencia,
+  database: process.env.DB_NAME_Transparencia,
 }
 
 export async function POST(request: Request) {
@@ -27,10 +26,7 @@ export async function POST(request: Request) {
 
     await connection.end()
 
-    console.log('Usuários encontrados:', rows.length)
-
     if (rows.length === 0) {
-      console.log('Usuário não encontrado')
       return NextResponse.json(
         { message: 'Usuário ou senha inválidos' },
         { status: 401 }
@@ -38,11 +34,8 @@ export async function POST(request: Request) {
     }
 
     const user = rows[0]
-    console.log('Hash do banco:', user.password_hash)
-    console.log('Senha digitada:', password)
     
     const passwordMatch = await bcrypt.compare(password, user.password_hash)
-    console.log('Senhas batem?', passwordMatch)
 
     if (!passwordMatch) {
       return NextResponse.json(
@@ -53,7 +46,7 @@ export async function POST(request: Request) {
 
     const token = jwt.sign(
       { id: user.id, username: user.username },
-      process.env.JWT_SECRET || 'seu_secret_aqui',
+      process.env.JWT_SECRET || 'fallback_secret_key',
       { expiresIn: '24h' }
     )
 
@@ -66,10 +59,10 @@ export async function POST(request: Request) {
       }
     })
 
-  } catch (error) {
-    console.error('Erro no login:', error)
+  } catch (error: any) {
+    console.error('Erro no login:', error.message)
     return NextResponse.json(
-      { message: 'Erro interno no servidor' },
+      { message: 'Erro interno no servidor', details: error.message },
       { status: 500 }
     )
   }
