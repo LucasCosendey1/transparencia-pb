@@ -47,10 +47,10 @@ export default function AdvancedTextEditor() {
   return (
     <>
       <div
-        className={`fixed left-0 top-1/2 -translate-y-1/2 z-50 transition-transform duration-300 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
+          className={`fixed left-0 top-1/2 -translate-y-1/2 z-40 transition-transform duration-300 ${
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
         <div className="bg-white shadow-2xl rounded-r-lg border-r-4 border-blue-600 w-80 max-h-[90vh] overflow-y-auto">
           <div className="p-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
             <h3 className="font-bold text-lg">Editor de Texto Avançado</h3>
@@ -242,7 +242,7 @@ export default function AdvancedTextEditor() {
       {/* Botão de toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-blue-600 text-white p-4 rounded-r-lg shadow-lg hover:bg-blue-700 transition"
+        className="fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-blue-600 text-white p-4 rounded-r-lg shadow-lg hover:bg-blue-700 transition"
         title={isOpen ? 'Fechar editor' : 'Abrir editor'}
       >
         {isOpen ? <FaChevronLeft size={20} /> : <FaChevronRight size={20} />}
