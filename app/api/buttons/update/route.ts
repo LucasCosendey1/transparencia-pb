@@ -12,13 +12,13 @@ const dbConfig = {
 
 export async function PUT(request: Request) {
   try {
-    const { chave, titulo, caminho } = await request.json()
+    const { chave, titulo, caminho, description } = await request.json()
     
     const connection = await mysql.createConnection(dbConfig)
     
     await connection.execute(
-      'UPDATE botoes SET titulo = ?, caminho = ? WHERE chave = ?',
-      [titulo, caminho, chave]
+      'UPDATE botoes SET titulo = ?, caminho = ?, description = ? WHERE chave = ?',
+      [titulo, caminho, description ?? null, chave]
     )
     
     await connection.end()
