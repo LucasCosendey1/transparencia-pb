@@ -11,8 +11,9 @@ const dbConfig = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   let connection
 
   try {
@@ -20,7 +21,7 @@ export async function GET(
 
     const [rows]: any = await connection.execute(
       'SELECT conteudo FROM paginas_conteudo WHERE pagina_id = ?',
-      [params.id]
+      [id]
     )
 
     if (rows.length === 0) {
