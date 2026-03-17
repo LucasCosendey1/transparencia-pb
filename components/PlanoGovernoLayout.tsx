@@ -6,7 +6,7 @@ import Header from './Header'
 import VLibras from 'vlibras-nextjs'
 import {
   FaHome, FaCog, FaEye, FaPlus, FaTrash, FaEdit,
-  FaSave, FaTimes, FaSearch, FaList, FaLayerGroup,
+  FaSave, FaTimes, FaSearch, FaList, FaLayerGroup, FaChartBar,
   FaAngleLeft, FaAngleRight, FaAngleDoubleLeft, FaAngleDoubleRight,
 } from 'react-icons/fa'
 
@@ -35,13 +35,24 @@ situacao_original: string | null
   ano_2028: boolean
 }
 
+interface Grafico {
+  id: number
+  titulo: string
+  tipo: 'barra' | 'pizza' | 'linha' | 'card'
+  filtro_eixo_id: number | null
+  filtro_status: string | null
+  filtro_ano: string | null
+  filtro_objetivo: string | null
+  ordem: number
+}
+
 interface Props {
   paginaId: string
   titulo: string
   breadcrumb: string
 }
 
-type AbaAdmin = 'eixos' | 'metas'
+type AbaAdmin = 'eixos' | 'metas' | 'graficos'
 
 const STATUS_LABEL: Record<string, string> = {
   nao_iniciado: 'Não Iniciado',
@@ -324,6 +335,10 @@ export default function PlanoGovernoLayout({ paginaId, titulo, breadcrumb }: Pro
 
   const [eixos, setEixos] = useState<Eixo[]>([])
   const [metas, setMetas] = useState<Meta[]>([])
+  const [graficos, setGraficos] = useState<Grafico[]>([])
+  const [graficoForm, setGraficoForm] = useState<Partial<Grafico>>({})
+  const [editandoGrafico, setEditandoGrafico] = useState<number | null>(null)
+  const [criandoGrafico, setCriandoGrafico] = useState(false)
 
   // Modal objetivo geral
   const [modalObjetivo, setModalObjetivo] = useState<string | null>(null)
@@ -356,15 +371,26 @@ export default function PlanoGovernoLayout({ paginaId, titulo, breadcrumb }: Pro
   const carregar = async () => {
     setLoading(true)
     try {
-      const [rE, rM] = await Promise.all([
-        fetch(`/api/plano-eixos/${paginaId}`),
-        fetch(`/api/plano-metas/${paginaId}`),
-      ])
-      setEixos(await rE.json().then((d: any) => Array.isArray(d) ? d : []))
-      setMetas(await rM.json().then((d: any) => Array.isArray(d) ? d : []))
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
-  }
+      const [rE, rM, rG] = await Promise.all([
+  fetch(`/api/plano-eixos/${paginaId}`),
+  fetch(`/api/plano-metas/${paginaId}`),
+  fetch(`/api/plano-graficos/${paginaId}`),
+        ])
+        const tE = await rE.text()
+        const tM = await rM.text()
+        const tG = await rG.text()
+        console.log('eixos:', tE.slice(0, 100))
+        console.log('metas:', tM.slice(0, 100))
+        console.log('graficos:', tG.slice(0, 100))
+        const dE = JSON.parse(tE)
+        const dM = JSON.parse(tM)
+        const dG = JSON.parse(tG)
+        setEixos(Array.isArray(dE) ? dE : [])
+        setMetas(Array.isArray(dM) ? dM : [])
+        setGraficos(Array.isArray(dG) ? dG : [])
+            } catch (e) { console.error(e) }
+            finally { setLoading(false) }
+          }
 
   // Objetivos gerais únicos (por eixo ativo ou todos)
   const objetivosUnicos = Array.from(new Set(
@@ -451,6 +477,28 @@ const objetivosPorEixo = eixos.map(e => ({
     await carregar()
   }
 
+  const salvarGrafico = async () => {
+  if (!graficoForm.titulo?.trim()) return alert('Informe o título.')
+  if (!graficoForm.tipo) return alert('Selecione o tipo.')
+  setSalvando(true)
+  try {
+    await fetch(`/api/plano-graficos/${paginaId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(graficoForm),
+    })
+    await carregar(); setGraficoForm({}); setEditandoGrafico(null); setCriandoGrafico(false)
+  } catch { alert('❌ Erro.') } finally { setSalvando(false) }
+}
+
+  const deletarGrafico = async (id: number) => {
+    if (!confirm('Deletar este gráfico?')) return
+    await fetch(`/api/plano-graficos/${paginaId}`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    await carregar()
+  }
+
   // ── Render ───────────────────────────────────────────────────
   return (
     <div className={`min-h-screen ${hc ? 'bg-black' : 'bg-gray-50'}`} style={{ fontSize }}>
@@ -491,7 +539,8 @@ const objetivosPorEixo = eixos.map(e => ({
               <div className="flex border-b overflow-x-auto">
                 {([
                   { key: 'metas', label: 'Metas / Ações', icon: <FaList size={12} /> },
-                  { key: 'eixos', label: 'Eixos Temáticos', icon: <FaLayerGroup size={12} /> },
+                  { key: 'eixos',    label: 'Eixos Temáticos', icon: <FaLayerGroup size={12} /> },
+                  { key: 'graficos', label: 'Gráficos',         icon: <FaChartBar size={12} /> },
                 ] as { key: AbaAdmin; label: string; icon: React.ReactNode }[]).map(a => (
                   <button key={a.key} onClick={() => setAbaAdmin(a.key)}
                     className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition ${
@@ -690,6 +739,120 @@ const objetivosPorEixo = eixos.map(e => ({
                     </div>
                   </div>
                 )}
+
+                {abaAdmin === 'graficos' && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-black">Gráficos Customizados</h3>
+                    <button onClick={() => { setCriandoGrafico(true); setEditandoGrafico(null); setGraficoForm({ tipo: 'pizza', ordem: graficos.length + 1 }) }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                      <FaPlus size={9} /> Novo Gráfico
+                    </button>
+                  </div>
+
+                  {(criandoGrafico || editandoGrafico !== null) && (
+                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs font-semibold text-black mb-3">{criandoGrafico ? 'Novo Gráfico' : 'Editar Gráfico'}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="md:col-span-2">
+                          <label className="text-xs text-black mb-1 block">Título *</label>
+                          <input value={graficoForm.titulo || ''} onChange={e => setGraficoForm(p => ({ ...p, titulo: e.target.value }))}
+                            className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-black mb-1 block">Tipo *</label>
+                          <select value={graficoForm.tipo || ''} onChange={e => setGraficoForm(p => ({ ...p, tipo: e.target.value as Grafico['tipo'] }))}
+                            className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Selecione...</option>
+                            <option value="pizza">Pizza (distribuição por status)</option>
+                            <option value="barra">Barra (progresso por eixo)</option>
+                            <option value="linha">Linha (evolução)</option>
+                            <option value="card">Card numérico</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-black mb-1 block">Filtrar por Eixo</label>
+                          <select value={graficoForm.filtro_eixo_id ?? ''} onChange={e => setGraficoForm(p => ({ ...p, filtro_eixo_id: e.target.value ? Number(e.target.value) : null }))}
+                            className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos os eixos</option>
+                            {eixos.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-black mb-1 block">Filtrar por Status</label>
+                          <select value={graficoForm.filtro_status || ''} onChange={e => setGraficoForm(p => ({ ...p, filtro_status: e.target.value || null }))}
+                            className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos</option>
+                            <option value="nao_iniciado">Não Iniciado</option>
+                            <option value="em_andamento">Em andamento</option>
+                            <option value="concluido">Concluído</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-black mb-1 block">Filtrar por Ano</label>
+                          <select value={graficoForm.filtro_ano || ''} onChange={e => setGraficoForm(p => ({ ...p, filtro_ano: e.target.value || null }))}
+                            className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos os anos</option>
+                            {['2025','2026','2027','2028'].map(a => <option key={a} value={a}>{a}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-black mb-1 block">Filtrar por Objetivo Geral</label>
+                          <select value={graficoForm.filtro_objetivo || ''} onChange={e => setGraficoForm(p => ({ ...p, filtro_objetivo: e.target.value || null }))}
+                            className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos</option>
+                            {Array.from(new Set(metas.map(m => m.objetivo_geral).filter(Boolean))).map(obj => (
+                              <option key={obj!} value={obj!}>{obj}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-black mb-1 block">Ordem</label>
+                          <input type="number" value={graficoForm.ordem ?? ''} onChange={e => setGraficoForm(p => ({ ...p, ordem: Number(e.target.value) }))}
+                            className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <button onClick={salvarGrafico} disabled={salvando}
+                          className="px-4 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-60">
+                          <FaSave size={10} className="inline mr-1" />{salvando ? 'Salvando…' : 'Salvar'}
+                        </button>
+                        <button onClick={() => { setCriandoGrafico(false); setEditandoGrafico(null); setGraficoForm({}) }}
+                          className="px-4 py-2 bg-gray-200 text-black text-xs rounded hover:bg-gray-300">
+                          <FaTimes size={10} className="inline mr-1" />Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {graficos.map(g => (
+                      <div key={g.id} className="border rounded-lg p-4 flex items-start justify-between">
+                        <div>
+                          <p className="font-medium text-black text-sm">{g.titulo}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {g.tipo.toUpperCase()}
+                            {g.filtro_eixo_id && ` · Eixo: ${eixos.find(e => e.id === g.filtro_eixo_id)?.nome}`}
+                            {g.filtro_status && ` · Status: ${STATUS_LABEL[g.filtro_status]}`}
+                            {g.filtro_ano && ` · Ano: ${g.filtro_ano}`}
+                            {g.filtro_objetivo && ` · Obj: ${g.filtro_objetivo.slice(0, 40)}…`}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => { setEditandoGrafico(g.id); setCriandoGrafico(false); setGraficoForm({ ...g }) }}
+                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><FaEdit size={12} /></button>
+                          <button onClick={() => deletarGrafico(g.id)}
+                            className="p-1.5 text-red-400 hover:bg-red-50 rounded"><FaTrash size={12} /></button>
+                        </div>
+                      </div>
+                    ))}
+                    {graficos.length === 0 && !criandoGrafico && (
+                      <p className="text-sm text-gray-400 text-center py-8">Nenhum gráfico criado ainda.</p>
+                    )}
+                  </div>
+                </div>
+                )}
+
               </div>
             </div>
 
@@ -749,6 +912,100 @@ const objetivosPorEixo = eixos.map(e => ({
                         }} />
                   </div>
                 </section>
+
+            {/* ── GRÁFICOS CUSTOMIZADOS ── */}
+              {graficos.length > 0 && (
+                <section>
+                  <h2 className={`text-2xl font-bold mb-6 ${hc ? 'text-yellow-300' : 'text-gray-900'}`}>Análises</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {graficos.map(g => {
+                      // Aplica filtros
+                      let ms = metas
+                      if (g.filtro_eixo_id) ms = ms.filter(m => m.eixo_id === g.filtro_eixo_id)
+                      if (g.filtro_status) ms = ms.filter(m => m.status === g.filtro_status)
+                      if (g.filtro_ano) ms = ms.filter(m => m[`ano_${g.filtro_ano}` as keyof Meta] as boolean)
+                      if (g.filtro_objetivo) ms = ms.filter(m => m.objetivo_geral === g.filtro_objetivo)
+
+                      const counts = {
+                        concluido:    ms.filter(m => m.status === 'concluido').length,
+                        em_andamento: ms.filter(m => m.status === 'em_andamento').length,
+                        nao_iniciado: ms.filter(m => m.status === 'nao_iniciado').length,
+                      }
+
+                      return (
+                        <div key={g.id} className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-xl p-5 border ${hc ? 'border-gray-700' : 'border-gray-200'}`}>
+                          <p className={`text-sm font-semibold mb-4 ${hc ? 'text-yellow-300' : 'text-gray-800'}`}>{g.titulo}</p>
+
+                          {g.tipo === 'pizza' && (
+                            <PizzaChart counts={counts} total={ms.length} />
+                          )}
+
+                          {g.tipo === 'barra' && (
+                            <BarrasEixos
+                              eixos={g.filtro_eixo_id ? eixos.filter(e => e.id === g.filtro_eixo_id) : eixos}
+                              metas={ms} hc={hc}
+                              onFiltrar={(eixoId, status) => {
+                                setEixoFiltro(eixoId); setStatusFiltro(status)
+                                setObjetivoFiltro(null); setPage(1)
+                                setTimeout(() => document.getElementById('compromissos')?.scrollIntoView({ behavior: 'smooth' }), 50)
+                              }}
+                            />
+                          )}
+
+                          {g.tipo === 'linha' && (
+                            <div className="space-y-2">
+                              {(['2025','2026','2027','2028'] as const).map(ano => {
+                                const n = metas.filter(m => {
+                                  let ok = m[`ano_${ano}` as keyof Meta] as boolean
+                                  if (g.filtro_eixo_id) ok = ok && m.eixo_id === g.filtro_eixo_id
+                                  if (g.filtro_status) ok = ok && m.status === g.filtro_status
+                                  return ok
+                                }).length
+                                const pct = metas.length > 0 ? Math.round((n / metas.length) * 100) : 0
+                                return (
+                                  <div key={ano}>
+                                    <div className="flex justify-between text-xs mb-0.5">
+                                      <span className={hc ? 'text-yellow-200' : 'text-gray-600'}>{ano}</span>
+                                      <span className={hc ? 'text-yellow-300' : 'text-gray-700'}>{n} ações ({pct}%)</span>
+                                    </div>
+                                    <div className={`w-full rounded-full h-3 ${hc ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                                      <div className="h-3 rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+
+                          {g.tipo === 'card' && (
+                            <div className="grid grid-cols-3 gap-3">
+                              {Object.entries(counts).map(([key, val]) => (
+                                <div key={key} className={`rounded-xl p-3 text-center border ${
+                                  key === 'concluido' ? 'bg-green-50 border-green-200' :
+                                  key === 'em_andamento' ? 'bg-blue-50 border-blue-200' :
+                                  'bg-gray-50 border-gray-200'
+                                }`}>
+                                  <div className={`text-2xl font-bold ${
+                                    key === 'concluido' ? 'text-green-700' :
+                                    key === 'em_andamento' ? 'text-blue-700' : 'text-gray-500'
+                                  }`}>{val}</div>
+                                  <div className="text-xs text-gray-500 mt-1">{STATUS_LABEL[key]}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <p className={`text-xs mt-3 ${hc ? 'text-yellow-200' : 'text-gray-400'}`}>
+                            {ms.length} ação(ões) considerada(s)
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+
+            <hr className={hc ? 'border-gray-700' : 'border-gray-100'} />
 
                 <hr className={hc ? 'border-gray-700' : 'border-gray-100'} />
 
