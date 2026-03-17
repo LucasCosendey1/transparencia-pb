@@ -268,13 +268,12 @@ body {
 }
 
 /* Esconde o retângulo que aparece no hover */
-[vw-access-button] > div {
+[vw-access-button] .vw-plugin-wrapper {
   display: none !important;
 }
 
-/* Garante que apenas o botão circular fique visível */
-[vw-access-button] img {
-  display: block !important;
+[vw-access-button]:hover .vw-plugin-wrapper {
+  display: flex !important;
 }
 
 /* ============================================

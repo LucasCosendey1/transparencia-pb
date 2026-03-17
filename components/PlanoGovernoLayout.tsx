@@ -672,14 +672,31 @@ const objetivosPorEixo = eixos.map(e => ({
                               className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                           </div>
                           <div>
-                            <label className="text-xs text-black mb-1 block">Status</label>
-                            <select value={metaForm.status || 'nao_iniciado'} onChange={e => setMetaForm(p => ({ ...p, status: e.target.value as Meta['status'] }))}
-                              className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                              <option value="nao_iniciado">Não Iniciado</option>
-                              <option value="em_andamento">Em andamento</option>
-                              <option value="concluido">Concluído</option>
-                            </select>
+            <label className="text-xs text-black mb-1 block">Status</label>
+            <select value={metaForm.status || 'nao_iniciado'} onChange={e => setMetaForm(p => ({ ...p, status: e.target.value as Meta['status'] }))}
+              className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="nao_iniciado">Não Iniciado</option>
+              <option value="em_andamento">Em andamento</option>
+              <option value="concluido">Concluído</option>
+            </select>
                           </div>
+                          <div className="md:col-span-2">
+                            <label className="text-xs text-black mb-2 block">Anos de execução</label>
+                            <div className="flex gap-4">
+                              {(['ano_2025','ano_2026','ano_2027','ano_2028'] as const).map(campo => (
+                                <label key={campo} className="flex items-center gap-1.5 cursor-pointer">
+                                  <input type="checkbox"
+                                    checked={!!metaForm[campo]}
+                                    onChange={e => setMetaForm(p => ({ ...p, [campo]: e.target.checked }))}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="text-sm text-black">{campo.replace('ano_', '')}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
                         </div>
                         <div className="flex gap-2 mt-4">
                           <button onClick={salvarMeta} disabled={salvando}
