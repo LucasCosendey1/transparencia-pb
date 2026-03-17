@@ -3,7 +3,7 @@
 import Header from '../components/Header'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import VLibras from 'vlibras-nextjs'
+import VLibrasWrapper from '@/components/VLibrasWrapper'
 
 import { 
   FaDollarSign, FaMoneyBillWave, FaUsers, FaFileContract, FaBuilding,
@@ -406,7 +406,7 @@ export default function HomePage() {
       </footer>
 
       <button className={`back-to-top ${showBackToTop ? 'visible' : ''}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Voltar ao topo">↑</button>
-      <VLibras forceOnload />
+      <VLibrasWrapper />
     </div>
   )
 }
