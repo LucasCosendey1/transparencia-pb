@@ -393,7 +393,7 @@ setLinhasPorTabela(novasLinhas)
       if (bloco.tipo === 'tabela') {
         const meta = tabelas.find(t => t.nome_tabela === bloco.nome_tabela)
         if (!meta) continue
-        const linhasBloco = linhasOverride ?? linhasPorTabela[bloco.nome_tabela] ?? (await (await fetch(`/api/linhas/${paginaId}?nome_tabela=${bloco.nome_tabela}`)).json())
+        const linhasBloco = linhasOverride ?? (bloco.nome_tabela ? linhasPorTabela[bloco.nome_tabela] : undefined) ?? (await (await fetch(`/api/linhas/${paginaId}?nome_tabela=${bloco.nome_tabela}`)).json())
         const colsSel = meta.colunas_pdf.length > 0 ? meta.colunas_pdf : meta.colunas.map((_, i) => i)
         const head = [colsSel.map(ci => meta.colunas[ci])]
         const body = linhasBloco.map((l: Linha) => colsSel.map(ci => l.dados[ci] ?? ''))
