@@ -192,8 +192,10 @@ function ModalObjetivo({ objetivo, metas, onClose }: {
 }
 
 // ── Barras horizontais por eixo ────────────────────────────────
-function BarrasEixos({ eixos, metas, hc }: { eixos: Eixo[]; metas: Meta[]; hc: boolean }) {
-  return (
+function BarrasEixos({ eixos, metas, hc, onFiltrar }: {
+  eixos: Eixo[]; metas: Meta[]; hc: boolean
+  onFiltrar: (eixoId: number, status: string) => void
+}) {  return (
     <div className="space-y-3">
       {eixos.map(e => {
         const ms = metas.filter(m => m.eixo_id === e.id)
@@ -211,25 +213,28 @@ function BarrasEixos({ eixos, metas, hc }: { eixos: Eixo[]; metas: Meta[]; hc: b
               <span className={`text-xs ${hc ? 'text-yellow-300' : 'text-gray-500'}`}>{total} ações</span>
             </div>
             <div className="flex h-5 rounded-lg overflow-hidden gap-0.5">
-              {concluido > 0 && (
-                <div className="bg-green-500 flex items-center justify-center text-white text-xs font-bold"
-                  style={{ width: `${(concluido / total) * 100}%` }} title={`Concluído: ${concluido}`}>
-                  {concluido > 0 ? concluido : ''}
+                {concluido > 0 && (
+                    <div className="bg-green-500 flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:brightness-110 transition"
+                    style={{ width: `${(concluido / total) * 100}%` }} title={`Concluído: ${concluido} — clique para filtrar`}
+                    onClick={() => onFiltrar(e.id, 'concluido')}>
+                    {concluido > 0 ? concluido : ''}
+                    </div>
+                )}
+                {andamento > 0 && (
+                    <div className="bg-blue-500 flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:brightness-110 transition"
+                    style={{ width: `${(andamento / total) * 100}%` }} title={`Em andamento: ${andamento} — clique para filtrar`}
+                    onClick={() => onFiltrar(e.id, 'em_andamento')}>
+                    {andamento > 3 ? andamento : ''}
+                    </div>
+                )}
+                {nao > 0 && (
+                    <div className="bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold cursor-pointer hover:brightness-110 transition"
+                    style={{ width: `${(nao / total) * 100}%` }} title={`Não iniciado: ${nao} — clique para filtrar`}
+                    onClick={() => onFiltrar(e.id, 'nao_iniciado')}>
+                    {nao > 3 ? nao : ''}
+                    </div>
+                )}
                 </div>
-              )}
-              {andamento > 0 && (
-                <div className="bg-blue-500 flex items-center justify-center text-white text-xs font-bold"
-                  style={{ width: `${(andamento / total) * 100}%` }} title={`Em andamento: ${andamento}`}>
-                  {andamento > 3 ? andamento : ''}
-                </div>
-              )}
-              {nao > 0 && (
-                <div className="bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold"
-                  style={{ width: `${(nao / total) * 100}%` }} title={`Não iniciado: ${nao}`}>
-                  {nao > 3 ? nao : ''}
-                </div>
-              )}
-            </div>
           </div>
         )
       })}
@@ -735,7 +740,13 @@ const objetivosPorEixo = eixos.map(e => ({
                         </span>
                       ))}
                     </div>
-                    <BarrasEixos eixos={eixos} metas={metas} hc={hc} />
+                    <BarrasEixos eixos={eixos} metas={metas} hc={hc} onFiltrar={(eixoId, status) => {
+                        setEixoFiltro(eixoId)
+                        setStatusFiltro(status)
+                        setObjetivoFiltro(null)
+                        setPage(1)
+                        setTimeout(() => document.getElementById('compromissos')?.scrollIntoView({ behavior: 'smooth' }), 50)
+                        }} />
                   </div>
                 </section>
 
