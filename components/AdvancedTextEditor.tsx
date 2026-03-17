@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { 
+import { useState, useEffect, useRef } from 'react'
+import {
+
   FaBold, FaItalic, FaUnderline, FaStrikethrough,
   FaAlignLeft, FaAlignCenter, FaAlignRight,
   FaListUl, FaListOl, FaLink, FaUndo, FaRedo,
@@ -12,6 +13,13 @@ export default function AdvancedTextEditor() {
   const [isOpen, setIsOpen] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [manualSize, setManualSize] = useState('')
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setIsAdmin(localStorage.getItem('isAdmin') === 'true')
+  }, [])
+
+  if (isAdmin === null || !isAdmin) return null
 
   const applyFormat = (command: string, value?: string) => {
     document.execCommand(command, false, value)

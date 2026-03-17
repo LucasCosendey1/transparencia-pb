@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AdminInactivityLogout from '../components/AdminInactivityLogout'
 import AdvancedTextEditor from '../components/AdvancedTextEditor'
+import LoadingBar from '../components/LoadingBar'
 
 const geistSans = Geist({ 
   variable: "--font-geist-sans", 
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {/* Componente de logout automático por inatividade */}
+        <LoadingBar />
         <AdminInactivityLogout />
         
         {/* Editor de texto avançado (lateral esquerda) */}
