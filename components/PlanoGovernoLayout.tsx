@@ -1234,7 +1234,7 @@ const objetivosPorEixo = eixos.map(e => ({
         />
       )}
 
-      <VLibras forceOnload />
+      <VLibrasWrapper />
     </div>
   )
 }
