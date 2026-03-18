@@ -1292,7 +1292,7 @@ setLinhasPorTabela(novasLinhas)
               Última atualização: {new Date(ultimaAtualizacao).toLocaleString('pt-BR')}
             </div>
           )}
-          <VLibras forceOnload />
+          <VLibrasWrapper />
         </div>
       )
     }
