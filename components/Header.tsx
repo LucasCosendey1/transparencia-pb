@@ -164,7 +164,7 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
       </div>
 
       {/* Header Principal */}
-      <header className={`sticky-header ${isScrolled ? 'scrolled' : ''} ${highContrast ? 'bg-black border-b-4 border-yellow-300' : 'bg-white shadow-sm'} relative z-40`}>
+      <header className={`sticky-header ${isScrolled ? 'scrolled' : ''} ${highContrast ? 'bg-black border-b-4 border-yellow-300' : 'bg-white shadow-sm'} relative z-30`}>
         <div className={`max-w-7xl mx-auto px-4 transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4'}`}>
           <div className="flex items-center justify-between gap-4">
 
