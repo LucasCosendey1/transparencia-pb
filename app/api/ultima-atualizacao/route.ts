@@ -11,22 +11,32 @@ const dbConfig = {
 }
 
 // GET — retorna { pagina_id: updated_at } para todos
-export async function GET() {
+export async function POST(req: Request) {
+  const { id, titulo, data_publicacao, url, categoria, ordem } = await req.json()
+  const conn = await mysql.createConnection(dbConfig)
   try {
-    const conn = await mysql.createConnection(dbConfig)
-    const [rows] = await conn.execute(
-      'SELECT pagina_id, updated_at FROM config_paginas'
-    ) as any[]
-    await conn.end()
-
-    const map: Record<string, string> = {}
-    for (const row of rows as any[]) {
-      map[row.pagina_id] = row.updated_at
+    if (id) {
+      await conn.execute(
+        `UPDATE diario_oficial SET titulo=?, data_publicacao=?, url=?, categoria=?, ordem=? WHERE id=?`,
+        [titulo, data_publicacao, url, categoria || null, ordem ?? 0, id]
+      )
+    } else {
+      const [r]: any = await conn.execute(
+        `INSERT INTO diario_oficial (titulo, data_publicacao, url, categoria, ordem) VALUES (?,?,?,?,?)`,
+        [titulo, data_publicacao, url, categoria || null, ordem ?? 0]
+      )
+      await conn.execute(
+        `INSERT INTO config_paginas (pagina_id, updated_at) VALUES ('diario-oficial', NOW())
+         ON DUPLICATE KEY UPDATE updated_at = NOW()`
+      )
+      await conn.end()
+      return NextResponse.json({ id: r.insertId })
     }
-
-    return NextResponse.json(map)
-  } catch (error) {
-    console.error(error)
-    return NextResponse.json({}, { status: 500 })
-  }
+    await conn.execute(
+      `INSERT INTO config_paginas (pagina_id, updated_at) VALUES ('diario-oficial', NOW())
+       ON DUPLICATE KEY UPDATE updated_at = NOW()`
+    )
+    await conn.end()
+    return NextResponse.json({ ok: true })
+  } catch(e) { await conn.end(); throw e }
 }
