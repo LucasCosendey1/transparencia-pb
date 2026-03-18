@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Header from './Header'
-import VLibras from 'vlibras-nextjs'
+import VLibrasWrapper from '@/components/VLibrasWrapper'
+
 import {
   FaHome, FaFilePdf, FaDownload, FaPlus, FaTrash,
   FaSave, FaTimes, FaFileAlt, FaTable, FaList,
