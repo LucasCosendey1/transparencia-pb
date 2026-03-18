@@ -163,7 +163,7 @@ const SECOES = [
   { titulo: 'Consultas sobre responsabilidade fiscal',             color: 'indigo' as const, chaves: ['prestacoes-contas','relatorio-gestao','pareceres-tce','julgamentos-contas','rgf','rreo','ppa','loa','ldo-atual','ldo-projeto'] },
   { titulo: 'Consultas sobre a gestão municipal',                  color: 'green'  as const, chaves: ['plano-estrategico','estrutura-org','competencias','responsaveis-gestao','contatos','decretos','diario-oficial','faq','conselhos'] },
   { titulo: 'Consultas sobre participação cidadã',                 color: 'cyan' as const, chaves: ['sic','esic','relatorio-sic','docs-classificados','docs-desclassificados','ouvidoria','ouvidoria-falabr','carta-servicos','plano-de-governo','plano-de-acao']},
-  { titulo: 'Consultas sobre educação & saúde',                    color: 'yellow' as const, chaves: ['pme','relatorio-pme','lista-creches','primeira-infancia','pms','programacao-saude','relatorio-saude','servicos-saude','especialidades','lista-regulacao','lista-medicamentos','estoque-farmacia'] },
+  { titulo: 'Consultas sobre assistência social, educação, saúde & primeira infância',                    color: 'yellow' as const, chaves: ['pme','relatorio-pme','lista-creches','primeira-infancia','pms','programacao-saude','relatorio-saude','servicos-saude','especialidades','lista-regulacao','lista-medicamentos','estoque-farmacia'] },
 ]
 
 const CARD_MAP = Object.fromEntries(CARDS.map(c => [c.chave, c]))
