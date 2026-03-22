@@ -1,5 +1,11 @@
 import PdfPageLayout from '@/components/PdfPageLayout'
 
 export default function Page() {
-  return <PdfPageLayout paginaId="inexigibilidade" />
+  return (
+    <PdfPageLayout 
+      paginaId="inexigibilidade"
+      titulo="Inexigibilidade"
+      breadcrumb="Inexigibilidade"
+    />
+  )
 }

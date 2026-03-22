@@ -1,5 +1,11 @@
 import PdfPageLayout from '@/components/PdfPageLayout'
 
 export default function Page() {
-  return <PdfPageLayout paginaId="competencias" />
+  return (
+    <PdfPageLayout 
+      paginaId="competencias"
+      titulo="Competencias"
+      breadcrumb="Competencias"
+    />
+  )
 }

@@ -1,11 +1,11 @@
-import PdfPageLayout from '../../components/PdfPageLayout'
+import PdfPageLayout from '@/components/PdfPageLayout'
 
 export default function Page() {
   return (
-    <PdfPageLayout
+    <PdfPageLayout 
       paginaId="politica-de-privacidade-e-protecao-dos-dados"
-      titulo="Política de Privacidade e Proteção dos Dados"
-      breadcrumb="Política de Privacidade e Proteção dos Dados"
+      titulo="Politica De Privacidade E Protecao Dos Dados"
+      breadcrumb="Politica De Privacidade E Protecao Dos Dados"
     />
   )
 }
