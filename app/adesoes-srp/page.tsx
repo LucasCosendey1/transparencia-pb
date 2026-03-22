@@ -5,10 +5,7 @@ export default function Page() {
     <PdfPageLayout 
       paginaId="adesoes-srp"
       titulo="Adesões SRP"
-      breadcrumb={[
-        { label: 'Início', href: '/' },
-        { label: 'Adesões SRP' }
-      ]}
+      breadcrumb="Adesões SRP"
     />
   )
 }
