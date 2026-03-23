@@ -735,8 +735,8 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <XAxis dataKey="_label" tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 9 }} angle={-40} textAnchor="end" interval={0} height={90} />
                     <YAxis tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
                     <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), config.columns.find(c => c.key === String(name))?.label ?? String(name)]}
-  contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
-                      labelStyle={{ color: hc ? '#fde047' : '#374151', fontWeight: 600 }} />
+                        contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }}
+                        labelStyle={{ color: hc ? '#fde047' : '#374151', fontWeight: 600 }} />
                     <Legend formatter={v => config.columns.find(c => c.key === v)?.label ?? v} wrapperStyle={{ fontSize: 11 }} />
                     {chartBarCols.map((col, i) => <Bar key={col.key} dataKey={col.key} fill={CHART_COLORS[i]} radius={[4, 4, 0, 0]} />)}
                     {chartLineCols.map((col, i) => <Line key={col.key} type="monotone" dataKey={col.key} stroke={CHART_COLORS[chartBarCols.length + i]} strokeWidth={2} dot={{ r: 3 }} />)}
