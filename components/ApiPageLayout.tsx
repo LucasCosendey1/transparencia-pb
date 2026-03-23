@@ -734,7 +734,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <CartesianGrid strokeDasharray="3 3" stroke={hc ? '#444' : '#e5e7eb'} />
                     <XAxis dataKey="_label" tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 9 }} angle={-40} textAnchor="end" interval={0} height={90} />
                     <YAxis tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
-                    <Tooltip formatter={(v: number, name: string) => [v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), config.columns.find(c => c.key === name)?.label ?? name]}
+                    <Tooltip formatter={(v: unknown, name: string) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), config.columns.find(c => c.key === name)?.label ?? name]}
                       contentStyle={{ background: hc ? '#111' : '#fff', border: '1px solid #ccc', borderRadius: 8, fontSize: 11 }}
                       labelStyle={{ color: hc ? '#fde047' : '#374151', fontWeight: 600 }} />
                     <Legend formatter={v => config.columns.find(c => c.key === v)?.label ?? v} wrapperStyle={{ fontSize: 11 }} />
@@ -754,7 +754,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                         label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
                         {pizzaData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                       </Pie>
-                      <Tooltip formatter={(v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      <Tooltip formatter={(v: unknown) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
                     </PieChart>
                   </ResponsiveContainer>
@@ -777,7 +777,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={hc ? '#444' : '#e5e7eb'} />
                     <XAxis type="number" tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
                     <YAxis type="category" dataKey="_label" width={160} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 9 }} />
-                    <Tooltip formatter={(v: number, name: string) => [v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), config.columns.find(c => c.key === name)?.label ?? name]}
+                    <Tooltip formatter={(v: unknown, name: string) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), config.columns.find(c => c.key === name)?.label ?? name]}
                       contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     {chartBarCols.map((col, i) => (
