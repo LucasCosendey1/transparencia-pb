@@ -751,7 +751,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <PieChart>
                       <Pie data={pizzaData} cx="50%" cy="50%" innerRadius={80} outerRadius={130}
                         dataKey="value" nameKey="name" paddingAngle={3}
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
+                        label={({ percent }) => `${((percent ?? 0) * 100).toFixed(0)}%`}>
                         {pizzaData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                       </Pie>
                       <Tooltip formatter={(v: unknown) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
