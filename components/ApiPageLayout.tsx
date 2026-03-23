@@ -99,11 +99,12 @@ function fmt(value: unknown, type?: string): string {
   return String(value)
 }
 
-function fmtShort(value: number): string {
-  if (Math.abs(value) >= 1_000_000_000) return `R$ ${(value / 1e9).toFixed(1)}B`
-  if (Math.abs(value) >= 1_000_000) return `R$ ${(value / 1e6).toFixed(1)}M`
-  if (Math.abs(value) >= 1_000) return `R$ ${(value / 1e3).toFixed(0)}K`
-  return `R$ ${value.toFixed(0)}`
+function fmtShort(value: unknown): string {
+  const v = Number(value)
+  if (Math.abs(v) >= 1_000_000_000) return `R$ ${(v / 1e9).toFixed(1)}B`
+  if (Math.abs(v) >= 1_000_000) return `R$ ${(v / 1e6).toFixed(1)}M`
+  if (Math.abs(v) >= 1_000) return `R$ ${(v / 1e3).toFixed(0)}K`
+  return `R$ ${v.toFixed(0)}`
 }
 
 const CARD_COLORS: Record<string, string> = {
@@ -795,7 +796,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <CartesianGrid strokeDasharray="3 3" stroke={hc ? '#444' : '#e5e7eb'} />
                     <XAxis dataKey="_label" tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 11 }} />
                     <YAxis tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
-                    <Tooltip formatter={(v: number, name: string) => [v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), name]}
+                    <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), String(name)]}
                       contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     {chartCompare === 'ano'
