@@ -371,7 +371,6 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
 
   const CARD_BG = hc ? 'bg-gray-900 border border-yellow-300' : 'bg-white shadow-md'
   const INPUT = hc ? 'bg-gray-900 border border-yellow-300 text-yellow-300 placeholder-yellow-600' : 'bg-white border border-gray-300 text-gray-700'
-  const BTN_PRIMARY = hc ? 'bg-yellow-300 text-black hover:bg-yellow-400' : 'bg-blue-600 text-white hover:bg-blue-700'
   const TH = hc ? 'bg-gray-800 text-yellow-300 border-b border-yellow-300' : 'bg-blue-700 text-white'
   const TR_EVEN = hc ? 'bg-gray-900' : 'bg-gray-50'
   const TR_ODD = hc ? 'bg-black' : 'bg-white'
@@ -611,9 +610,9 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
             <div>
               <p className={`font-semibold text-sm ${hc ? 'text-red-400' : 'text-red-700'}`}>Erro ao carregar dados</p>
               <p className={`text-xs mt-1 ${hc ? 'text-red-300' : 'text-red-500'}`}>{error}</p>
-              <button onClick={() => selectedYears.forEach(y => fetchYear(y))} className={`mt-3 text-xs px-3 py-1.5 rounded ${BTN_PRIMARY}`}>
+              <button onClick={() => selectedYears.forEach(y => fetchYear(y))} className={`mt-3 text-xs px-3 py-1.5 rounded ${hc ? 'bg-yellow-300 text-black hover:bg-yellow-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
                 Tentar novamente
-              </button>
+                </button>
             </div>
           </div>
         )}
@@ -736,7 +735,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <XAxis dataKey="_label" tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 9 }} angle={-40} textAnchor="end" interval={0} height={90} />
                     <YAxis tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
                     <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), config.columns.find(c => c.key === String(name))?.label ?? String(name)]}
-                      contentStyle={{ background: hc ? '#111' : '#fff', border: '1px solid #ccc', borderRadius: 8, fontSize: 11 }}
+  contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
                       labelStyle={{ color: hc ? '#fde047' : '#374151', fontWeight: 600 }} />
                     <Legend formatter={v => config.columns.find(c => c.key === v)?.label ?? v} wrapperStyle={{ fontSize: 11 }} />
                     {chartBarCols.map((col, i) => <Bar key={col.key} dataKey={col.key} fill={CHART_COLORS[i]} radius={[4, 4, 0, 0]} />)}
@@ -779,7 +778,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <XAxis type="number" tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
                     <YAxis type="category" dataKey="_label" width={160} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 9 }} />
                     <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), config.columns.find(c => c.key === String(name))?.label ?? String(name)]}
-                    contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
+  contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     {chartBarCols.map((col, i) => (
                       <Bar key={col.key} dataKey={col.key} fill={CHART_COLORS[i]} radius={[0, 4, 4, 0]}>
