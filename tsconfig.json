@@ -39,7 +39,7 @@
     "components/VLibrasWidget.jsx",
     "app/api/auth/login/route.ts",
     "app/admin/page.tsx"
-  ],
+, "app/fix-pages.js"  ],
   "exclude": [
     "node_modules"
   ]
