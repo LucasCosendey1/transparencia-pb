@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import Header from './Header'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
@@ -43,9 +43,9 @@ export interface ApiPageConfig {
   subtitulo?: string
   breadcrumb: string
   fonte?: string
+  // URL da API route local (ex: '/api/receita-prevista')
+  // O layout passa ?exercicio=YYYY automaticamente
   apiUrl: string
-  apiVersion?: string
-  ctx?: string
   extraParams?: Record<string, string>
   columns: ApiColumn[]
   cards?: ApiCard[]
@@ -77,12 +77,12 @@ const MESES = [
   { value: '11', label: 'Nov' }, { value: '12', label: 'Dez' },
 ]
 
-const CHART_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316']
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 const ANO_COLORS: Record<number, string> = {}
 ANOS_DISPONIVEIS.forEach((a, i) => { ANO_COLORS[a] = CHART_COLORS[i % CHART_COLORS.length] })
 
-type ChartView = 'combinado' | 'pizza' | 'barrasH' | 'evolucao' | 'gauge'
-type ChartCompare = 'total' | 'ano' | 'mes'
+type ChartView = 'combinado' | 'pizza' | 'barrasH' | 'evolucao' | 'gauge' | 'comparacao'
+type EvolucaoMode = 'total' | 'ano' | 'mes'
 
 // ─── Utilitários ──────────────────────────────────────────────────────────────
 
@@ -96,11 +96,16 @@ function fmt(value: unknown, type?: string): string {
     const n = Number(value)
     return isNaN(n) ? String(value) : n.toLocaleString('pt-BR')
   }
-  return String(value)
+  if (type === 'date') {
+  const d = new Date(String(value))
+  if (!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR')
+}
+return String(value)
 }
 
 function fmtShort(value: unknown): string {
   const v = Number(value)
+  if (isNaN(v)) return '—'
   if (Math.abs(v) >= 1_000_000_000) return `R$ ${(v / 1e9).toFixed(1)}B`
   if (Math.abs(v) >= 1_000_000) return `R$ ${(v / 1e6).toFixed(1)}M`
   if (Math.abs(v) >= 1_000) return `R$ ${(v / 1e3).toFixed(0)}K`
@@ -161,16 +166,19 @@ function download(blob: Blob, filename: string) {
 export default function ApiPageLayout({ config, highContrast, fontSize, adjustFontSize, setHighContrast, setFontSize }: Props) {
   const hc = highContrast
 
+  // ── Estado de dados ──
   const [dataByYear, setDataByYear] = useState<Record<number, Record<string, unknown>[]>>({})
   const [loadingYears, setLoadingYears] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState('')
 
+  // ── Estado de filtros ──
   const [selectedYears, setSelectedYears] = useState<number[]>([new Date().getFullYear()])
   const [selectedMonths, setSelectedMonths] = useState<string[]>([])
   const [busca, setBusca] = useState('')
   const [somenteMovimento, setSomenteMovimento] = useState(false)
 
+  // ── Estado de UI ──
   const [page, setPage] = useState(1)
   const perPage = 20
   const [sortKey, setSortKey] = useState<string | null>(null)
@@ -178,50 +186,53 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
   const [hiddenCols, setHiddenCols] = useState<Set<string>>(
     new Set(config.columns.filter(c => c.hidden).map(c => c.key))
   )
-
   const [activeTab, setActiveTab] = useState<'tabela' | 'grafico'>('tabela')
   const [showGlossario, setShowGlossario] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [showFilters, setShowFilters] = useState(true)
 
+  // ── Estado de gráficos ──
   const [chartIndex, setChartIndex] = useState(0)
-  const [chartCompare, setChartCompare] = useState<ChartCompare>('total')
+  const [evolucaoMode, setEvolucaoMode] = useState<EvolucaoMode>('total')
 
-  const CHARTS: { id: ChartView; label: string }[] = [
-    { id: 'combinado', label: 'Gráfico de Barras + Linha' },
-    { id: 'pizza',     label: 'Gráfico de pizza' },
-    { id: 'barrasH',   label: 'Gráfico de Ranking' },
-    { id: 'evolucao',  label: 'Gráfico de Evolução Mensal' },
-    { id: 'gauge',     label: 'Gráfico de Realizado em %' },
+  // ── Modo comparação ──
+  const [anosComparacao, setAnosComparacao] = useState<number[]>([])
+  const [metricaComparacao, setMetricaComparacao] = useState<string>('')
+
+  const chartCategoryCol = config.columns.find(c => c.chartRole === 'category')
+  const chartBarCols = config.columns.filter(c => c.chartRole === 'bar')
+  const chartLineCols = config.columns.filter(c => c.chartRole === 'line')
+  const CHARTS: { id: ChartView; label: string }[] = useMemo(() => {
+
+  const all: { id: ChartView; label: string; available: boolean }[] = [
+    { id: 'combinado',  label: 'Barras + Linha',     available: chartBarCols.length > 0 },
+    { id: 'pizza',      label: 'Distribuição',        available: chartBarCols.length > 0 && !!chartCategoryCol },
+    { id: 'barrasH',    label: 'Ranking',             available: chartBarCols.length > 0 },
+    { id: 'evolucao',   label: 'Evolução Mensal',     available: chartBarCols.length > 0 },
+    { id: 'gauge',      label: '% Realizado',         available: chartBarCols.length > 0 && chartLineCols.length > 0 },
+    { id: 'comparacao', label: 'Comparação de Anos',  available: true },
   ]
+  return all.filter(c => c.available)
+}, [chartBarCols, chartLineCols, chartCategoryCol])
 
-  // ── Fetch por ano ──
+  // ── Fetch por ano via route.ts local ──
   const fetchYear = useCallback(async (year: number) => {
-    setDataByYear(prev => {
-      if (prev[year]) return prev
-      return prev
-    })
-    setLoadingYears(prev => {
-      if (dataByYear[year]) return prev
-      return new Set(prev).add(year)
-    })
-
     if (dataByYear[year]) return
-
+    setLoadingYears(prev => new Set(prev).add(year))
     setError(null)
     try {
-      const ctx = config.ctx ?? '201089'
-      const version = config.apiVersion ?? '1.0'
-      const url = new URL(config.apiUrl.replace('{ctx}', ctx))
-      url.searchParams.set('api-version', version)
+      const url = new URL(config.apiUrl, window.location.origin)
       url.searchParams.set('exercicio', String(year))
-      if (config.extraParams) Object.entries(config.extraParams).forEach(([k, v]) => url.searchParams.set(k, v))
-      const res = await fetch(`/api/proxy?url=${encodeURIComponent(url.toString())}`)
+      if (config.extraParams) {
+        Object.entries(config.extraParams).forEach(([k, v]) => url.searchParams.set(k, v))
+      }
+      const res = await fetch(url.toString())
       if (!res.ok) throw new Error(`Erro ${res.status}`)
       const json = await res.json()
+      if (json.error) throw new Error(json.error)
       const arr: Record<string, unknown>[] = Array.isArray(json) ? json : (json.data ?? [])
       setDataByYear(prev => ({ ...prev, [year]: arr.map(r => ({ ...r, _ano: year })) }))
-      if (json.infoUltimaAtualizacao) setUltimaAtualizacao(json.infoUltimaAtualizacao)
+      if (json.ultimaAtualizacao) setUltimaAtualizacao(json.ultimaAtualizacao)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar dados')
     } finally {
@@ -233,11 +244,34 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
     selectedYears.forEach(y => { if (!dataByYear[y]) fetchYear(y) })
   }, [selectedYears]) // eslint-disable-line
 
+  useEffect(() => {
+  setChartIndex(0)
+}, [config.paginaId])
+
+  useEffect(() => {
+    anosComparacao.forEach(y => { if (!dataByYear[y]) fetchYear(y) })
+  }, [anosComparacao]) // eslint-disable-line
+
+  useEffect(() => {
+    if (!metricaComparacao) {
+      const primeira = config.columns.find(c => c.chartRole === 'bar' || c.type === 'currency')
+      if (primeira) setMetricaComparacao(primeira.key)
+    }
+  }, [config.columns, metricaComparacao])
+
   function toggleYear(year: number) {
     setSelectedYears(prev =>
-      prev.includes(year) ? (prev.length > 1 ? prev.filter(y => y !== year) : prev) : [...prev, year].sort((a, b) => b - a)
+      prev.includes(year)
+        ? prev.length > 1 ? prev.filter(y => y !== year) : prev
+        : [...prev, year].sort((a, b) => b - a)
     )
     setPage(1)
+  }
+
+  function toggleAnoComparacao(year: number) {
+    setAnosComparacao(prev =>
+      prev.includes(year) ? prev.filter(y => y !== year) : [...prev, year].sort((a, b) => b - a)
+    )
   }
 
   function toggleMonth(m: string) {
@@ -245,7 +279,10 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
     setPage(1)
   }
 
-  const allData = useMemo(() => selectedYears.flatMap(y => dataByYear[y] ?? []), [selectedYears, dataByYear])
+  const allData = useMemo(() =>
+    selectedYears.flatMap(y => dataByYear[y] ?? []),
+    [selectedYears, dataByYear]
+  )
 
   const filtered = useMemo(() => {
     let d = [...allData]
@@ -254,6 +291,12 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
       d = d.filter(r => {
         const m = String(r['competência'] ?? '').split('/')[0]
         return selectedMonths.includes(m)
+      })
+      // Recalcula acumulado respeitando apenas os meses selecionados
+      d = d.map(row => {
+        const porMes = row['_realizadoPorMes'] as Record<string, number> ?? {}
+        const acumulado = selectedMonths.reduce((acc, m) => acc + (porMes[m] ?? 0), 0)
+        return { ...row, 'realizada Até o Mês': acumulado }
       })
     }
     if (busca.trim()) {
@@ -264,7 +307,9 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
       d.sort((a, b) => {
         const an = Number(a[sortKey]); const bn = Number(b[sortKey])
         if (!isNaN(an) && !isNaN(bn)) return sortDir === 'asc' ? an - bn : bn - an
-        return sortDir === 'asc' ? String(a[sortKey]).localeCompare(String(b[sortKey])) : String(b[sortKey]).localeCompare(String(a[sortKey]))
+        return sortDir === 'asc'
+          ? String(a[sortKey]).localeCompare(String(b[sortKey]))
+          : String(b[sortKey]).localeCompare(String(a[sortKey]))
       })
     }
     return d
@@ -275,7 +320,9 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
   const loading = loadingYears.size > 0
 
   function computeCard(card: ApiCard): string {
-    const base = filtered.filter(r => r['movimento'] === 'S')
+    const base = config.showMovimentoFilter !== false
+      ? filtered.filter(r => r['movimento'] === 'S')
+      : filtered
     if (card.compute) {
       const val = card.compute(base)
       if (card.format === 'currency') return Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -286,42 +333,48 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
     return sum.toLocaleString('pt-BR')
   }
 
-  const chartCategoryCol = config.columns.find(c => c.chartRole === 'category')
-  const chartBarCols = config.columns.filter(c => c.chartRole === 'bar')
-  const chartLineCols = config.columns.filter(c => c.chartRole === 'line')
 
-  const comboData = useMemo(() => {
-    return filtered.filter(r => r['movimento'] === 'S').slice(0, 12).map(row => {
+
+  const baseRows = useMemo(() =>
+    config.showMovimentoFilter !== false
+      ? filtered.filter(r => r['movimento'] === 'S')
+      : filtered,
+    [filtered, config.showMovimentoFilter]
+  )
+
+  const comboData = useMemo(() =>
+    baseRows.slice(0, 12).map(row => {
       const entry: Record<string, unknown> = {}
       if (chartCategoryCol) {
         const raw = String(row[chartCategoryCol.key] ?? '')
         entry['_label'] = raw.length > 22 ? raw.slice(0, 22) + '…' : raw
       }
-      entry['_ano'] = row['_ano']
-      ;[...chartBarCols, ...chartLineCols].forEach(c => { entry[c.key] = Number(row[c.key]) || 0 })
+      entry['_ano'] = row['_ano'];
+      [...chartBarCols, ...chartLineCols].forEach(c => { entry[c.key] = Number(row[c.key]) || 0 })
       return entry
-    })
-  }, [filtered, chartCategoryCol, chartBarCols, chartLineCols])
+    }),
+    [baseRows, chartCategoryCol, chartBarCols, chartLineCols]
+  )
 
   const pizzaData = useMemo(() => {
     const barKey = chartBarCols[0]?.key
     if (!barKey || !chartCategoryCol) return []
     const map: Record<string, number> = {}
-    filtered.filter(r => r['movimento'] === 'S').forEach(r => {
+    baseRows.forEach(r => {
       const label = String(r[chartCategoryCol.key] ?? '').slice(0, 30)
       map[label] = (map[label] || 0) + (Number(r[barKey]) || 0)
     })
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({ name, value }))
-  }, [filtered, chartBarCols, chartCategoryCol])
+  }, [baseRows, chartBarCols, chartCategoryCol])
 
   const evolucaoData = useMemo(() => {
     const barKey = chartBarCols[0]?.key
     const lineKey = chartLineCols[0]?.key
     if (!barKey) return []
-    if (chartCompare === 'ano') {
+    if (evolucaoMode === 'ano') {
       const map: Record<string, Record<number, number>> = {}
       MESES.forEach(m => { map[m.value] = {} })
-      filtered.filter(r => r['movimento'] === 'S').forEach(r => {
+      baseRows.forEach(r => {
         const [m] = String(r['competência'] ?? '').split('/')
         const ano = Number(r['_ano'])
         if (map[m]) map[m][ano] = (map[m][ano] || 0) + (Number(r[barKey]) || 0)
@@ -334,30 +387,58 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
     }
     const map2: Record<string, { previsto: number; realizado: number }> = {}
     MESES.forEach(m => { map2[m.value] = { previsto: 0, realizado: 0 } })
-    filtered.filter(r => r['movimento'] === 'S').forEach(r => {
+    baseRows.forEach(r => {
       const [m] = String(r['competência'] ?? '').split('/')
       if (map2[m]) {
         map2[m].previsto += Number(r[barKey]) || 0
         if (lineKey) map2[m].realizado += Number(r[lineKey]) || 0
       }
     })
-    return MESES.map(m => ({ _label: m.label, Previsto: map2[m.value].previsto, Realizado: map2[m.value].realizado }))
-  }, [filtered, chartBarCols, chartLineCols, chartCompare, selectedYears])
+    const barLabel = chartBarCols[0]?.label ?? 'Valor'
+    const lineLabel = chartLineCols[0]?.label ?? 'Linha'
+    return MESES.map(m => ({
+      _label: m.label,
+      [barLabel]: map2[m.value].previsto,
+      [lineLabel]: map2[m.value].realizado,
+    }))
+  }, [baseRows, chartBarCols, chartLineCols, evolucaoMode, selectedYears])
 
   const gaugeData = useMemo(() => {
     const barKey = chartBarCols[0]?.key
     const lineKey = chartLineCols[0]?.key
     if (!barKey || !lineKey) return { pct: 0, previsto: 0, realizado: 0 }
-    const base = filtered.filter(r => r['movimento'] === 'S')
-    const previsto = base.reduce((a, r) => a + (Number(r[barKey]) || 0), 0)
-    const realizado = base.reduce((a, r) => a + (Number(r[lineKey]) || 0), 0)
+    const previsto = baseRows.reduce((a, r) => a + (Number(r[barKey]) || 0), 0)
+    const realizado = baseRows.reduce((a, r) => a + (Number(r[lineKey]) || 0), 0)
     return { pct: previsto > 0 ? Math.min(100, (realizado / previsto) * 100) : 0, previsto, realizado }
-  }, [filtered, chartBarCols, chartLineCols])
+  }, [baseRows, chartBarCols, chartLineCols])
 
   const radialData = [
     { name: 'Realizado', value: gaugeData.pct, fill: '#10b981' },
     { name: 'Restante', value: 100 - gaugeData.pct, fill: hc ? '#333' : '#e5e7eb' },
   ]
+
+  const anosParaComparar = useMemo(() =>
+    anosComparacao.length >= 2
+      ? anosComparacao
+      : [...new Set([...selectedYears, ...anosComparacao])].sort((a, b) => b - a),
+    [anosComparacao, selectedYears]
+  )
+
+  const comparacaoData = useMemo(() => {
+    if (!metricaComparacao || anosParaComparar.length < 2) return []
+    return MESES.map(m => {
+      const entry: Record<string, unknown> = { _label: m.label }
+      anosParaComparar.forEach(y => {
+        const rows = (dataByYear[y] ?? []).filter(r =>
+          config.showMovimentoFilter !== false ? r['movimento'] === 'S' : true
+        )
+        entry[`ano_${y}`] = rows
+          .filter(r => String(r['competência'] ?? '').split('/')[0] === m.value)
+          .reduce((acc, r) => acc + (Number(r[metricaComparacao]) || 0), 0)
+      })
+      return entry
+    })
+  }, [anosParaComparar, dataByYear, metricaComparacao, config.showMovimentoFilter])
 
   function handleSort(key: string) {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -366,14 +447,15 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
   function toggleCol(key: string) {
     setHiddenCols(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s })
   }
+
   const visibleCols = config.columns.filter(c => !hiddenCols.has(c.key))
   const currentChart = CHARTS[chartIndex]
 
-  const CARD_BG = hc ? 'bg-gray-900 border border-yellow-300' : 'bg-white shadow-md'
-  const INPUT = hc ? 'bg-gray-900 border border-yellow-300 text-yellow-300 placeholder-yellow-600' : 'bg-white border border-gray-300 text-gray-700'
-  const TH = hc ? 'bg-gray-800 text-yellow-300 border-b border-yellow-300' : 'bg-blue-700 text-white'
-  const TR_EVEN = hc ? 'bg-gray-900' : 'bg-gray-50'
-  const TR_ODD = hc ? 'bg-black' : 'bg-white'
+  const CARD_BG   = hc ? 'bg-gray-900 border border-yellow-300' : 'bg-white shadow-md'
+  const INPUT     = hc ? 'bg-gray-900 border border-yellow-300 text-yellow-300 placeholder-yellow-600' : 'bg-white border border-gray-300 text-gray-700'
+  const TH        = hc ? 'bg-gray-800 text-yellow-300 border-b border-yellow-300' : 'bg-blue-700 text-white'
+  const TR_EVEN   = hc ? 'bg-gray-900' : 'bg-gray-50'
+  const TR_ODD    = hc ? 'bg-black'    : 'bg-white'
   const TD_BORDER = hc ? 'border-b border-gray-700' : 'border-b border-gray-100'
 
   return (
@@ -392,26 +474,30 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
 
       <main className="max-w-7xl mx-auto px-4 py-10 space-y-6">
 
-        {/* Título */}
+        {/* ── Título ── */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className={`text-3xl font-bold ${hc ? 'text-yellow-300' : 'text-gray-800'}`}>{config.titulo}</h1>
             {config.subtitulo && <p className={`mt-1 text-sm ${hc ? 'text-yellow-200' : 'text-gray-500'}`}>{config.subtitulo}</p>}
             {ultimaAtualizacao && (
               <p className={`mt-1 text-xs flex items-center gap-1 ${hc ? 'text-yellow-400' : 'text-gray-400'}`}>
-                <FaSync size={10} /> {ultimaAtualizacao}
+                <FaSync size={10} /> Atualizado em: {ultimaAtualizacao}
               </p>
             )}
           </div>
-          {config.glossario?.length && (
-            <button onClick={() => setShowGlossario(g => !g)}
-              className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition ${hc ? 'border-yellow-300 text-yellow-300 hover:bg-yellow-300 hover:text-black' : 'border-blue-300 text-blue-600 hover:bg-blue-50'}`}>
-              <FaQuestionCircle /> Glossário
-            </button>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {config.glossario?.length && (
+              <button onClick={() => setShowGlossario(g => !g)}
+                className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition ${hc ? 'border-yellow-300 text-yellow-300 hover:bg-yellow-300 hover:text-black' : 'border-blue-300 text-blue-600 hover:bg-blue-50'}`}>
+                <FaQuestionCircle /> Glossário
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Glossário */}
+        
+
+        {/* ── Glossário ── */}
         {showGlossario && config.glossario?.length && (
           <div className={`${CARD_BG} rounded-xl p-5 space-y-2`}>
             <h2 className={`font-semibold mb-3 ${hc ? 'text-yellow-300' : 'text-gray-700'}`}>📖 Glossário</h2>
@@ -424,7 +510,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
           </div>
         )}
 
-        {/* Cards */}
+        {/* ── Cards ── */}
         {config.cards?.length && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {config.cards.map(card => (
@@ -439,18 +525,16 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
           </div>
         )}
 
-        {/* ── FILTROS ── */}
+        {/* ── Filtros ── */}
         <div className={`${CARD_BG} rounded-xl`}>
           <button onClick={() => setShowFilters(f => !f)}
             className={`w-full flex items-center justify-between px-5 py-4 text-sm font-semibold ${hc ? 'text-yellow-300' : 'text-gray-700'}`}>
             <span className="flex items-center gap-2"><FaFilter /> Filtros</span>
             {showFilters ? <FaChevronUp /> : <FaChevronDown />}
           </button>
-
           {showFilters && (
             <div className="px-5 pb-6 space-y-5">
 
-              {/* Anos — chips modernos */}
               {config.showYearFilter !== false && (
                 <div>
                   <p className={`text-xs font-semibold mb-3 flex items-center gap-1 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>
@@ -470,8 +554,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                           style={isSelected && !hc ? { backgroundColor: ANO_COLORS[year], borderColor: ANO_COLORS[year] } : {}}>
                           {isLoading
                             ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            : isSelected && <span className="text-xs">✓</span>
-                          }
+                            : isSelected && <span className="text-xs">✓</span>}
                           {year}
                         </button>
                       )
@@ -479,13 +562,12 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                   </div>
                   {selectedYears.length > 1 && (
                     <p className={`text-xs mt-2 italic ${hc ? 'text-yellow-400' : 'text-blue-500'}`}>
-                      {selectedYears.length} anos selecionados — dados combinados na tabela, comparados nos gráficos
+                      {selectedYears.length} anos selecionados — dados combinados na tabela
                     </p>
                   )}
                 </div>
               )}
 
-              {/* Meses — chips */}
               {config.showMonthFilter !== false && (
                 <div>
                   <p className={`text-xs font-semibold mb-3 flex items-center gap-1 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>
@@ -515,7 +597,6 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                 </div>
               )}
 
-              {/* Busca + Movimento */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {config.showSearchFilter !== false && (
                   <div>
@@ -543,7 +624,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
           )}
         </div>
 
-        {/* Abas + Ações */}
+        {/* ── Abas + Ações ── */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className={`flex rounded-lg overflow-hidden border ${hc ? 'border-yellow-300' : 'border-gray-200'}`}>
             {(['tabela', 'grafico'] as const).map(tab => (
@@ -553,7 +634,6 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
               </button>
             ))}
           </div>
-
           <div className="flex items-center gap-2">
             <div className="relative group">
               <button className={`flex items-center gap-1 text-xs px-3 py-2 rounded-lg border transition ${hc ? 'border-yellow-300 text-yellow-300 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
@@ -568,7 +648,6 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                 ))}
               </div>
             </div>
-
             <div className="relative">
               <button onClick={() => setExportOpen(o => !o)}
                 className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border transition ${hc ? 'border-yellow-300 text-yellow-300 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
@@ -595,7 +674,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
           </div>
         </div>
 
-        {/* Loading / Erro */}
+        {/* ── Loading / Erro ── */}
         {loading && (
           <div className={`${CARD_BG} rounded-xl p-10 flex flex-col items-center gap-3`}>
             <div className={`w-8 h-8 border-4 rounded-full animate-spin ${hc ? 'border-yellow-300 border-t-transparent' : 'border-blue-600 border-t-transparent'}`} />
@@ -610,14 +689,15 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
             <div>
               <p className={`font-semibold text-sm ${hc ? 'text-red-400' : 'text-red-700'}`}>Erro ao carregar dados</p>
               <p className={`text-xs mt-1 ${hc ? 'text-red-300' : 'text-red-500'}`}>{error}</p>
-              <button onClick={() => selectedYears.forEach(y => fetchYear(y))} className={`mt-3 text-xs px-3 py-1.5 rounded ${hc ? 'bg-yellow-300 text-black hover:bg-yellow-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+              <button onClick={() => { setDataByYear({}); selectedYears.forEach(fetchYear) }}
+                className={`mt-3 text-xs px-3 py-1.5 rounded ${hc ? 'bg-yellow-300 text-black hover:bg-yellow-400' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
                 Tentar novamente
-                </button>
+              </button>
             </div>
           </div>
         )}
 
-        {/* ── TABELA ── */}
+        {/* ── Tabela ── */}
         {!loading && !error && activeTab === 'tabela' && (
           <div className={`${CARD_BG} rounded-xl overflow-hidden`}>
             <div className={`px-5 py-3 flex items-center justify-between border-b ${hc ? 'border-yellow-300' : 'border-gray-100'}`}>
@@ -685,10 +765,9 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
           </div>
         )}
 
-        {/* ── GRÁFICOS (Carrossel) ── */}
+        {/* ── Gráficos (Carrossel) ── */}
         {!loading && !error && activeTab === 'grafico' && (
           <div className={`${CARD_BG} rounded-xl overflow-hidden`}>
-            {/* Header carrossel */}
             <div className={`px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b ${hc ? 'border-yellow-300' : 'border-gray-100'}`}>
               <div className="flex items-center gap-3">
                 <button onClick={() => setChartIndex(i => (i - 1 + CHARTS.length) % CHARTS.length)}
@@ -701,30 +780,26 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                   <FaChevronRight size={12} />
                 </button>
               </div>
-
-              {/* Dots */}
               <div className="flex items-center gap-1.5">
                 {CHARTS.map((c, i) => (
-                  <button key={c.id} onClick={() => setChartIndex(i)}
-                    title={c.label}
-                    className={`rounded-full transition-all duration-300 ${i === chartIndex ? (hc ? 'w-6 h-2.5 bg-yellow-300' : 'w-6 h-2.5 bg-blue-600') : (hc ? 'w-2.5 h-2.5 bg-gray-600 hover:bg-gray-400' : 'w-2.5 h-2.5 bg-gray-300 hover:bg-gray-400')}`} />
+                  <button key={c.id} onClick={() => setChartIndex(i)} title={c.label}
+                    className={`rounded-full transition-all duration-300 ${i === chartIndex
+                      ? hc ? 'w-6 h-2.5 bg-yellow-300' : 'w-6 h-2.5 bg-blue-600'
+                      : hc ? 'w-2.5 h-2.5 bg-gray-600 hover:bg-gray-400' : 'w-2.5 h-2.5 bg-gray-300 hover:bg-gray-400'}`} />
                 ))}
               </div>
-
-              {/* Comparação — só para evolução */}
               {currentChart.id === 'evolucao' && (
                 <div className={`flex rounded-lg overflow-hidden border text-xs ${hc ? 'border-yellow-300' : 'border-gray-200'}`}>
-                  {(['total', 'mes', 'ano'] as ChartCompare[]).map(c => (
-                    <button key={c} onClick={() => setChartCompare(c)}
-                      className={`px-3 py-1.5 font-medium transition ${chartCompare === c ? (hc ? 'bg-yellow-300 text-black' : 'bg-blue-600 text-white') : (hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-50')}`}>
-                      {c === 'total' ? 'Total' : c === 'mes' ? 'Por Mês' : 'Por Ano'}
+                  {(['total', 'mes', 'ano'] as EvolucaoMode[]).map(m => (
+                    <button key={m} onClick={() => setEvolucaoMode(m)}
+                      className={`px-3 py-1.5 font-medium transition ${evolucaoMode === m ? (hc ? 'bg-yellow-300 text-black' : 'bg-blue-600 text-white') : (hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-50')}`}>
+                      {m === 'total' ? 'Total' : m === 'mes' ? 'Por Mês' : 'Por Ano'}
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Área do gráfico */}
             <div className="p-5">
 
               {/* 1 — Combinado */}
@@ -735,8 +810,8 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <XAxis dataKey="_label" tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 9 }} angle={-40} textAnchor="end" interval={0} height={90} />
                     <YAxis tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
                     <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), config.columns.find(c => c.key === String(name))?.label ?? String(name)]}
-                        contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }}
-                        labelStyle={{ color: hc ? '#fde047' : '#374151', fontWeight: 600 }} />
+                      contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }}
+                      labelStyle={{ color: hc ? '#fde047' : '#374151', fontWeight: 600 }} />
                     <Legend formatter={v => config.columns.find(c => c.key === v)?.label ?? v} wrapperStyle={{ fontSize: 11 }} />
                     {chartBarCols.map((col, i) => <Bar key={col.key} dataKey={col.key} fill={CHART_COLORS[i]} radius={[4, 4, 0, 0]} />)}
                     {chartLineCols.map((col, i) => <Line key={col.key} type="monotone" dataKey={col.key} stroke={CHART_COLORS[chartBarCols.length + i]} strokeWidth={2} dot={{ r: 3 }} />)}
@@ -744,7 +819,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                 </ResponsiveContainer>
               )}
 
-              {/* 2 — Pizza/Donut */}
+              {/* 2 — Pizza */}
               {currentChart.id === 'pizza' && (
                 <div className="flex flex-col md:flex-row items-center gap-6">
                   <ResponsiveContainer width="100%" height={320}>
@@ -770,7 +845,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                 </div>
               )}
 
-              {/* 3 — Barras Horizontais (Ranking) */}
+              {/* 3 — Ranking */}
               {currentChart.id === 'barrasH' && (
                 <ResponsiveContainer width="100%" height={420}>
                   <BarChart data={comboData} layout="vertical" margin={{ top: 5, right: 80, left: 10, bottom: 5 }}>
@@ -778,7 +853,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <XAxis type="number" tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
                     <YAxis type="category" dataKey="_label" width={160} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 9 }} />
                     <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), config.columns.find(c => c.key === String(name))?.label ?? String(name)]}
-  contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
+                      contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     {chartBarCols.map((col, i) => (
                       <Bar key={col.key} dataKey={col.key} fill={CHART_COLORS[i]} radius={[0, 4, 4, 0]}>
@@ -799,14 +874,16 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), String(name)]}
                       contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    {chartCompare === 'ano'
+                    {evolucaoMode === 'ano'
                       ? selectedYears.map(y => (
                         <Line key={y} type="monotone" dataKey={`ano_${y}`} name={String(y)}
                           stroke={ANO_COLORS[y]} strokeWidth={2.5} dot={{ r: 4, fill: ANO_COLORS[y] }} />
                       ))
                       : <>
-                        <Bar dataKey="Previsto" fill="#3b82f6" radius={[4, 4, 0, 0]} fillOpacity={0.85} />
-                        <Line type="monotone" dataKey="Realizado" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4 }} />
+                        <Bar dataKey={chartBarCols[0]?.label ?? 'Valor'} fill="#3b82f6" radius={[4, 4, 0, 0]} fillOpacity={0.85} />
+                        {chartLineCols[0] && (
+                          <Line type="monotone" dataKey={chartLineCols[0]?.label ?? 'Linha'} stroke="#10b981" strokeWidth={2.5} dot={{ r: 4 }} />
+                        )}
                       </>
                     }
                   </ComposedChart>
@@ -825,9 +902,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     </RadialBarChart>
                   </ResponsiveContainer>
                   <div className="text-center -mt-10">
-                    <p className={`text-5xl font-black ${hc ? 'text-yellow-300' : 'text-gray-800'}`}>
-                      {gaugeData.pct.toFixed(1)}%
-                    </p>
+                    <p className={`text-5xl font-black ${hc ? 'text-yellow-300' : 'text-gray-800'}`}>{gaugeData.pct.toFixed(1)}%</p>
                     <p className={`text-sm mt-1 ${hc ? 'text-yellow-400' : 'text-gray-500'}`}>do previsto foi realizado</p>
                   </div>
                   <div className="grid grid-cols-2 gap-8 text-center mt-2">
@@ -842,6 +917,86 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                   </div>
                 </div>
               )}
+
+              {/* 6 — Comparação de Anos (via carrossel) */}
+              {currentChart.id === 'comparacao' && (
+  <div className="space-y-4">
+    <div className="flex flex-wrap gap-6">
+      <div>
+        <p className={`text-xs font-semibold mb-2 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>Anos a comparar:</p>
+        <div className="flex flex-wrap gap-2">
+          {ANOS_DISPONIVEIS.map(year => {
+            const isSelected = anosComparacao.includes(year)
+            const isLoading = loadingYears.has(year)
+            return (
+              <button key={year} onClick={() => toggleAnoComparacao(year)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all duration-200 ${
+                  isSelected
+                    ? hc ? 'bg-yellow-300 text-black border-yellow-300' : 'text-white border-transparent shadow-md'
+                    : hc ? 'border-yellow-300 text-yellow-300 hover:bg-yellow-300 hover:text-black' : 'border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-600 bg-white'
+                }`}
+                style={isSelected && !hc ? { backgroundColor: ANO_COLORS[year], borderColor: ANO_COLORS[year] } : {}}>
+                {isLoading ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : isSelected && <span className="text-xs">✓</span>}
+                {year}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div>
+        <p className={`text-xs font-semibold mb-2 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>Indicador:</p>
+        <div className="flex flex-wrap gap-2">
+          {config.columns.filter(c => c.type === 'currency' || c.type === 'number').map(col => (
+            <button key={col.key} onClick={() => setMetricaComparacao(col.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all duration-200 ${
+                metricaComparacao === col.key
+                  ? hc ? 'bg-yellow-300 text-black border-yellow-300' : 'bg-blue-600 text-white border-blue-600'
+                  : hc ? 'border-yellow-300 text-yellow-300 hover:bg-yellow-300 hover:text-black' : 'border-gray-200 text-gray-500 bg-white hover:border-blue-300 hover:text-blue-500'
+              }`}>
+              {col.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {anosParaComparar.length >= 2 && metricaComparacao ? (
+      <>
+        <ResponsiveContainer width="100%" height={360}>
+          <ComposedChart data={comparacaoData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={hc ? '#444' : '#e5e7eb'} />
+            <XAxis dataKey="_label" tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 11 }} />
+            <YAxis tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
+            <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), String(name).replace('ano_', '')]}
+              contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
+            <Legend formatter={v => String(v).replace('ano_', '')} wrapperStyle={{ fontSize: 11 }} />
+            {anosParaComparar.map(y => (
+              <Line key={y} type="monotone" dataKey={`ano_${y}`} name={`ano_${y}`}
+                stroke={ANO_COLORS[y]} strokeWidth={2.5} dot={{ r: 4, fill: ANO_COLORS[y] }} />
+            ))}
+          </ComposedChart>
+        </ResponsiveContainer>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {anosParaComparar.map(y => {
+            const rows = (dataByYear[y] ?? []).filter(r => config.showMovimentoFilter !== false ? r['movimento'] === 'S' : true)
+            const total = rows.reduce((acc, r) => acc + (Number(r[metricaComparacao]) || 0), 0)
+            return (
+              <div key={y} className={`rounded-lg p-3 text-center ${hc ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
+                <div className="w-3 h-3 rounded-full mx-auto mb-1" style={{ backgroundColor: ANO_COLORS[y] }} />
+                <p className={`text-xs font-bold ${hc ? 'text-yellow-300' : 'text-gray-700'}`}>{y}</p>
+                <p className={`text-sm font-semibold mt-1 ${hc ? 'text-yellow-200' : 'text-gray-800'}`}>{fmtShort(total)}</p>
+              </div>
+            )
+          })}
+        </div>
+      </>
+    ) : (
+      <p className={`text-sm text-center py-8 ${hc ? 'text-yellow-400' : 'text-gray-400'}`}>
+        Selecione pelo menos 2 anos e um indicador acima para visualizar a comparação.
+      </p>
+    )}
+  </div>
+)}
             </div>
           </div>
         )}
