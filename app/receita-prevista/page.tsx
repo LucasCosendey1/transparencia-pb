@@ -1,7 +1,13 @@
+//app/receita-prevista/page.tsx
+
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ApiPageLayout, { ApiPageConfig } from '@/components/ApiPageLayout'
+
+// ─── Config visual/estrutural da página ───────────────────────────────────────
+// Aqui ficam apenas metadados, colunas, cards e glossário.
+// O fetch real acontece no route.ts desta pasta.
 
 const config: ApiPageConfig = {
   paginaId: 'receita-prevista',
@@ -10,9 +16,8 @@ const config: ApiPageConfig = {
   breadcrumb: 'Receita Prevista',
   fonte: 'Sistema de Contabilidade Pública — Elmar Tecnologia',
 
-  apiUrl: 'https://transparencia-api.elmartecnologia.com.br/api/201089/contab/receitas/prevista',
-  apiVersion: '1.0',
-  ctx: '201089',
+  // Aponta para o route.ts local desta página
+  apiUrl: '/api/receita-prevista',
 
   showYearFilter: true,
   showMonthFilter: true,
@@ -20,25 +25,23 @@ const config: ApiPageConfig = {
   showMovimentoFilter: true,
 
   columns: [
-  { key: 'cod. Órgão',           label: 'Cod. Órgão',           type: 'text' },
-  { key: 'órgão',                label: 'Órgão',                type: 'text' },
-  { key: 'cód.Receita',          label: 'Cód. Receita',         type: 'text' },
-  { key: 'descrição',            label: 'Descrição',            type: 'text',     chartRole: 'category' },
-  { key: 'receita Prevista',     label: 'Receita Prevista',     type: 'currency', chartRole: 'bar',
-    tooltip: 'Valor total que foi planejado para arrecadação neste exercício' },
-  { key: 'realizada no Mês',     label: 'Realizada no Mês',     type: 'currency', chartRole: 'line',
-    tooltip: 'Valor efetivamente arrecadado no mês de competência' },
-  { key: 'realizada Até o Mês',  label: 'Realizada Até o Mês',  type: 'currency',
-    tooltip: 'Soma de tudo que foi arrecadado desde o início do exercício até o mês selecionado' },
-  { key: 'diferença para Mais',  label: 'Diferença (+)',         type: 'currency',
-    tooltip: 'Quanto foi arrecadado a mais do que o previsto' },
-  { key: 'diferença para Menos', label: 'Diferença (-)',         type: 'currency',
-    tooltip: 'Quanto faltou arrecadar em relação ao previsto' },
-  { key: 'cod_orgao',            label: 'Cod. Org.',            type: 'number' },
-  { key: 'competência',          label: 'Competência',          type: 'text' },
-  { key: 'movimento',            label: 'Mov.',                 type: 'text',
-    tooltip: 'S = possui movimento real; N = apenas categoria agrupadora' },
-],
+    { key: 'cód.Receita',          label: 'Cód. Receita',        type: 'text' },
+    { key: 'descrição',            label: 'Descrição',           type: 'text',     chartRole: 'category' },
+    { key: 'receita Prevista',     label: 'Receita Prevista',    type: 'currency', chartRole: 'bar',
+      tooltip: 'Valor total planejado para arrecadação neste exercício' },
+    { key: 'realizada no Mês',     label: 'Realizada no Mês',    type: 'currency', chartRole: 'line',
+      tooltip: 'Valor efetivamente arrecadado (fonte: API realizada)' },
+    { key: 'realizada Até o Mês',  label: 'Realizada Até o Mês', type: 'currency',
+      tooltip: 'Soma acumulada desde janeiro até o mês selecionado' },
+    { key: 'diferença para Mais',  label: 'Diferença (+)',        type: 'currency',
+      tooltip: 'Quanto foi arrecadado a mais do que o previsto' },
+    { key: 'diferença para Menos', label: 'Diferença (-)',        type: 'currency',
+      tooltip: 'Quanto faltou arrecadar em relação ao previsto' },
+    { key: 'cod_orgao',            label: 'Cod. Org.',           type: 'number',   hidden: true },
+    { key: 'competência',          label: 'Competência',         type: 'text',     hidden: true },
+    { key: 'movimento',            label: 'Mov.',                type: 'text',     hidden: true,
+      tooltip: 'S = possui movimento real; N = apenas categoria agrupadora' },
+  ],
 
   cards: [
     {
@@ -49,7 +52,7 @@ const config: ApiPageConfig = {
         .reduce((acc, r) => acc + (Number(r['receita Prevista']) || 0), 0),
       format: 'currency',
       color: 'blue',
-      tooltip: 'Soma de todas as receitas previstas com movimento real (movimento = S)',
+      tooltip: 'Soma de todas as receitas previstas com movimento real',
     },
     {
       label: 'Realizado no Mês',
@@ -59,7 +62,7 @@ const config: ApiPageConfig = {
         .reduce((acc, r) => acc + (Number(r['realizada no Mês']) || 0), 0),
       format: 'currency',
       color: 'green',
-      tooltip: 'Total efetivamente arrecadado no mês filtrado',
+      tooltip: 'Total efetivamente arrecadado (fonte: API realizada)',
     },
     {
       label: 'Realizado Acumulado',
@@ -96,6 +99,8 @@ const config: ApiPageConfig = {
     { termo: 'ISSQN',                definicao: 'Imposto Sobre Serviços de Qualquer Natureza — tributo municipal.' },
   ],
 }
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ReceitaPrevistaPage() {
   const [fontSize, setFontSize] = useState(16)
