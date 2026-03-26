@@ -1,177 +1,106 @@
 'use client'
 
-import Header from '../../components/Header'
 import { useState } from 'react'
-import Link from 'next/link'
-import { FaHome, FaExternalLinkAlt, FaDownload, FaInfoCircle, FaCalendarAlt, FaSearch } from 'react-icons/fa'
-import VLibras from 'vlibras-nextjs'
+import ApiPageLayout, { ApiPageConfig } from '@/components/ApiPageLayout'
 
-const ANOS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+const config: ApiPageConfig = {
+  paginaId: 'despesa-fixada',
+  titulo: 'Despesa Fixada',
+  subtitulo: 'Dotações orçamentárias fixadas e atualizadas — Itabaiana/PB',
+  breadcrumb: 'Despesa Fixada',
+  fonte: 'Sistema de Contabilidade Pública — Elmar Tecnologia',
 
-const BASE_URL = 'https://transparencia.elmartecnologia.com.br/Contab/Receitas/ReceitaPrevista'
-const PARAMS = 'Tab=1&isModal=false&hTab=3&Filter=EMENDAS&e=201089&ctx=201089'
+  apiUrl: '/api/despesa-fixada',
+
+  showYearFilter: true,
+  showMonthFilter: true,
+  showSearchFilter: true,
+  showMovimentoFilter: false,
+
+  columns: [
+    { key: 'competência',        label: 'Competência',        type: 'text' },
+    { key: 'und. Orçamentária',  label: 'Unidade Orçamentária', type: 'text', chartRole: 'category' },
+    { key: 'cat.Econômica',      label: 'Cat. Econômica',     type: 'text' },
+    { key: 'classificação',      label: 'Classificação',      type: 'text',   hidden: true },
+    { key: 'fonte de Recurso',   label: 'Fonte de Recurso',   type: 'text',   hidden: true },
+    { key: 'dotação Inicial',    label: 'Dotação Inicial',    type: 'currency', chartRole: 'bar',
+      tooltip: 'Valor originalmente aprovado na LOA' },
+    { key: 'dotação Atualizada', label: 'Dotação Atualizada', type: 'currency',
+      tooltip: 'Dotação inicial + suplementações - anulações' },
+    { key: 'empenhado',          label: 'Empenhado',          type: 'currency', chartRole: 'line',
+      tooltip: 'Valor comprometido por empenho' },
+    { key: 'liquidado no Mês',   label: 'Liquidado no Mês',   type: 'currency',
+      tooltip: 'Valor liquidado no mês corrente' },
+    { key: 'pago no Mês',        label: 'Pago no Mês',        type: 'currency',
+      tooltip: 'Valor efetivamente pago no mês' },
+    { key: 'saldo',              label: 'Saldo',              type: 'currency',
+      tooltip: 'Dotação atualizada menos o empenhado' },
+    { key: 'suplementado no Mês', label: 'Suplementado',      type: 'currency', hidden: true },
+    { key: 'anulado no Mês',      label: 'Anulado',           type: 'currency', hidden: true },
+    { key: 'ficha',               label: 'Ficha',             type: 'number',   hidden: true },
+  ],
+
+  cards: [
+    {
+      label: 'Dotação Atualizada',
+      valueKey: 'dotação Atualizada',
+      compute: data => data.reduce((acc, r) => acc + (Number(r['dotação Atualizada']) || 0), 0),
+      format: 'currency',
+      color: 'blue',
+      tooltip: 'Soma das dotações atualizadas no período',
+    },
+    {
+      label: 'Total Empenhado',
+      valueKey: 'empenhado',
+      compute: data => data.reduce((acc, r) => acc + (Number(r['empenhado']) || 0), 0),
+      format: 'currency',
+      color: 'yellow',
+      tooltip: 'Total comprometido por empenhos',
+    },
+    {
+      label: 'Total Pago',
+      valueKey: 'pago no Mês',
+      compute: data => data.reduce((acc, r) => acc + (Number(r['pago no Mês']) || 0), 0),
+      format: 'currency',
+      color: 'green',
+      tooltip: 'Total efetivamente pago no mês',
+    },
+    {
+      label: 'Saldo Disponível',
+      valueKey: 'saldo',
+      compute: data => data.reduce((acc, r) => acc + (Number(r['saldo']) || 0), 0),
+      format: 'currency',
+      color: 'purple',
+      tooltip: 'Saldo remanescente para empenho',
+    },
+  ],
+
+  glossario: [
+    { termo: 'Dotação Inicial',    definicao: 'Valor aprovado na Lei Orçamentária Anual (LOA) para a despesa.' },
+    { termo: 'Dotação Atualizada', definicao: 'Dotação inicial acrescida de suplementações e deduzida de anulações.' },
+    { termo: 'Empenhado',          definicao: 'Valor comprometido por empenho, reservando recursos para pagamento futuro.' },
+    { termo: 'Liquidado',          definicao: 'Reconhecimento da obrigação de pagamento após verificação do direito do credor.' },
+    { termo: 'Pago',               definicao: 'Valor efetivamente transferido ao credor.' },
+    { termo: 'Saldo',              definicao: 'Diferença entre a dotação atualizada e o valor empenhado.' },
+    { termo: 'Suplementação',      definicao: 'Crédito adicional que aumenta a dotação de uma despesa.' },
+    { termo: 'Anulação',           definicao: 'Redução de dotação orçamentária.' },
+    { termo: 'Fonte de Recurso',   definicao: 'Origem dos recursos utilizados para financiar a despesa.' },
+    { termo: 'Ficha',              definicao: 'Identificador único de cada linha orçamentária.' },
+  ],
+}
 
 export default function DespesaFixadaPage() {
-  const [fontSize, setFontSize] = useState(16)
+  const [fontSize, setFontSize]       = useState(16)
   const [highContrast, setHighContrast] = useState(false)
-  const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear())
-
-  const adjustFontSize = (change: number) => {
-    setFontSize(prev => Math.max(12, Math.min(24, prev + change)))
-  }
-
-  const urlConsulta = `${BASE_URL}?${PARAMS}&exercicio=${anoSelecionado}`
-  const urlExportar = `https://transparencia.elmartecnologia.com.br/Export/Data?ecode=201089&ctx=201089&showResult=True&module=ContabModule&returnType=grid&exercicio=${anoSelecionado}`
 
   return (
-    <div
-      className={`min-h-screen ${highContrast ? 'bg-black' : 'bg-gray-50'}`}
-      style={{ fontSize: `${fontSize}px` }}
-    >
-      <Header
-        highContrast={highContrast}
-        fontSize={fontSize}
-        adjustFontSize={adjustFontSize}
-        setHighContrast={setHighContrast}
-        setFontSize={setFontSize}
-      />
-
-      {/* Breadcrumb */}
-      <div className={`${highContrast ? 'bg-black' : 'bg-white'} border-b mt-32`}>
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center text-sm">
-            <Link href="/" className={`${highContrast ? 'text-yellow-300' : 'text-blue-600'} hover:underline flex items-center`}>
-              <FaHome className="mr-1" /> Início
-            </Link>
-            <span className="mx-2 text-gray-400">&gt;</span>
-            <span className={highContrast ? 'text-yellow-300' : 'text-gray-600'}>Receita Prevista</span>
-          </div>
-        </div>
-      </div>
-
-      <main className={`${highContrast ? 'bg-black' : 'bg-gray-50'} py-12`}>
-        <div className="max-w-7xl mx-auto px-4">
-
-          {/* Título */}
-          <h1 className={`text-4xl font-bold mb-2 ${highContrast ? 'text-yellow-300' : 'text-gray-800'}`}>
-            Receita Prevista
-          </h1>
-          <p className={`mb-8 ${highContrast ? 'text-yellow-200' : 'text-gray-500'}`}>
-            Previsão de arrecadação do município de Itabaiana/PB
-          </p>
-
-          {/* Card de filtro */}
-          <div className={`${highContrast ? 'bg-gray-900 border border-yellow-300' : 'bg-white'} rounded-xl shadow-md p-6 mb-6`}>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <FaCalendarAlt className={highContrast ? 'text-yellow-300' : 'text-blue-600'} />
-                <span className={`font-semibold ${highContrast ? 'text-yellow-300' : 'text-gray-700'}`}>
-                  Selecione o exercício:
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {ANOS.map(ano => (
-                  <button
-                    key={ano}
-                    onClick={() => setAnoSelecionado(ano)}
-                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
-                      anoSelecionado === ano
-                        ? highContrast
-                          ? 'bg-yellow-300 text-black'
-                          : 'bg-blue-600 text-white shadow'
-                        : highContrast
-                        ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {ano}
-                  </button>
-                ))}
-              </div>
-
-              <div className="ml-auto flex gap-2">
-                <a
-                  href={urlConsulta}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    highContrast
-                      ? 'bg-yellow-300 text-black hover:bg-yellow-400'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  <FaSearch size={12} /> Consultar no sistema
-                </a>
-                <a
-                  href={urlExportar}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition ${
-                    highContrast
-                      ? 'border-yellow-300 text-yellow-300 hover:bg-gray-800'
-                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <FaDownload size={12} /> Exportar dados
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Aviso informativo */}
-          <div className={`flex items-start gap-3 p-4 rounded-lg mb-6 ${
-            highContrast ? 'bg-gray-800 border border-yellow-300' : 'bg-blue-50 border border-blue-200'
-          }`}>
-            <FaInfoCircle className={`mt-0.5 flex-shrink-0 ${highContrast ? 'text-yellow-300' : 'text-blue-500'}`} />
-            <div>
-              <p className={`text-sm font-medium ${highContrast ? 'text-yellow-300' : 'text-blue-700'}`}>
-                Os dados são fornecidos pelo sistema Elmar Tecnologia
-              </p>
-              <p className={`text-sm mt-1 ${highContrast ? 'text-yellow-200' : 'text-blue-600'}`}>
-                Os totais referem-se à soma das receitas que possuem movimento. Para consultar termos mais específicos, utilize a consulta interna do sistema.
-              </p>
-            </div>
-          </div>
-
-          {/* Viewer do sistema */}
-          <div className={`${highContrast ? 'bg-gray-900 border border-yellow-300' : 'bg-white'} rounded-xl shadow-md overflow-hidden`}>
-            <div className={`px-6 py-4 border-b flex items-center justify-between ${
-              highContrast ? 'border-yellow-300' : 'border-gray-200'
-            }`}>
-              <div>
-                <h2 className={`font-semibold text-lg ${highContrast ? 'text-yellow-300' : 'text-gray-700'}`}>
-                  Receita Prevista — Exercício {anoSelecionado}
-                </h2>
-                <p className={`text-xs mt-0.5 ${highContrast ? 'text-yellow-200' : 'text-gray-400'}`}>
-                  Fonte: Sistema de Contabilidade Pública — Itabaiana/PB
-                </p>
-              </div>
-              <a
-                href={urlConsulta}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex items-center gap-1 text-xs ${highContrast ? 'text-yellow-300 hover:underline' : 'text-blue-500 hover:underline'}`}
-              >
-                Abrir em nova aba <FaExternalLinkAlt size={10} />
-              </a>
-            </div>
-
-            <iframe
-              key={anoSelecionado}
-              src={urlConsulta}
-              width="100%"
-              height="900"
-              className="border-0 w-full"
-              title={`Receita Prevista ${anoSelecionado}`}
-              loading="lazy"
-            />
-          </div>
-
-        </div>
-      </main>
-
-      <VLibras forceOnload />
-    </div>
+    <ApiPageLayout
+      config={config}
+      highContrast={highContrast}
+      fontSize={fontSize}
+      adjustFontSize={n => setFontSize(prev => Math.max(12, Math.min(24, prev + n)))}
+      setHighContrast={setHighContrast}
+      setFontSize={setFontSize}
+    />
   )
 }
