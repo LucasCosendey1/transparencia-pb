@@ -22,7 +22,7 @@ import {
 export interface ApiColumn {
   key: string
   label: string
-  type?: 'currency' | 'text' | 'number' | 'date'
+  type?: 'currency' | 'text' | 'number' | 'date' | 'link'
   tooltip?: string
   chartRole?: 'category' | 'bar' | 'line'
   hidden?: boolean
@@ -739,7 +739,12 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                         <td key={col.key} className={`px-3 py-2.5 ${TD_BORDER} ${col.type === 'currency' ? 'text-right font-mono' : ''}`}>
                           {col.type === 'currency'
                             ? <span className={Number(row[col.key]) < 0 ? 'text-red-500' : ''}>{fmt(row[col.key], col.type)}</span>
-                            : fmt(row[col.key], col.type)}
+                            : col.type === 'link' && row[col.key]
+                              ? <a href={String(row[col.key])} target="_blank" rel="noopener noreferrer"
+                                  className={`underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>
+                                  Ver
+                                </a>
+                              : fmt(row[col.key], col.type)}
                         </td>
                       ))}
                     </tr>
