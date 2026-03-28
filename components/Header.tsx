@@ -1,15 +1,16 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 
 interface HeaderProps {
-  highContrast: boolean
-  fontSize: number
-  adjustFontSize: (change: number) => void
-  setHighContrast: (value: boolean) => void
-  setFontSize: (size: number) => void
+  highContrast?: boolean
+  fontSize?: number
+  adjustFontSize?: (change: number) => void
+  setHighContrast?: (value: boolean) => void
+  setFontSize?: (size: number) => void
 }
 
 const SECTIONS = [
@@ -26,29 +27,30 @@ const SECTIONS = [
 
 const GRADIENT = 'linear-gradient(to right, #0d6efd, #ffc107, #0d6efd)'
 
-export default function Header({ highContrast, fontSize, adjustFontSize, setHighContrast, setFontSize }: HeaderProps) {
+export default function Header(props?: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [, forceRender] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [showResults, setShowResults] = useState(false)
+  
+  // Estados internos (usados quando não há props)
+  const [internalTheme, setInternalTheme] = useState<'light' | 'dark' | 'contrast'>('light')
+  const [internalFontSize, setInternalFontSize] = useState(16)
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [currentColor, setCurrentColor] = useState<string | null>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
+  
+  const router = useRouter()
+  const tickingRef = useRef(false)
+  const animTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const isScrolledRef   = useRef(false)
-  const currentColorRef = useRef<string | null>(null)
-  const prevColorRef    = useRef<string | null>(null)
-  const isAnimatingRef  = useRef(false)
-  const animTimeoutRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const tickingRef      = useRef(false)
-
-  const triggerAnimation = useCallback((from: string, to: string) => {
-    prevColorRef.current    = from
-    currentColorRef.current = to
-    isAnimatingRef.current  = true
-    forceRender(n => n + 1)
-
-    if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current)
-    animTimeoutRef.current = setTimeout(() => {
-      isAnimatingRef.current = false
-      forceRender(n => n + 1)
-    }, 600)
-  }, [])
+  // Se receber props, usa elas; senão usa estado interno
+  const highContrast = props?.highContrast ?? (internalTheme === 'contrast')
+  const fontSize = props?.fontSize ?? internalFontSize
+  const setFontSize = props?.setFontSize ?? setInternalFontSize
+  const adjustFontSize = props?.adjustFontSize ?? ((n: number) => setInternalFontSize(p => Math.max(12, Math.min(24, p + n))))
+  const setHighContrast = props?.setHighContrast ?? ((value: boolean) => setInternalTheme(value ? 'contrast' : 'light'))
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,12 +58,10 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
       tickingRef.current = true
 
       window.requestAnimationFrame(() => {
-        const scrollY   = window.scrollY
-        const scrolled  = scrollY > 50
-        const wasScrolled = isScrolledRef.current
-        isScrolledRef.current = scrolled
+        const scrollY = window.scrollY
+        const scrolled = scrollY > 50
+        setIsScrolled(scrolled)
 
-        // Detectar seção atual
         let detected: string | null = null
         for (const section of SECTIONS) {
           const el = document.getElementById(section.id)
@@ -74,23 +74,15 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
           }
         }
 
-        if (scrolled && detected) {
-          const prev = currentColorRef.current
-          if (prev === null) {
-            // Primeira detecção: sem animação, sem flash
-            currentColorRef.current = detected
-            prevColorRef.current    = detected
-            forceRender(n => n + 1)
-          } else if (prev !== detected) {
-            triggerAnimation(prev, detected)
-          }
-        } else if (!scrolled && wasScrolled) {
-          // Voltou ao topo
-          currentColorRef.current = null
-          prevColorRef.current    = null
-          isAnimatingRef.current  = false
+        if (scrolled && detected && detected !== currentColor) {
+          setCurrentColor(detected)
+          setIsAnimating(true)
           if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current)
-          forceRender(n => n + 1)
+          animTimeoutRef.current = setTimeout(() => setIsAnimating(false), 600)
+        } else if (!scrolled && currentColor !== null) {
+          setCurrentColor(null)
+          setIsAnimating(false)
+          if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current)
         }
 
         tickingRef.current = false
@@ -103,7 +95,7 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
       window.removeEventListener('scroll', handleScroll)
       if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current)
     }
-  }, [triggerAnimation])
+  }, [currentColor])
 
   useEffect(() => {
     if (!mobileOpen) return
@@ -117,6 +109,55 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
     return () => document.removeEventListener('mousedown', handler)
   }, [mobileOpen])
 
+  // Cleanup do timeout de busca
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value
+    setSearchQuery(query)
+    
+    // Limpa o timeout anterior
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+    
+    if (query.length < 2) {
+      setShowResults(false)
+      setSearchResults([])
+      return
+    }
+
+    // Aguarda 500ms após o usuário parar de digitar
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+        const results = await response.json()
+        
+        setSearchResults(results)
+        setShowResults(results.length > 0)
+      } catch (error) {
+        console.error('Erro ao buscar:', error)
+        setSearchResults([])
+        setShowResults(false)
+      }
+    }, 500)
+  }
+
+  const handleResultClick = (result: any) => {
+    if (result.caminho) {
+      router.push(result.caminho)
+    }
+    setSearchQuery('')
+    setShowResults(false)
+    setMobileOpen(false)
+  }
+
   const navLinks = [
     { href: '/portal',                                                                        label: 'O Portal'      },
     { href: 'https://portal.itabaiana.pb.gov.br/mrosc/',                                     label: 'Parcerias'     },
@@ -127,11 +168,34 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
     { href: 'https://transparencia.itabaiana.pb.gov.br/page-sitemap.xml',                    label: 'Mapa do Site'  },
   ]
 
-  // Leitura síncrona das refs para o render
-  const isScrolled  = isScrolledRef.current
-  const curColor    = currentColorRef.current
-  const prevColor   = prevColorRef.current
-  const isAnimating = isAnimatingRef.current
+  const getThemeClasses = () => {
+    if (highContrast) {
+      return {
+        header: 'bg-black border-b-4 border-yellow-300',
+        text: 'text-yellow-300',
+        textHover: 'hover:text-yellow-400',
+        input: 'bg-black text-yellow-300 border-yellow-300 placeholder-yellow-600',
+        button: 'bg-yellow-400 text-black hover:bg-yellow-500',
+        drawer: 'bg-black border-r-4 border-yellow-300',
+        searchResult: 'bg-yellow-900 hover:bg-yellow-800 text-yellow-300',
+        searchResultBorder: 'border-yellow-300',
+        hamburger: 'bg-yellow-300',
+      }
+    }
+    return {
+      header: 'bg-white shadow-sm',
+      text: 'text-gray-700',
+      textHover: 'hover:text-[#ffc107]',
+      input: 'bg-white text-black border-gray-300 placeholder-gray-400',
+      button: 'bg-gray-100 text-[#0d6efd] hover:bg-gray-200',
+      drawer: 'bg-white',
+      searchResult: 'bg-white hover:bg-blue-50 text-gray-800',
+      searchResultBorder: 'border-gray-200',
+      hamburger: 'bg-gray-700',
+    }
+  }
+
+  const themeClasses = getThemeClasses()
 
   return (
     <>
@@ -150,21 +214,30 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
         }
       `}</style>
 
-      {/* Barra de Acessibilidade */}
-      <div className={`${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} border-b`}>
-        <div className="max-w-7xl mx-auto px-4 py-2 flex justify-end items-center text-xs flex-wrap gap-1">
-          <span className={`${highContrast ? 'text-black' : 'text-gray-600'} mr-2`}>Acessibilidade</span>
-          <span className="text-gray-400 mx-1">|</span>
-          <button onClick={() => adjustFontSize(1)}              className={`mx-1 ${highContrast ? 'text-black bg-yellow-400' : 'text-[#0d6efd]'} font-bold hover:underline px-2 py-1 rounded`}>A+</button>
-          <button onClick={() => adjustFontSize(-1)}             className={`mx-1 ${highContrast ? 'text-black bg-yellow-400' : 'text-[#0d6efd]'} font-bold hover:underline px-2 py-1 rounded`}>A-</button>
-          <button onClick={() => setFontSize(16)}                className={`mx-1 ${highContrast ? 'text-black bg-yellow-400' : 'text-[#0d6efd]'} font-bold hover:underline px-2 py-1 rounded`}>A</button>
-          <span className="text-gray-400 mx-1">|</span>
-          <button onClick={() => setHighContrast(!highContrast)} className={`mx-1 ${highContrast ? 'text-black bg-yellow-400' : 'text-[#0d6efd]'} hover:underline px-2 py-1 rounded`}>◐</button>
-        </div>
-      </div>
-
       {/* Header Principal */}
-      <header className={`sticky-header ${isScrolled ? 'scrolled' : ''} ${highContrast ? 'bg-black border-b-4 border-yellow-300' : 'bg-white shadow-sm'} relative z-30`}>
+      <header 
+        className={`fixed top-0 left-0 right-0 z-[1000] ${themeClasses.header} transition-all duration-300 ${isScrolled ? 'shadow-lg' : ''}`}
+        style={{ fontSize: `${fontSize}px` }}
+      >
+        
+        {/* Linha 1: Botões de Acessibilidade */}
+        <div className={`border-b ${themeClasses.searchResultBorder}`}>
+          <div className="max-w-7xl mx-auto px-4 py-1.5 flex justify-end items-center gap-2">
+            <button onClick={() => adjustFontSize(1)} className={`${themeClasses.button} font-bold px-2.5 py-1 text-xs rounded transition-colors`} title="Aumentar fonte">A+</button>
+            <button onClick={() => adjustFontSize(-1)} className={`${themeClasses.button} font-bold px-2.5 py-1 text-xs rounded transition-colors`} title="Diminuir fonte">A-</button>
+            <button onClick={() => setFontSize(16)} className={`${themeClasses.button} font-bold px-2.5 py-1 text-xs rounded transition-colors`} title="Fonte padrão">A</button>
+            <button 
+              onClick={() => setHighContrast(!highContrast)} 
+              className={`${themeClasses.button} px-2.5 py-1 text-xs rounded transition-colors flex items-center gap-1`}
+              title={`Contraste: ${highContrast ? 'Alto' : 'Normal'}`}
+            >
+              <span>◐</span>
+              <span className="hidden lg:inline">{highContrast ? 'Contraste' : 'Normal'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Linha 2: Logo, Menu e Busca */}
         <div className={`max-w-7xl mx-auto px-4 transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4'}`}>
           <div className="flex items-center justify-between gap-4">
 
@@ -185,7 +258,7 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
               <ul className="flex space-x-5 text-sm">
                 {navLinks.map(link => (
                   <li key={link.href}>
-                    <Link href={link.href} className={`menu-link ${highContrast ? 'text-yellow-300' : 'text-gray-700'} hover:text-[#ffc107] font-medium transition-colors`}>
+                    <Link href={link.href} className={`menu-link ${themeClasses.text} ${themeClasses.textHover} font-medium transition-colors`}>
                       {link.label}
                     </Link>
                   </li>
@@ -194,13 +267,34 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
             </nav>
 
             {/* Busca Desktop */}
-            <form className="hidden lg:block flex-shrink-0 w-56 xl:w-72">
+            <div className="hidden lg:block flex-shrink-0 w-56 xl:w-64 relative">
               <input
                 type="search"
-                placeholder="Pesquisar..."
-                className={`w-full px-4 py-2 text-sm border ${highContrast ? 'bg-black text-yellow-300 border-yellow-300' : 'text-black border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-[#0d6efd]`}
+                placeholder="Pesquisar páginas..."
+                value={searchQuery}
+                onChange={handleSearch}
+                onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
+                onBlur={() => setTimeout(() => setShowResults(false), 200)}
+                className={`w-full px-4 py-2 text-sm border ${themeClasses.input} rounded focus:outline-none focus:ring-2 focus:ring-[#0d6efd] transition-colors`}
               />
-            </form>
+              
+              {showResults && searchResults.length > 0 && (
+                <div className={`absolute top-full mt-1 w-full ${themeClasses.searchResult} border ${themeClasses.searchResultBorder} rounded shadow-lg z-50 max-h-64 overflow-y-auto`}>
+                  {searchResults.map((result: any, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleResultClick(result)}
+                      className={`w-full text-left px-4 py-2 border-b ${themeClasses.searchResultBorder} ${themeClasses.searchResult} transition-colors`}
+                    >
+                      <div className="font-semibold">{result.titulo}</div>
+                      {result.description && (
+                        <div className="text-xs opacity-70">{result.description}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Hamburger Mobile */}
             <button
@@ -210,24 +304,21 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
               aria-label="Menu"
               aria-expanded={mobileOpen}
             >
-              <span className={`block h-0.5 w-6 transition-all duration-300 ${highContrast ? 'bg-yellow-300' : 'bg-gray-700'} ${mobileOpen ? 'rotate-45 translate-y-2' : ''}`} />
-              <span className={`block h-0.5 w-6 transition-all duration-300 ${highContrast ? 'bg-yellow-300' : 'bg-gray-700'} ${mobileOpen ? 'opacity-0' : ''}`} />
-              <span className={`block h-0.5 w-6 transition-all duration-300 ${highContrast ? 'bg-yellow-300' : 'bg-gray-700'} ${mobileOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+              <span className={`block h-0.5 w-6 transition-all duration-300 ${themeClasses.hamburger} ${mobileOpen ? 'rotate-45 translate-y-2' : ''}`} />
+              <span className={`block h-0.5 w-6 transition-all duration-300 ${themeClasses.hamburger} ${mobileOpen ? 'opacity-0' : ''}`} />
+              <span className={`block h-0.5 w-6 transition-all duration-300 ${themeClasses.hamburger} ${mobileOpen ? '-rotate-45 -translate-y-2' : ''}`} />
             </button>
           </div>
         </div>
 
-        {/* ── Linha colorida ── */}
+        {/* Linha colorida */}
         <div className="relative h-1 w-full overflow-hidden">
-          {!isScrolled || curColor === null ? (
+          {!isScrolled || currentColor === null ? (
             <div className="color-bar-base" style={{ background: GRADIENT }} />
           ) : isAnimating ? (
-            <>
-              <div className="color-bar-base" style={{ background: prevColor ?? curColor }} />
-              <div key={`${prevColor}->${curColor}`} className="color-bar-anim" style={{ background: curColor }} />
-            </>
+            <div key={currentColor} className="color-bar-anim" style={{ background: currentColor }} />
           ) : (
-            <div className="color-bar-base" style={{ background: curColor }} />
+            <div className="color-bar-base" style={{ background: currentColor }} />
           )}
         </div>
       </header>
@@ -240,25 +331,43 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
       {/* Drawer Mobile */}
       <div
         id="mobile-menu"
-        className={`fixed top-0 left-0 h-full w-72 z-50 lg:hidden flex flex-col shadow-2xl transition-transform duration-300 ease-in-out ${
-          highContrast ? 'bg-black border-r-4 border-yellow-300' : 'bg-white'
-        } ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 h-full w-72 z-50 lg:hidden flex flex-col shadow-2xl transition-all duration-300 ease-in-out ${themeClasses.drawer} ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        <div className={`flex items-center justify-between px-4 py-4 border-b ${highContrast ? 'border-yellow-300' : 'border-gray-200'}`}>
+        <div className={`flex items-center justify-between px-4 py-4 border-b ${themeClasses.searchResultBorder}`}>
           <Link href="/" onClick={() => setMobileOpen(false)}>
             <Image src="/ItabaianaCidadeDoTrabalho.png" alt="Itabaiana" width={140} height={45} className="object-contain" />
           </Link>
-          <button onClick={() => setMobileOpen(false)} className={`p-2 rounded ${highContrast ? 'text-yellow-300' : 'text-gray-500'}`} aria-label="Fechar menu">
+          <button onClick={() => setMobileOpen(false)} className={`p-2 rounded ${themeClasses.text}`} aria-label="Fechar menu">
             ✕
           </button>
         </div>
 
-        <div className="px-4 py-3">
+        <div className="px-4 py-3 relative">
           <input
             type="search"
-            placeholder="Pesquisar..."
-            className={`w-full px-4 py-2 text-sm border ${highContrast ? 'bg-black text-yellow-300 border-yellow-300' : 'text-black border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-[#0d6efd]`}
+            placeholder="Pesquisar páginas..."
+            value={searchQuery}
+            onChange={handleSearch}
+            onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
+            className={`w-full px-4 py-2 text-sm border ${themeClasses.input} rounded focus:outline-none focus:ring-2 focus:ring-[#0d6efd] transition-colors`}
           />
+          
+          {showResults && searchResults.length > 0 && (
+            <div className={`absolute top-full left-4 right-4 mt-1 ${themeClasses.searchResult} border ${themeClasses.searchResultBorder} rounded shadow-lg z-50 max-h-48 overflow-y-auto`}>
+              {searchResults.map((result: any, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleResultClick(result)}
+                  className={`w-full text-left px-4 py-2 border-b text-sm ${themeClasses.searchResultBorder} ${themeClasses.searchResult} transition-colors`}
+                >
+                  <div className="font-semibold">{result.titulo}</div>
+                  {result.description && (
+                    <div className="text-xs opacity-70">{result.description}</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 overflow-y-auto px-2 pb-4">
@@ -268,11 +377,7 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
                 <Link
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    highContrast
-                      ? 'text-yellow-300 hover:bg-yellow-300 hover:text-black'
-                      : 'text-gray-700 hover:bg-blue-50 hover:text-[#0d6efd]'
-                  }`}
+                  className={`flex items-center px-4 py-3 rounded-lg text-sm font-medium ${themeClasses.text} ${themeClasses.searchResult} transition-colors`}
                 >
                   {link.label}
                 </Link>
@@ -281,13 +386,15 @@ export default function Header({ highContrast, fontSize, adjustFontSize, setHigh
           </ul>
         </nav>
 
-        <div className={`px-4 py-3 border-t ${highContrast ? 'border-yellow-300' : 'border-gray-200'}`}>
-          <p className={`text-xs font-semibold mb-2 ${highContrast ? 'text-yellow-300' : 'text-gray-500'}`}>ACESSIBILIDADE</p>
+        <div className={`px-4 py-3 border-t ${themeClasses.searchResultBorder}`}>
+          <p className={`text-xs font-semibold mb-2 ${themeClasses.text}`}>ACESSIBILIDADE</p>
           <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={() => adjustFontSize(1)}              className={`px-3 py-1.5 rounded text-xs font-bold ${highContrast ? 'bg-yellow-300 text-black' : 'bg-gray-100 text-[#0d6efd]'}`}>A+</button>
-            <button onClick={() => adjustFontSize(-1)}             className={`px-3 py-1.5 rounded text-xs font-bold ${highContrast ? 'bg-yellow-300 text-black' : 'bg-gray-100 text-[#0d6efd]'}`}>A-</button>
-            <button onClick={() => setFontSize(16)}                className={`px-3 py-1.5 rounded text-xs font-bold ${highContrast ? 'bg-yellow-300 text-black' : 'bg-gray-100 text-[#0d6efd]'}`}>A</button>
-            <button onClick={() => setHighContrast(!highContrast)} className={`px-3 py-1.5 rounded text-xs ${highContrast ? 'bg-yellow-300 text-black' : 'bg-gray-100 text-[#0d6efd]'}`}>◐ Contraste</button>
+            <button onClick={() => adjustFontSize(1)} className={`px-3 py-1.5 rounded text-xs font-bold ${themeClasses.button} transition-colors`}>A+</button>
+            <button onClick={() => adjustFontSize(-1)} className={`px-3 py-1.5 rounded text-xs font-bold ${themeClasses.button} transition-colors`}>A-</button>
+            <button onClick={() => setFontSize(16)} className={`px-3 py-1.5 rounded text-xs font-bold ${themeClasses.button} transition-colors`}>A</button>
+            <button onClick={() => setHighContrast(!highContrast)} className={`px-3 py-1.5 rounded text-xs ${themeClasses.button} transition-colors`}>
+              ◐ {highContrast ? 'Contraste' : 'Normal'}
+            </button>
           </div>
         </div>
       </div>

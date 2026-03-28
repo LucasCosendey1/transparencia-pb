@@ -1,7 +1,7 @@
 'use client'
 
 import Header from '../components/Header'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
 
@@ -39,7 +39,6 @@ interface FooterData {
 }
 
 // ── Definição estática dos cards ──────────────────────────────
-// Apenas ícones e chaves — títulos/caminhos vêm do banco
 const CARDS: { chave: string; icon: IconType; defaultTitulo: string }[] = [
   // LGPD
   { chave: 'encarregado-dados',     icon: FaUserCircle,       defaultTitulo: 'Encarregado pelo Tratamento de Dados' },
@@ -163,7 +162,7 @@ const SECOES = [
   { titulo: 'Consultas sobre responsabilidade fiscal',             color: 'indigo' as const, chaves: ['prestacoes-contas','relatorio-gestao','pareceres-tce','julgamentos-contas','rgf','rreo','ppa','loa','ldo-atual','ldo-projeto'] },
   { titulo: 'Consultas sobre a gestão municipal',                  color: 'green'  as const, chaves: ['plano-estrategico','estrutura-org','competencias','responsaveis-gestao','contatos','decretos','diario-oficial','faq','conselhos'] },
   { titulo: 'Consultas sobre participação cidadã',                 color: 'cyan' as const, chaves: ['sic','esic','relatorio-sic','docs-classificados','docs-desclassificados','ouvidoria','ouvidoria-falabr','carta-servicos','plano-de-governo','plano-de-acao']},
-  { titulo: 'Consultas sobre assistência social, educação, saúde & primeira infância',                    color: 'yellow' as const, chaves: ['pme','relatorio-pme','lista-creches','primeira-infancia','pms','programacao-saude','relatorio-saude','servicos-saude','especialidades','lista-regulacao','lista-medicamentos','estoque-farmacia'] },
+  { titulo: 'Consultas sobre assistência social, educação, saúde & primeira infância', color: 'yellow' as const, chaves: ['pme','relatorio-pme','lista-creches','primeira-infancia','pms','programacao-saude','relatorio-saude','servicos-saude','especialidades','lista-regulacao','lista-medicamentos','estoque-farmacia'] },
 ]
 
 const CARD_MAP = Object.fromEntries(CARDS.map(c => [c.chave, c]))
@@ -180,42 +179,52 @@ export default function HomePage() {
   const [editingButton, setEditingButton]   = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ titulo: '', caminho: '', description: '' })
   const [showBackToTop, setShowBackToTop] = useState(false)
+  const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set())
 
   const adjustFontSize = (n: number) => setFontSize(p => Math.max(12, Math.min(24, p + n)))
 
-  const fetchButtonsData = useCallback(async () => {
-    try {
-      const data = await fetch('/api/buttons').then(r => r.json())
-      const map: Record<string, ButtonData> = {}
-      data.forEach((b: ButtonData) => { map[b.chave] = b })
-      setButtonsData(map)
-    } catch {}
-  }, [])
-
+  // ── Fetch unificado ──────────────────────────────────────
   useEffect(() => {
     setIsAdmin(localStorage.getItem('isAdmin') === 'true')
-    // Busca tudo em paralelo — uma única rodada de requests
-    Promise.all([
-      fetch('/api/buttons').then(r => r.json()),
-      fetch('/api/footer').then(r => r.json()),
-      fetch('/api/ultima-atualizacao').then(r => r.json()),
-    ]).then(([buttons, footer, ult]) => {
-      const bMap: Record<string, ButtonData> = {}
-      buttons.forEach((b: ButtonData) => { bMap[b.chave] = b })
-      setButtonsData(bMap)
+    fetch('/api/home-data')
+      .then(r => r.json())
+      .then(({ buttons, footer, ultimaAtualizacao }) => {
+        const bMap: Record<string, ButtonData> = {}
+        buttons.forEach((b: ButtonData) => { bMap[b.chave] = b })
+        setButtonsData(bMap)
 
-      if (Array.isArray(footer)) {
-        const fMap: Record<string, FooterData> = {}
-        footer.forEach((f: FooterData) => { fMap[f.chave] = f })
-        setFooterData(fMap)
-      }
-      console.log('ultimasAt recebido:', ult) // ADICIONE AQUI
-        setUltimasAt(ult || {}) 
-
-      setUltimasAt(ult || {})
-    }).catch(() => {})
+        if (Array.isArray(footer)) {
+          const fMap: Record<string, FooterData> = {}
+          footer.forEach((f: FooterData) => { fMap[f.chave] = f })
+          setFooterData(fMap)
+        }
+        setUltimasAt(ultimaAtualizacao || {})
+      })
+      .catch(() => {})
   }, [])
 
+  // ── Intersection Observer para animação por scroll ───────
+  useEffect(() => {
+  // Pequeno delay para garantir que o DOM já renderizou as seções
+  const timer = setTimeout(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            setVisibleSections(prev => new Set(prev).add(e.target.id))
+            observer.unobserve(e.target)
+          }
+        })
+      },
+      { threshold: 0.05, rootMargin: '50px' }
+    )
+    document.querySelectorAll('[data-section]').forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+  }, 100)
+  return () => clearTimeout(timer)
+}, [buttonsData])
+
+  // ── Scroll back to top ───────────────────────────────────
   useEffect(() => {
     const fn = () => setShowBackToTop(window.scrollY > 300)
     window.addEventListener('scroll', fn, { passive: true })
@@ -244,7 +253,11 @@ export default function HomePage() {
           body: JSON.stringify({ chave: editingButton, titulo: editForm.titulo, caminho: editForm.caminho || null, description: editForm.description || null }),
         })
         if (!res.ok) return alert('Erro ao salvar.')
-        await fetchButtonsData()
+        // Recarrega dados após edição
+        const data = await fetch('/api/home-data').then(r => r.json())
+        const map: Record<string, ButtonData> = {}
+        data.buttons.forEach((b: ButtonData) => { map[b.chave] = b })
+        setButtonsData(map)
         setEditingButton(null)
       }
       if (editingFooter) {
@@ -263,23 +276,41 @@ export default function HomePage() {
   return (
     <div className={`min-h-screen ${hc ? 'bg-black' : 'bg-white'}`} style={{ fontSize }}>
       <style jsx global>{`
+        /* ── Animações dos cards (trigger-once: rodam até o fim mesmo sem hover) ── */
         .card-bg-yellow, .card-bg-blue { transform-origin: center; }
-        .card-anim-1:hover .card-bg-blue { border-radius: 50%; animation: blueCircle 0.6s 0.2s ease-out forwards; }
-        .card-anim-2:hover .card-bg-blue { border-radius: 0%; animation: blueSquare 0.7s ease-out forwards; }
-        .card-anim-3:hover .card-bg-blue { border-radius: 0%; animation: blueSlide 0.6s ease-in-out forwards; }
-        .card-anim-4:hover .card-bg-blue { border-radius: 50%; animation: blueExplode 0.5s ease-out forwards; }
+
+        .card-triggered.card-anim-1 .card-bg-blue { border-radius: 50%; animation: blueCircle 0.6s 0.2s ease-out forwards; }
+        .card-triggered.card-anim-2 .card-bg-blue { border-radius: 0%; animation: blueSquare 0.7s ease-out forwards; }
+        .card-triggered.card-anim-3 .card-bg-blue { border-radius: 0%; animation: blueSlide 0.6s ease-in-out forwards; }
+        .card-triggered.card-anim-4 .card-bg-blue { border-radius: 50%; animation: blueExplode 0.5s ease-out forwards; }
+
         @keyframes blueCircle  { 0%{opacity:1;transform:scale(0) rotate(0deg)} 100%{opacity:1;transform:scale(3) rotate(180deg)} }
         @keyframes blueSquare  { 0%{opacity:1;transform:scale(0) rotate(45deg)} 100%{opacity:1;transform:scale(2.5) rotate(0deg)} }
         @keyframes blueSlide   { 0%{opacity:1;transform:translateX(-150%) scaleY(2)} 100%{opacity:1;transform:translateX(0%) scaleY(2)} }
         @keyframes blueExplode { 0%{opacity:0;transform:scale(0)} 50%{opacity:1;transform:scale(4)} 100%{opacity:1;transform:scale(3)} }
-        .card-animated:hover .card-icon { animation: iconFade 1.2s ease-in-out forwards; }
+
+        .card-triggered .card-icon { animation: iconFade 1.2s ease-in-out forwards; }
         @keyframes iconFade { 0%{opacity:1} 30%{opacity:0} 70%{opacity:0} 100%{opacity:1;color:white} }
-        .card-animated:hover .card-itabaiana { animation: itabaianaShow 1.2s ease-in-out forwards; }
+
+        .card-triggered .card-itabaiana { animation: itabaianaShow 1.2s ease-in-out forwards; }
         @keyframes itabaianaShow { 0%{opacity:0;transform:scale(0.5)} 30%{opacity:1;transform:scale(1)} 70%{opacity:1;transform:scale(1)} 100%{opacity:0;transform:scale(0.5)} }
-        .card-animated:hover .card-title { animation: titleWhite 0.7s 0.2s ease-out forwards; }
+
+        .card-triggered .card-title { animation: titleWhite 0.7s 0.2s ease-out forwards; }
         @keyframes titleWhite { 0%{color:inherit} 100%{color:white} }
-        .card-animated:hover .card-description { animation: descriptionShow 0.3s 0.7s ease-out forwards; }
+
+        .card-triggered .card-description { animation: descriptionShow 0.3s 0.7s ease-out forwards; }
         @keyframes descriptionShow { 0%{opacity:0} 100%{opacity:1} }
+
+        /* ── Reset: quando a classe triggered é removida, tudo volta ao normal ── */
+        .card-animated .card-bg-blue { opacity: 0; }
+        .card-animated .card-itabaiana { opacity: 0; }
+        .card-animated .card-description { opacity: 0; }
+        .card-animated .card-icon { color: #4b5563; }
+        .card-animated .card-title { color: #1f2937; }
+
+        /* ── Seções ── */
+        [data-section] { will-change: opacity, transform; }
+
         .edit-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:24px; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.3); z-index:1000; min-width:400px; }
         .edit-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; }
         .back-to-top { position:fixed; bottom:2rem; right:2rem; background:#0d6efd; color:white; border:none; border-radius:50%; width:48px; height:48px; font-size:20px; cursor:pointer; opacity:0; transition:opacity 0.3s; z-index:50; }
@@ -296,34 +327,42 @@ export default function HomePage() {
 
       <main className={`${hc ? 'bg-black' : 'bg-gray-50'} py-12 pt-32`}>
         <div className="max-w-7xl mx-auto px-4">
-          {SECOES.map(secao => (
-            <Section key={secao.titulo} title={secao.titulo} color={secao.color} highContrast={hc}>
-              {secao.chaves.map(chave => {
-                const def = CARD_MAP[chave]
-                if (!def) return null
-                const btn = buttonsData[chave]
-                const caminho = btn?.caminho || ''
-                const paginaId = caminho.startsWith('/') ? caminho.slice(1) : null
-                const ultimaAt = paginaId ? ultimasAt[paginaId] : null
-                  if (chave === 'lista-medicamentos') console.log({ caminho, paginaId, ultimaAt, ultimasAt })
+          {SECOES.map(secao => {
+            const sectionId = secao.titulo.toLowerCase().replace(/\s+/g, '-')
+            return (
+              <Section
+                key={secao.titulo}
+                title={secao.titulo}
+                color={secao.color}
+                highContrast={hc}
+                visible={visibleSections.has(sectionId)}
+              >
+                {secao.chaves.map(chave => {
+                  const def = CARD_MAP[chave]
+                  if (!def) return null
+                  const btn = buttonsData[chave]
+                  const caminho = btn?.caminho || ''
+                  const paginaId = caminho.startsWith('/') ? caminho.slice(1) : null
+                  const ultimaAt = paginaId ? ultimasAt[paginaId] : null
 
-                return (
-                  <CategoryCard
-                    key={chave}
-                    chave={chave}
-                    icon={def.icon}
-                    titulo={btn?.titulo || def.defaultTitulo}
-                    caminho={caminho}
-                    description={btn?.description || ''}
-                    ultimaAtualizacao={ultimaAt}
-                    highContrast={hc}
-                    isAdmin={isAdmin}
-                    onEdit={handleEditClick}
-                  />
-                )
-              })}
-            </Section>
-          ))}
+                  return (
+                    <CategoryCard
+                      key={chave}
+                      chave={chave}
+                      icon={def.icon}
+                      titulo={btn?.titulo || def.defaultTitulo}
+                      caminho={caminho}
+                      description={btn?.description || ''}
+                      ultimaAtualizacao={ultimaAt}
+                      highContrast={hc}
+                      isAdmin={isAdmin}
+                      onEdit={handleEditClick}
+                    />
+                  )
+                })}
+              </Section>
+            )
+          })}
         </div>
       </main>
 
@@ -415,7 +454,9 @@ export default function HomePage() {
 // ── Section ───────────────────────────────────────────────────
 type SectionColor = 'yellow' | 'blue' | 'pink' | 'orange' | 'indigo' | 'green' | 'cyan'
 
-function Section({ title, color, children, highContrast }: { title: string; color: SectionColor; children: React.ReactNode; highContrast: boolean }) {
+function Section({ title, color, children, highContrast, visible }: {
+  title: string; color: SectionColor; children: React.ReactNode; highContrast: boolean; visible?: boolean
+}) {
   const underline = {
     yellow: 'bg-gradient-to-r from-transparent via-[#ffc107] to-transparent',
     blue:   'bg-gradient-to-r from-transparent via-[#0d6efd] to-transparent',
@@ -426,7 +467,11 @@ function Section({ title, color, children, highContrast }: { title: string; colo
     cyan:   'bg-gradient-to-r from-transparent via-[#00bcd4] to-transparent',
   }
   return (
-    <section className="mb-16" id={title.toLowerCase().replace(/\s+/g, '-')}>
+    <section
+      className={`mb-16 transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+      id={title.toLowerCase().replace(/\s+/g, '-')}
+      data-section
+    >
       <h2 className={`text-3xl font-bold text-center mb-3 ${highContrast ? 'text-yellow-300' : 'text-gray-700'}`}>{title}</h2>
       <div className={`h-1 w-64 mx-auto mb-8 ${underline[color]}`} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{children}</div>
@@ -444,14 +489,35 @@ function CategoryCard({ icon: Icon, chave, titulo, caminho, description, ultimaA
 }) {
   const [randomTerm, setRandomTerm] = useState('')
   const [animClass, setAnimClass]   = useState('')
+  const [triggered, setTriggered]   = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isExternal = caminho.startsWith('http')
+
+  // Calcula a duração máxima da animação para saber quando resetar
+  const animDuration = animClass === 'card-anim-2' ? 1200 : animClass === 'card-anim-3' ? 1200 : animClass === 'card-anim-4' ? 1200 : 1200
+
+  const handleMouseEnter = () => {
+    // Se já está animando, não reinicia
+    if (triggered) return
+    // Limpa timer de reset anterior
+    if (timerRef.current) clearTimeout(timerRef.current)
+
+    setRandomTerm(TERMS[Math.floor(Math.random() * TERMS.length)])
+    setAnimClass(ANIMS[Math.floor(Math.random() * ANIMS.length)])
+    setTriggered(true)
+
+    // Após a animação terminar, reseta para permitir nova trigger
+    timerRef.current = setTimeout(() => {
+      setTriggered(false)
+    }, animDuration)
+  }
 
   return (
     <div className="flex flex-col">
       <Link href={caminho || '#'} target={isExternal ? '_blank' : undefined} rel={isExternal ? 'noopener noreferrer' : undefined}>
         <div
-          className={`card-animated ${animClass} group relative ${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 p-6 border-2 border-gray-100 overflow-hidden`}
-          onMouseEnter={() => { setRandomTerm(TERMS[Math.floor(Math.random() * TERMS.length)]); setAnimClass(ANIMS[Math.floor(Math.random() * ANIMS.length)]) }}
+          className={`card-animated ${animClass} ${triggered ? 'card-triggered' : ''} group relative ${highContrast ? 'bg-yellow-300 text-black' : 'bg-white'} rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 p-6 border-2 border-gray-100 overflow-hidden`}
+          onMouseEnter={handleMouseEnter}
         >
           {isAdmin && (
             <button onClick={e => { e.preventDefault(); e.stopPropagation(); onEdit(chave) }}
