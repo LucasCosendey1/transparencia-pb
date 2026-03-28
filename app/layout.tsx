@@ -1,63 +1,47 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import AdminInactivityLogout from '../components/AdminInactivityLogout'
-import AdvancedTextEditor from '../components/AdvancedTextEditor'
-import LoadingBar from '../components/LoadingBar'
+'use client'
 
-const geistSans = Geist({ 
-  variable: "--font-geist-sans", 
-  subsets: ["latin"],
-  display: 'swap',
-});
-
-const geistMono = Geist_Mono({ 
-  variable: "--font-geist-mono", 
-  subsets: ["latin"],
-  display: 'swap',
-});
-
-export const metadata: Metadata = {
-  title: "Portal de Transparência - Itabaiana/PB",
-  description: "Portal de Transparência da Prefeitura Municipal de Itabaiana - Paraíba. Acesse informações públicas sobre receitas, despesas, licitações, contratos e muito mais.",
-  keywords: "transparência, prefeitura, itabaiana, paraíba, licitações, contratos, governo",
-  authors: [{ name: "Prefeitura Municipal de Itabaiana" }],
-  openGraph: {
-    title: "Portal de Transparência - Itabaiana/PB",
-    description: "Acesse informações públicas da Prefeitura de Itabaiana",
-    type: "website",
-    locale: "pt_BR",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-  },
-};
+import { useState, useEffect } from 'react'
+import Header from '@/components/Header'
+import './globals.css'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const [fontSize, setFontSize] = useState(16)
+  const [highContrast, setHighContrast] = useState(false)
+
+  const adjustFontSize = (n: number) => setFontSize(p => Math.max(12, Math.min(24, p + n)))
+
+  // Aplica fontSize globalmente NO BODY e HTML
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}px`
+    document.body.style.fontSize = `${fontSize}px`
+  }, [fontSize])
+
+  // Aplica tema globalmente
+  useEffect(() => {
+    if (highContrast) {
+      document.body.classList.add('bg-black', 'text-yellow-300')
+      document.body.classList.remove('bg-white', 'text-gray-800')
+      document.documentElement.classList.add('bg-black')
+      document.documentElement.classList.remove('bg-white')
+    } else {
+      document.body.classList.add('bg-white', 'text-gray-800')
+      document.body.classList.remove('bg-black', 'text-yellow-300')
+      document.documentElement.classList.add('bg-white')
+      document.documentElement.classList.remove('bg-black')
+    }
+  }, [highContrast])
+
   return (
-    <html lang="pt-BR">
-      <head>
-        <meta charSet="utf-8" />
-        <link rel="icon" href="/favicon.ico" />
-      </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {/* Componente de logout automático por inatividade */}
-        <LoadingBar />
-        <AdminInactivityLogout />
-        
-        {/* Editor de texto avançado (lateral esquerda) */}
-        <AdvancedTextEditor />
-        
-        {/* Conteúdo principal das páginas */}
-        <main className="min-h-screen">
-          {children}
-        </main>
+    <html lang="pt-BR" style={{ fontSize: `${fontSize}px` }}>
+      <body style={{ fontSize: `${fontSize}px` }}>
+        <Header
+          fontSize={fontSize}
+          setFontSize={setFontSize}
+          adjustFontSize={adjustFontSize}
+          highContrast={highContrast}
+          setHighContrast={setHighContrast}
+        />
+        {children}
       </body>
     </html>
   )
