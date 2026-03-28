@@ -1,8 +1,12 @@
+//app/layout.tsx
+
 'use client'
 
 import { useState, useEffect } from 'react'
 import Header from '@/components/Header'
 import './globals.css'
+import { HomeDataProvider } from '@/contexts/HomeDataContext'
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [fontSize, setFontSize] = useState(16)
@@ -41,7 +45,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           highContrast={highContrast}
           setHighContrast={setHighContrast}
         />
-        {children}
+        <HomeDataProvider>
+          {children}
+        </HomeDataProvider>
       </body>
     </html>
   )
