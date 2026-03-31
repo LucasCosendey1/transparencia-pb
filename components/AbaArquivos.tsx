@@ -61,7 +61,7 @@ export default function AbaArquivos({ paginaId }: AbaArquivosProps) {
   const carregarArquivos = async () => {
     setLoading(true)
     try {
-      let url = `/api/arquivos/${paginaId}`
+      let url = `/api/arquivos-tabela/${paginaId}`
       if (categoriaFiltro) url += `?categoria=${categoriaFiltro}`
       const r = await fetch(url)
       const d = await r.json()
@@ -101,7 +101,7 @@ export default function AbaArquivos({ paginaId }: AbaArquivosProps) {
   const deletarArquivo = async (arq: ArquivoInfo) => {
     if (!confirm(`Deletar "${arq.nome}"?`)) return
     try {
-      await fetch(`/api/arquivos/${paginaId}`, {
+      await fetch(`/api/arquivos-tabela/${paginaId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nome: arq.nome, categoria: arq.categoria }),

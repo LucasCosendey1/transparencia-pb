@@ -1,4 +1,4 @@
-// Caminho: app/uploads/[...path]/route.ts
+// app/api/uploads/[...path]/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { downloadArquivoFTP } from '@/lib/ftp'

@@ -73,7 +73,7 @@ export async function uploadArquivoFTP(
     await client.uploadFrom(stream, fullRemotePath)
 
     // Monta URL pública
-    return `/${remotePath}`
+    return `/api/${remotePath}`
   } finally {
     client.close()
   }
@@ -140,21 +140,35 @@ export async function testarConexaoFTP(): Promise<{ sucesso: boolean; mensagem: 
 
 export async function downloadArquivoFTP(remotePath: string): Promise<Buffer> {
   const config = getConfig()
+  console.log('🔍 [FTP] Conectando...', config.host)
+  
   const client = await getClient()
+  console.log('✅ [FTP] Conectado!')
 
   try {
     const fullRemotePath = `${config.remoteBase}/${remotePath}`
+    console.log('🔍 [FTP] Baixando:', fullRemotePath)
+    
+    const { PassThrough } = await import('stream')
+    const passThrough = new PassThrough()
     const chunks: Buffer[] = []
-    const writable = new (await import('stream')).Writable({
-      write(chunk, _encoding, callback) {
-        chunks.push(Buffer.from(chunk))
-        callback()
-      },
+    
+    passThrough.on('data', (chunk) => {
+      chunks.push(Buffer.from(chunk))
+      console.log('📦 [FTP] Chunk recebido:', chunk.length, 'bytes')
     })
-
-    await client.downloadTo(writable, fullRemotePath)
-    return Buffer.concat(chunks)
+    
+    await client.downloadTo(passThrough, fullRemotePath)
+    
+    const buffer = Buffer.concat(chunks)
+    console.log('✅ [FTP] Download completo! Total:', buffer.length, 'bytes')
+    
+    return buffer
+  } catch (e: any) {
+    console.error('❌ [FTP] Erro no download:', e.message)
+    throw e
   } finally {
     client.close()
+    console.log('🔌 [FTP] Conexão fechada')
   }
 }

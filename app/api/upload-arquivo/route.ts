@@ -23,10 +23,18 @@ function slugify(str: string): string {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('📤 [UPLOAD] Iniciando upload...')
+    
     const formData = await req.formData()
     const arquivo = formData.get('arquivo') as File | null
     const paginaId = formData.get('pagina_id') as string | null
     const categoria = (formData.get('categoria') as string) || 'geral'
+
+    console.log('📤 [UPLOAD] Dados recebidos:', { 
+      arquivo: arquivo?.name, 
+      paginaId, 
+      categoria 
+    })
 
     if (!arquivo || !paginaId) {
       return NextResponse.json({ error: 'Arquivo e pagina_id são obrigatórios.' }, { status: 400 })
@@ -42,9 +50,14 @@ export async function POST(req: NextRequest) {
     const nomeArquivo = `${baseName}-${timestamp}${ext}`
 
     const remotePath = `uploads/${slugify(paginaId)}/${slugify(categoria)}/${nomeArquivo}`
+    
+    console.log('📤 [UPLOAD] remotePath:', remotePath)
 
     const buffer = Buffer.from(await arquivo.arrayBuffer())
+    console.log('📤 [UPLOAD] Buffer criado:', buffer.length, 'bytes')
+    
     const urlPublica = await uploadArquivoFTP(buffer, remotePath)
+    console.log('✅ [UPLOAD] Upload concluído! URL:', urlPublica)
 
     return NextResponse.json({
       sucesso: true,
@@ -60,7 +73,7 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (e: any) {
-    console.error('Erro no upload FTP:', e)
+    console.error('❌ [UPLOAD] Erro:', e)
     return NextResponse.json({ error: 'Erro no upload.', detalhe: e.message }, { status: 500 })
   }
 }

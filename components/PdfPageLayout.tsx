@@ -53,9 +53,11 @@ interface BlocoPDF {
 
 interface BlocoExibicao {
   id: string
-  tipo: 'texto' | 'tabela' | 'pdf' | 'grafico'
+  tipo: 'texto' | 'tabela' | 'pdf' | 'grafico' | 'arquivo_ftp'
   nome_tabela?: string
   nome_pdf?: string
+  arquivo_ftp_url?: string
+  arquivo_ftp_nome?: string
   grafico_id?: string
   conteudo?: string
   expandido?: boolean
@@ -122,7 +124,8 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
   const [filtroAdminFim, setFiltroAdminFim]       = useState('')
   const [termoBusca, setTermoBusca]     = useState('')
 
-  const [pdfsSalvos, setPdfsSalvos]     = useState<PdfSalvo[]>([])
+  const [pdfsSalvos, setPdfsSalvos] = useState<PdfSalvo[]>([])
+  const [arquivosFTP, setArquivosFTP] = useState<Array<{nome: string, url: string}>>([]) // NOVO
 
   const [blocosExibicao, setBlocosExibicao] = useState<BlocoExibicao[]>([])
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState<string | null>(null)
@@ -175,6 +178,12 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
       carregarLinhas(tabelaAtiva, di, df)
     }
   }, [tabelaAtiva])
+
+  useEffect(() => {
+  if (painelAberto && isAdmin) {
+      carregarArquivosFTP()
+    }
+  }, [painelAberto, isAdmin, paginaId])
 
   const carregar = async () => {
     setLoading(true)
@@ -234,12 +243,39 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
       } else if (dPdf?.pdf_base64) {
         setPdfsSalvos([{ nome_pdf: 'principal', pdf_base64: dPdf.pdf_base64, updated_at: dPdf.updated_at }])
       }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
+
+      // ADICIONE AQUI (ainda dentro do try, antes do catch)
+      const rArquivos = await fetch(`/api/arquivos-tabela/${paginaId}`)
+      const dArquivos = await rArquivos.json()
+      const pdfsFTP = Array.isArray(dArquivos) 
+        ? dArquivos
+            .filter(a => a.tipo === 'application/pdf')
+            .map(a => ({ nome: a.nome, url: a.url }))
+        : []
+      setArquivosFTP(pdfsFTP)
+
+      } catch (e) {   // <-- ADICIONE ESTE }
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+      }
+
+  const carregarArquivosFTP = async () => {
+  try {
+    const rArquivos = await fetch(`/api/arquivos-tabela/${paginaId}`)
+    const dArquivos = await rArquivos.json()
+    const pdfsFTP = Array.isArray(dArquivos) 
+      ? dArquivos
+          .filter(a => a.tipo === 'application/pdf')
+          .map(a => ({ nome: a.nome, url: a.url }))
+      : []
+    setArquivosFTP(pdfsFTP)
+    console.log('✅ Arquivos FTP carregados:', pdfsFTP.length)
+  } catch (e) {
+    console.error('❌ Erro ao carregar arquivos FTP:', e)
   }
+}
 
   const carregarLinhas = async (nome = tabelaAtiva, di = dataInicio, df = dataFim) => {
     try {
@@ -582,16 +618,19 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                         { label: 'Texto', tipo: 'texto' as const },
                         { label: 'Tabela', tipo: 'tabela' as const },
                         { label: 'PDF', tipo: 'pdf' as const, disabled: pdfsSalvos.length === 0 },
+                        { label: 'Arquivo FTP', tipo: 'arquivo_ftp' as const, disabled: arquivosFTP.length === 0 },
                         { label: 'Gráfico', tipo: 'grafico' as const, disabled: graficos.filter(g => g.aparecer_pagina).length === 0 },
                       ].map(({ label, tipo, disabled }) => (
                         <button key={tipo}
                           disabled={disabled}
                           onClick={() => setBlocosExibicao(p => [...p, {
-                            id: uid(), tipo,
-                            nome_tabela: tipo === 'tabela' ? tabelas[0]?.nome_tabela : undefined,
-                            nome_pdf: tipo === 'pdf' ? pdfsSalvos[0]?.nome_pdf : undefined,
-                            grafico_id: tipo === 'grafico' ? graficos.filter(g => g.aparecer_pagina)[0]?.id : undefined,
-                          }])}
+  id: uid(), tipo,
+  nome_tabela: tipo === 'tabela' ? tabelas[0]?.nome_tabela : undefined,
+  nome_pdf: tipo === 'pdf' ? pdfsSalvos[0]?.nome_pdf : undefined,
+  arquivo_ftp_url: tipo === 'arquivo_ftp' ? arquivosFTP[0]?.url : undefined, // NOVO
+  arquivo_ftp_nome: tipo === 'arquivo_ftp' ? arquivosFTP[0]?.nome : undefined, // NOVO
+  grafico_id: tipo === 'grafico' ? graficos.filter(g => g.aparecer_pagina)[0]?.id : undefined,
+}])}
                           className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-black rounded text-xs disabled:opacity-40 disabled:cursor-not-allowed">
                           <FaPlus size={9} /> {label}
                         </button>
@@ -609,9 +648,10 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                             <FaGripVertical className="text-gray-400" size={11} />
                             <span className="text-xs font-medium text-black flex-1">
                               {bloco.tipo === 'texto' ? '📝 Texto'
-                                : bloco.tipo === 'tabela' ? `📊 Tabela: ${bloco.nome_tabela}`
-                                : bloco.tipo === 'pdf' ? `📄 PDF: ${bloco.nome_pdf}`
-                                : `📈 Gráfico: ${graficos.find(g => g.id === bloco.grafico_id)?.titulo ?? ''}`}
+                              : bloco.tipo === 'tabela' ? `📊 Tabela: ${bloco.nome_tabela}`
+                              : bloco.tipo === 'pdf' ? `📄 PDF: ${bloco.nome_pdf}`
+                              : bloco.tipo === 'arquivo_ftp' ? `📎 Arquivo: ${bloco.arquivo_ftp_nome}` // NOVO
+                              : `📈 Gráfico: ${graficos.find(g => g.id === bloco.grafico_id)?.titulo ?? ''}`}
                             </span>
                             {bloco.tipo === 'texto' && (
                               <button onClick={() => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, expandido: !b.expandido } : b))}
@@ -634,11 +674,24 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                                 className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                                 {tabelas.map(t => <option key={t.nome_tabela} value={t.nome_tabela}>{t.nome_tabela}</option>)}
                               </select>
-                            ) : bloco.tipo === 'pdf' ? (
-                              <select value={bloco.nome_pdf}
-                                onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, nome_pdf: e.target.value } : b))}
+                           ) : bloco.tipo === 'pdf' ? (
+  <select value={bloco.nome_pdf}
+    onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, nome_pdf: e.target.value } : b))}
+    className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+    {pdfsSalvos.map(p => <option key={p.nome_pdf} value={p.nome_pdf}>{p.nome_pdf}</option>)}
+  </select>
+                            ) : bloco.tipo === 'arquivo_ftp' ? ( // NOVO
+                              <select value={bloco.arquivo_ftp_url}
+                                onChange={e => {
+                                  const arq = arquivosFTP.find(a => a.url === e.target.value)
+                                  setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { 
+                                    ...b, 
+                                    arquivo_ftp_url: e.target.value,
+                                    arquivo_ftp_nome: arq?.nome 
+                                  } : b))
+                                }}
                                 className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                {pdfsSalvos.map(p => <option key={p.nome_pdf} value={p.nome_pdf}>{p.nome_pdf}</option>)}
+                                {arquivosFTP.map(a => <option key={a.url} value={a.url}>{a.nome}</option>)}
                               </select>
                             ) : (
                               <select value={bloco.grafico_id}
@@ -873,20 +926,31 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                             )
                           })()}
                           {bloco.tipo === 'pdf' && (() => {
-                            const pdf = pdfsSalvos.find(p => p.nome_pdf === bloco.nome_pdf)
-                            if (!pdf) return null
-                            return (
+  const pdf = pdfsSalvos.find(p => p.nome_pdf === bloco.nome_pdf)
+  if (!pdf) return null
+  return (
+    <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
+      <div className="flex items-center gap-2 mb-3">
+        <FaFilePdf className="text-red-600" />
+        <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{pdf.nome_pdf}</span>
+      </div>
+      <div style={{ height: 600 }}>
+        <iframe src={`data:application/pdf;base64,${pdf.pdf_base64}`} className="w-full h-full border-0 rounded" title={pdf.nome_pdf} />
+      </div>
+    </div>
+  )
+                            })()}
+                            {bloco.tipo === 'arquivo_ftp' && bloco.arquivo_ftp_url && ( // NOVO
                               <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
                                 <div className="flex items-center gap-2 mb-3">
                                   <FaFilePdf className="text-red-600" />
-                                  <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{pdf.nome_pdf}</span>
+                                  <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{bloco.arquivo_ftp_nome}</span>
                                 </div>
                                 <div style={{ height: 600 }}>
-                                  <iframe src={`data:application/pdf;base64,${pdf.pdf_base64}`} className="w-full h-full border-0 rounded" title={pdf.nome_pdf} />
+                                  <iframe src={bloco.arquivo_ftp_url} className="w-full h-full border-0 rounded" title={bloco.arquivo_ftp_nome} />
                                 </div>
                               </div>
-                            )
-                          })()}
+                            )}
                         </div>
                       ))
                     ) : (
