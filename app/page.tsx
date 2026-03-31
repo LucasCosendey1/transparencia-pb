@@ -1,6 +1,8 @@
+//app/page.tsx
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Header from '@/components/Header'
 import Link from 'next/link'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
 import { useHomeData } from '@/contexts/HomeDataContext'
@@ -167,6 +169,8 @@ function pickRandom<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.
 
 // ── Componente principal ──────────────────────────────────────
 export default function HomePage() {
+  const [fontSize, setFontSize] = useState(16)
+  const [highContrast, setHighContrast] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [editingFooter, setEditingFooter] = useState<string | null>(null)
   const [editingButton, setEditingButton] = useState<string | null>(null)
@@ -245,7 +249,14 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+  <div className="min-h-screen bg-white" style={{ fontSize: `${fontSize}px` }}>
+    <Header 
+      fontSize={fontSize}
+      highContrast={highContrast}
+      adjustFontSize={(n) => setFontSize(p => Math.max(12, Math.min(24, p + n)))}
+      setHighContrast={setHighContrast}
+      setFontSize={setFontSize}
+    />
       <style jsx global>{`
         .card-bg-yellow, .card-bg-blue { transform-origin: center; }
         .card-triggered.card-anim-circle .card-bg-blue   { border-radius:50%; animation:blueCircle var(--anim-speed) .15s ease-out forwards }
@@ -284,11 +295,11 @@ export default function HomePage() {
         .back-to-top.visible{opacity:1}
       `}</style>
 
-      <section className="bg-gray-100 py-8 pt-40">
+      <section className={`py-8 pt-40 ${highContrast ? 'bg-black' : 'bg-gray-100'}`}>
         <div className="max-w-7xl mx-auto px-4"><Carousel /></div>
       </section>
 
-      <main className="bg-gray-50 py-12 pt-32">
+      <main className={`py-12 pt-32 ${highContrast ? 'bg-black' : 'bg-gray-50'}`}>
         <div className="max-w-7xl mx-auto px-4">
           {SECOES.map(secao => {
             const sectionId = secao.titulo.toLowerCase().replace(/\s+/g, '-')
@@ -504,11 +515,14 @@ function CategoryCard({ icon: Icon, chave, titulo, caminho, description, ultimaA
           </div>
         </div>
       </Link>
-      {ultimaAtualizacao && (
-        <p className="flex items-center justify-center gap-1 text-xs mt-1.5 text-gray-400">
-          <FaClock size={9} /> Atualizado em {new Date(ultimaAtualizacao).toLocaleDateString('pt-BR')}
-        </p>
-      )}
+      
+      <p className="flex items-center justify-center gap-1 text-xs mt-1.5 text-gray-400">
+        <FaClock size={9} /> 
+        {ultimaAtualizacao 
+          ? `Atualizado em ${new Date(ultimaAtualizacao).toLocaleDateString('pt-BR')}`
+          : 'Sem atualizações'
+        }
+      </p>
     </div>
   )
 }

@@ -88,19 +88,46 @@ type EvolucaoMode = 'total' | 'ano' | 'mes'
 
 function fmt(value: unknown, type?: string): string {
   if (value === null || value === undefined) return '—'
+  
+  if (type === 'date') {
+    const str = String(value)
+    // Tenta parsear vários formatos
+    let d: Date | null = null
+    
+    // ISO: 2024-03-15
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      d = new Date(str)
+    }
+    // BR: 15/03/2024
+    else if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
+      const [dia, mes, ano] = str.split('/')
+      d = new Date(Number(ano), Number(mes) - 1, Number(dia))
+    }
+    // Timestamp
+    else if (!isNaN(Number(str))) {
+      d = new Date(Number(str))
+    }
+    
+    if (d && !isNaN(d.getTime())) {
+      const dia = String(d.getDate()).padStart(2, '0')
+      const mes = String(d.getMonth() + 1).padStart(2, '0')
+      const ano = d.getFullYear()
+      return `${dia}/${mes}/${ano}`
+    }
+    return String(value)
+  }
+  
   if (type === 'currency') {
     const n = Number(value)
     return isNaN(n) ? String(value) : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   }
+  
   if (type === 'number') {
     const n = Number(value)
     return isNaN(n) ? String(value) : n.toLocaleString('pt-BR')
   }
-  if (type === 'date') {
-  const d = new Date(String(value))
-  if (!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR')
-}
-return String(value)
+  
+  return String(value)
 }
 
 function fmtShort(value: unknown): string {
@@ -110,6 +137,18 @@ function fmtShort(value: unknown): string {
   if (Math.abs(v) >= 1_000_000) return `R$ ${(v / 1e6).toFixed(1)}M`
   if (Math.abs(v) >= 1_000) return `R$ ${(v / 1e3).toFixed(0)}K`
   return `R$ ${v.toFixed(0)}`
+}
+
+// ── Função para obter valores únicos de uma coluna ──
+function getUniqueValues(data: Record<string, unknown>[], columnKey: string): string[] {
+  const unique = new Set<string>()
+  data.forEach(row => {
+    const val = row[columnKey]
+    if (val !== null && val !== undefined && val !== '') {
+      unique.add(String(val))
+    }
+  })
+  return Array.from(unique).sort()
 }
 
 const CARD_COLORS: Record<string, string> = {
@@ -166,6 +205,12 @@ function download(blob: Blob, filename: string) {
 export default function ApiPageLayout({ config, highContrast, fontSize, adjustFontSize, setHighContrast, setFontSize }: Props) {
   const hc = highContrast
 
+  // ── Estados adicionais ──
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({})
+  const [groupByColumn, setGroupByColumn] = useState<string | null>(null)
+  const [chartAxisX, setChartAxisX] = useState<string>('')
+  const [chartAxisY, setChartAxisY] = useState<string>('')
+
   // ── Estado de dados ──
   const [dataByYear, setDataByYear] = useState<Record<number, Record<string, unknown>[]>>({})
   const [loadingYears, setLoadingYears] = useState<Set<number>>(new Set())
@@ -178,6 +223,8 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
   const [busca, setBusca] = useState('')
   const [somenteMovimento, setSomenteMovimento] = useState(false)
 
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [searchTerms, setSearchTerms] = useState<Record<string, string>>({})
   // ── Estado de UI ──
   const [page, setPage] = useState(1)
   const perPage = 20
@@ -259,6 +306,15 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
     }
   }, [config.columns, metricaComparacao])
 
+  useEffect(() => {
+  if (!chartAxisX && chartCategoryCol) {
+    setChartAxisX(chartCategoryCol.key)
+  }
+  if (!chartAxisY && chartBarCols.length > 0) {
+    setChartAxisY(chartBarCols[0].key)
+  }
+}, [chartCategoryCol, chartBarCols, chartAxisX, chartAxisY])
+
   function toggleYear(year: number) {
     setSelectedYears(prev =>
       prev.includes(year)
@@ -285,35 +341,80 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
   )
 
   const filtered = useMemo(() => {
-    let d = [...allData]
-    if (somenteMovimento) d = d.filter(r => r['movimento'] === 'S')
-    if (selectedMonths.length > 0) {
+  let d = [...allData]
+  
+  // Filtro de movimento
+  if (somenteMovimento) d = d.filter(r => r['movimento'] === 'S')
+  
+  // Filtro de meses
+  if (selectedMonths.length > 0) {
+    d = d.filter(r => {
+      const m = String(r['competência'] ?? '').split('/')[0]
+      return selectedMonths.includes(m)
+    })
+    d = d.map(row => {
+      const porMes = row['_realizadoPorMes'] as Record<string, number> ?? {}
+      const acumulado = selectedMonths.reduce((acc, m) => acc + (porMes[m] ?? 0), 0)
+      return { ...row, 'realizada Até o Mês': acumulado }
+    })
+  }
+  
+   Object.entries(columnFilters).forEach(([colKey, filterValue]) => {
+    if (filterValue.trim()) {
+      const selectedValues = filterValue.split('|||')
       d = d.filter(r => {
-        const m = String(r['competência'] ?? '').split('/')[0]
-        return selectedMonths.includes(m)
-      })
-      // Recalcula acumulado respeitando apenas os meses selecionados
-      d = d.map(row => {
-        const porMes = row['_realizadoPorMes'] as Record<string, number> ?? {}
-        const acumulado = selectedMonths.reduce((acc, m) => acc + (porMes[m] ?? 0), 0)
-        return { ...row, 'realizada Até o Mês': acumulado }
+        const val = String(r[colKey] ?? '')
+        return selectedValues.includes(val)
       })
     }
-    if (busca.trim()) {
-      const q = busca.toLowerCase()
-      d = d.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(q)))
-    }
-    if (sortKey) {
-      d.sort((a, b) => {
-        const an = Number(a[sortKey]); const bn = Number(b[sortKey])
-        if (!isNaN(an) && !isNaN(bn)) return sortDir === 'asc' ? an - bn : bn - an
-        return sortDir === 'asc'
-          ? String(a[sortKey]).localeCompare(String(b[sortKey]))
-          : String(b[sortKey]).localeCompare(String(a[sortKey]))
-      })
-    }
-    return d
-  }, [allData, somenteMovimento, selectedMonths, busca, sortKey, sortDir])
+  })
+  
+  // Filtro de busca geral
+  if (busca.trim()) {
+    const q = busca.toLowerCase()
+    d = d.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(q)))
+  }
+  
+  // Ordenação
+  if (sortKey) {
+    d.sort((a, b) => {
+      const an = Number(a[sortKey])
+      const bn = Number(b[sortKey])
+      if (!isNaN(an) && !isNaN(bn)) return sortDir === 'asc' ? an - bn : bn - an
+      return sortDir === 'asc'
+        ? String(a[sortKey]).localeCompare(String(b[sortKey]))
+        : String(b[sortKey]).localeCompare(String(a[sortKey]))
+    })
+  }
+  
+  return d
+}, [allData, somenteMovimento, selectedMonths, columnFilters, busca, sortKey, sortDir])
+
+  const visibleCols = config.columns.filter(c => !hiddenCols.has(c.key))
+
+  // ── Dados agrupados ──
+  const groupedData = useMemo(() => {
+    if (!groupByColumn) return null
+    
+    const groups: Record<string, Record<string, unknown>[]> = {}
+    
+    filtered.forEach(row => {
+      const groupKey = String(row[groupByColumn] ?? 'Sem grupo')
+      if (!groups[groupKey]) groups[groupKey] = []
+      groups[groupKey].push(row)
+    })
+    
+    return Object.entries(groups).map(([groupKey, rows]) => ({
+      groupKey,
+      rows,
+      totals: visibleCols.reduce((acc, col) => {
+        if (col.type === 'currency' || col.type === 'number') {
+          acc[col.key] = rows.reduce((sum, r) => sum + (Number(r[col.key]) || 0), 0)
+        }
+        return acc
+      }, {} as Record<string, number>)
+    }))
+  }, [filtered, groupByColumn, visibleCols])
 
   const totalPages = Math.ceil(filtered.length / perPage)
   const pageData = filtered.slice((page - 1) * perPage, page * perPage)
@@ -333,8 +434,6 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
     return sum.toLocaleString('pt-BR')
   }
 
-
-
   const baseRows = useMemo(() =>
     config.showMovimentoFilter !== false
       ? filtered.filter(r => r['movimento'] === 'S')
@@ -342,30 +441,41 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
     [filtered, config.showMovimentoFilter]
   )
 
-  const comboData = useMemo(() =>
-    baseRows.slice(0, 12).map(row => {
+  const comboData = useMemo(() => {
+    const xKey = chartAxisX || chartCategoryCol?.key || config.columns[0]?.key
+    const yKey = chartAxisY || chartBarCols[0]?.key
+    
+    return baseRows.slice(0, 12).map(row => {
       const entry: Record<string, unknown> = {}
-      if (chartCategoryCol) {
-        const raw = String(row[chartCategoryCol.key] ?? '')
-        entry['_label'] = raw.length > 22 ? raw.slice(0, 22) + '…' : raw
+      const raw = String(row[xKey] ?? '')
+      entry['_label'] = raw.length > 22 ? raw.slice(0, 22) + '…' : raw
+      entry['_ano'] = row['_ano']
+      
+      // Adiciona o valor do eixo Y
+      if (yKey) {
+        entry[yKey] = Number(row[yKey]) || 0
       }
-      entry['_ano'] = row['_ano'];
-      [...chartBarCols, ...chartLineCols].forEach(c => { entry[c.key] = Number(row[c.key]) || 0 })
+      
+      // Adiciona outras métricas
+      [...chartBarCols, ...chartLineCols].forEach(c => { 
+        entry[c.key] = Number(row[c.key]) || 0 
+      })
+      
       return entry
-    }),
-    [baseRows, chartCategoryCol, chartBarCols, chartLineCols]
-  )
+    })
+  }, [baseRows, chartAxisX, chartAxisY, chartCategoryCol, chartBarCols, chartLineCols, config.columns])
 
   const pizzaData = useMemo(() => {
-    const barKey = chartBarCols[0]?.key
-    if (!barKey || !chartCategoryCol) return []
+    const xKey = chartAxisX || chartCategoryCol?.key
+    const yKey = chartAxisY || chartBarCols[0]?.key
+    if (!yKey || !xKey) return []
     const map: Record<string, number> = {}
     baseRows.forEach(r => {
-      const label = String(r[chartCategoryCol.key] ?? '').slice(0, 30)
-      map[label] = (map[label] || 0) + (Number(r[barKey]) || 0)
+      const label = String(r[xKey] ?? '').slice(0, 30)
+      map[label] = (map[label] || 0) + (Number(r[yKey]) || 0)
     })
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({ name, value }))
-  }, [baseRows, chartBarCols, chartCategoryCol])
+  }, [baseRows, chartAxisX, chartAxisY, chartBarCols, chartCategoryCol])
 
   const evolucaoData = useMemo(() => {
     const barKey = chartBarCols[0]?.key
@@ -448,7 +558,6 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
     setHiddenCols(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s })
   }
 
-  const visibleCols = config.columns.filter(c => !hiddenCols.has(c.key))
   const currentChart = CHARTS[chartIndex]
 
   const CARD_BG   = hc ? 'bg-gray-900 border border-yellow-300' : 'bg-white shadow-md'
@@ -495,8 +604,6 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
           </div>
         </div>
 
-        
-
         {/* ── Glossário ── */}
         {showGlossario && config.glossario?.length && (
           <div className={`${CARD_BG} rounded-xl p-5 space-y-2`}>
@@ -533,6 +640,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
             {showFilters ? <FaChevronUp /> : <FaChevronDown />}
           </button>
           {showFilters && (
+            
             <div className="px-5 pb-6 space-y-5">
 
               {config.showYearFilter !== false && (
@@ -620,6 +728,144 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                   </div>
                 )}
               </div>
+
+              {/* Filtros por coluna visível */}
+              {visibleCols.length > 0 && (
+                <div>
+                  <p className={`text-xs font-semibold mb-3 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>
+                    Filtros por coluna
+                  </p>
+                  <div className="grid grid-cols-7 gap-2">
+                    {visibleCols.map(col => {
+                      const uniqueVals = getUniqueValues(allData, col.key)
+                      const [showDropdown, setShowDropdown] = useState(false)
+                      const selectedValues = columnFilters[col.key]?.split('|||') || []
+                      
+                      return (
+                        <div key={col.key} className="relative">
+                          <button
+                            onClick={() => setShowDropdown(!showDropdown)}
+                            className={`w-full text-left px-2 py-1.5 text-xs rounded border transition ${
+                              selectedValues.length > 0
+                                ? hc ? 'bg-yellow-300 text-black border-yellow-300' : 'bg-blue-50 border-blue-400 text-blue-700'
+                                : hc ? 'bg-gray-900 border-yellow-300 text-yellow-300' : 'bg-white border-gray-300 text-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="truncate">{col.label}</span>
+                              {selectedValues.length > 0 && (
+                                <span className={`ml-1 px-1.5 rounded-full text-xs font-bold ${hc ? 'bg-black text-yellow-300' : 'bg-blue-600 text-white'}`}>
+                                  {selectedValues.length}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                          
+                          {showDropdown && (
+  <>
+    <div 
+      className="fixed inset-0 z-10" 
+      onClick={() => setShowDropdown(false)}
+    />
+    <div className={`absolute top-full left-0 mt-1 z-20 w-64 rounded-lg border shadow-lg ${hc ? 'bg-gray-900 border-yellow-300' : 'bg-white border-gray-200'}`}>
+      {/* Campo de busca */}
+      <div className="p-2 border-b ${hc ? 'border-yellow-300' : 'border-gray-200'}">
+        <input
+          type="text"
+          placeholder="Digite para filtrar..."
+          value={searchTerms[col.key] || ''}
+          onChange={(e) => setSearchTerms(prev => ({ ...prev, [col.key]: e.target.value }))}
+          className={`w-full px-2 py-1.5 text-xs rounded border focus:outline-none ${hc ? 'bg-gray-800 border-yellow-300 text-yellow-300 placeholder-yellow-600' : 'bg-white border-gray-300 text-gray-700'}`}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+      
+      {/* Lista de opções */}
+      <div className="max-h-48 overflow-y-auto">
+        <div className="p-2 space-y-1">
+          {uniqueVals
+            .filter(val => 
+              (searchTerms[col.key] || '').trim() === '' || 
+                String(val).toLowerCase().includes((searchTerms[col.key] || '').toLowerCase())
+            )
+            .slice(0, 100)
+            .map(val => {
+              const isSelected = selectedValues.includes(val)
+              return (
+                <label
+                  key={val}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition ${
+                    hc ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => {
+                      const newSelected = isSelected
+                        ? selectedValues.filter(v => v !== val)
+                        : [...selectedValues, val]
+                      
+                      setColumnFilters(prev => {
+                        if (newSelected.length === 0) {
+                          const newFilters = { ...prev }
+                          delete newFilters[col.key]
+                          return newFilters
+                        }
+                        return {
+                          ...prev,
+                          [col.key]: newSelected.join('|||')
+                        }
+                      })
+                      setPage(1)
+                    }}
+                    className="w-3.5 h-3.5 rounded border-gray-300"
+                  />
+                  <span className={`truncate flex-1 ${hc ? 'text-yellow-300' : 'text-gray-700'}`}>
+                    {val}
+                  </span>
+                </label>
+              )
+            })}
+        </div>
+      </div>
+      
+      {/* Botão limpar */}
+      {selectedValues.length > 0 && (
+        <div className={`border-t p-2 ${hc ? 'border-yellow-300' : 'border-gray-200'}`}>
+          <button
+            onClick={() => {
+              setColumnFilters(prev => {
+                const newFilters = { ...prev }
+                delete newFilters[col.key]
+                return newFilters
+              })
+              setPage(1)
+            }}
+            className={`w-full text-xs px-2 py-1 rounded transition ${hc ? 'bg-red-400 text-black hover:bg-red-500' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
+          >
+            Limpar filtro
+          </button>
+        </div>
+      )}
+    </div>
+  </>
+)}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {Object.keys(columnFilters).length > 0 && (
+                    <button
+                      onClick={() => setColumnFilters({})}
+                      className={`mt-3 text-xs px-3 py-1.5 rounded-lg border transition ${hc ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-black' : 'border-red-300 text-red-500 hover:bg-red-50'}`}
+                    >
+                      Limpar todos os filtros ({Object.keys(columnFilters).length})
+                    </button>
+                  )}
+                </div>
+              
+              )}
             </div>
           )}
         </div>
@@ -699,82 +945,185 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
 
         {/* ── Tabela ── */}
         {!loading && !error && activeTab === 'tabela' && (
-          <div className={`${CARD_BG} rounded-xl overflow-hidden`}>
-            <div className={`px-5 py-3 flex items-center justify-between border-b ${hc ? 'border-yellow-300' : 'border-gray-100'}`}>
-              <p className={`text-sm ${hc ? 'text-yellow-200' : 'text-gray-500'}`}>
-                {filtered.length.toLocaleString('pt-BR')} registros
-                {selectedYears.length > 1 && ` — anos: ${selectedYears.join(', ')}`}
+          <>
+            {/* Área de agrupamento */}
+            <div className={`${CARD_BG} rounded-xl p-4 mb-4`}>
+              <p className={`text-xs font-semibold mb-2 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>
+                Agrupar por coluna:
               </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr>
-                    {selectedYears.length > 1 && <th className={`px-3 py-3 text-left font-semibold whitespace-nowrap ${TH}`}>Ano</th>}
-                    {visibleCols.map(col => (
-                      <th key={col.key} onClick={() => handleSort(col.key)}
-                        className={`px-3 py-3 text-left font-semibold cursor-pointer select-none whitespace-nowrap ${TH}`}>
-                        <span className="flex items-center gap-1">
-                          {col.label}
-                          {col.tooltip && <span title={col.tooltip} className="opacity-60 cursor-help"><FaInfoCircle size={9} /></span>}
-                          {sortKey === col.key ? (sortDir === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort className="opacity-30" />}
-                        </span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageData.length === 0 ? (
-                    <tr><td colSpan={visibleCols.length + 1} className={`text-center py-10 ${hc ? 'text-yellow-400' : 'text-gray-400'}`}>Nenhum registro encontrado</td></tr>
-                  ) : pageData.map((row, i) => (
-                    <tr key={i} className={`${i % 2 === 0 ? TR_EVEN : TR_ODD} hover:bg-blue-50 transition`}>
-                      {selectedYears.length > 1 && (
-                        <td className={`px-3 py-2.5 ${TD_BORDER}`}>
-                          <span className="px-2 py-0.5 rounded-full text-white text-xs font-bold" style={{ backgroundColor: ANO_COLORS[Number(row['_ano'])] }}>
-                            {String(row['_ano'])}
-                          </span>
-                        </td>
-                      )}
-                      {visibleCols.map(col => (
-                        <td key={col.key} className={`px-3 py-2.5 ${TD_BORDER} ${col.type === 'currency' ? 'text-right font-mono' : ''}`}>
-                          {col.type === 'currency'
-                            ? <span className={Number(row[col.key]) < 0 ? 'text-red-500' : ''}>{fmt(row[col.key], col.type)}</span>
-                            : col.type === 'link' && row[col.key]
-                              ? <a href={String(row[col.key])} target="_blank" rel="noopener noreferrer"
-                                  className={`underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>
-                                  Ver
-                                </a>
-                              : fmt(row[col.key], col.type)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {totalPages > 1 && (
-              <div className={`px-5 py-3 flex flex-wrap items-center justify-between gap-2 border-t ${hc ? 'border-yellow-300' : 'border-gray-100'}`}>
-                <p className={`text-xs ${hc ? 'text-yellow-300' : 'text-gray-500'}`}>Página {page} de {totalPages}</p>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => setPage(1)} disabled={page === 1} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}>«</button>
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}><FaChevronLeft size={10} /></button>
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const p = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
-                    return <button key={p} onClick={() => setPage(p)} className={`w-7 h-7 rounded text-xs font-medium ${p === page ? (hc ? 'bg-yellow-300 text-black' : 'bg-blue-600 text-white') : (hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100')}`}>{p}</button>
-                  })}
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}><FaChevronRight size={10} /></button>
-                  <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}>»</button>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {groupByColumn ? (
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${hc ? 'border-yellow-300 bg-yellow-300 text-black' : 'border-blue-600 bg-blue-600 text-white'}`}>
+                    <span className="text-sm font-semibold">
+                      {config.columns.find(c => c.key === groupByColumn)?.label}
+                    </span>
+                    <button
+                      onClick={() => setGroupByColumn(null)}
+                      className={`hover:opacity-75`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div className={`px-4 py-3 border-2 border-dashed rounded-lg ${hc ? 'border-yellow-300 text-yellow-400' : 'border-gray-300 text-gray-400'}`}>
+                    <p className="text-xs">Selecione uma coluna abaixo para agrupar</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {visibleCols.map(col => (
+                  <button
+                    key={col.key}
+                    onClick={() => setGroupByColumn(col.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs border transition ${
+                      groupByColumn === col.key
+                        ? hc ? 'bg-yellow-300 text-black border-yellow-300' : 'bg-blue-600 text-white border-blue-600'
+                        : hc ? 'border-yellow-300 text-yellow-300 hover:bg-gray-800' : 'border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    {col.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={`${CARD_BG} rounded-xl overflow-hidden`}>
+              <div className={`px-5 py-3 flex items-center justify-between border-b ${hc ? 'border-yellow-300' : 'border-gray-100'}`}>
+                <p className={`text-sm ${hc ? 'text-yellow-200' : 'text-gray-500'}`}>
+                  {filtered.length.toLocaleString('pt-BR')} registros
+                  {selectedYears.length > 1 && ` — anos: ${selectedYears.join(', ')}`}
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                {groupedData ? (
+                  // Tabela agrupada
+                  <div className="space-y-4 p-4">
+                    {groupedData.map(group => (
+                      <div key={group.groupKey} className={`border rounded-lg overflow-hidden ${hc ? 'border-yellow-300' : 'border-gray-200'}`}>
+                        <div className={`px-4 py-2 font-semibold text-sm ${hc ? 'bg-gray-800 text-yellow-300' : 'bg-gray-100 text-gray-700'}`}>
+                          {group.groupKey} ({group.rows.length} registro{group.rows.length !== 1 ? 's' : ''})
+                        </div>
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr>
+                              {selectedYears.length > 1 && <th className={`px-3 py-3 text-left font-semibold whitespace-nowrap ${TH}`}>Ano</th>}
+                              {visibleCols.map(col => (
+                                <th key={col.key} className={`px-3 py-3 text-left font-semibold whitespace-nowrap ${TH}`}>
+                                  {col.label}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.rows.map((row, i) => (
+                              <tr key={i} className={`${i % 2 === 0 ? TR_EVEN : TR_ODD} hover:bg-blue-50 transition`}>
+                                {selectedYears.length > 1 && (
+                                  <td className={`px-3 py-2.5 ${TD_BORDER}`}>
+                                    <span className="px-2 py-0.5 rounded-full text-white text-xs font-bold" style={{ backgroundColor: ANO_COLORS[Number(row['_ano'])] }}>
+                                      {String(row['_ano'])}
+                                    </span>
+                                  </td>
+                                )}
+                                {visibleCols.map(col => (
+                                  <td key={col.key} className={`px-3 py-2.5 ${TD_BORDER} ${col.type === 'currency' ? 'text-right font-mono' : ''}`}>
+                                    {col.type === 'currency'
+                                      ? <span className={Number(row[col.key]) < 0 ? 'text-red-500' : ''}>{fmt(row[col.key], col.type)}</span>
+                                      : col.type === 'link' && row[col.key]
+                                        ? <a href={String(row[col.key])} target="_blank" rel="noopener noreferrer" className={`underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>Ver</a>
+                                        : fmt(row[col.key], col.type)}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                            {/* Linha de totais */}
+                            <tr className={`font-bold ${hc ? 'bg-gray-800 text-yellow-300' : 'bg-blue-50 text-gray-800'}`}>
+                              {selectedYears.length > 1 && <td className="px-3 py-2.5"></td>}
+                              {visibleCols.map(col => (
+                                <td key={col.key} className={`px-3 py-2.5 ${col.type === 'currency' ? 'text-right font-mono' : ''}`}>
+                                  {(col.type === 'currency' || col.type === 'number') && group.totals[col.key]
+                                    ? fmt(group.totals[col.key], col.type)
+                                    : col.key === groupByColumn ? 'TOTAL' : ''}
+                                </td>
+                              ))}
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  // Tabela normal
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr>
+                        {selectedYears.length > 1 && <th className={`px-3 py-3 text-left font-semibold whitespace-nowrap ${TH}`}>Ano</th>}
+                        {visibleCols.map(col => (
+                          <th key={col.key} onClick={() => handleSort(col.key)}
+                            className={`px-3 py-3 text-left font-semibold cursor-pointer select-none whitespace-nowrap ${TH}`}>
+                            <span className="flex items-center gap-1">
+                              {col.label}
+                              {col.tooltip && <span title={col.tooltip} className="opacity-60 cursor-help"><FaInfoCircle size={9} /></span>}
+                              {sortKey === col.key ? (sortDir === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort className="opacity-30" />}
+                            </span>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pageData.length === 0 ? (
+                        <tr><td colSpan={visibleCols.length + 1} className={`text-center py-10 ${hc ? 'text-yellow-400' : 'text-gray-400'}`}>Nenhum registro encontrado</td></tr>
+                      ) : pageData.map((row, i) => (
+                        <tr key={i} className={`${i % 2 === 0 ? TR_EVEN : TR_ODD} hover:bg-blue-50 transition`}>
+                          {selectedYears.length > 1 && (
+                            <td className={`px-3 py-2.5 ${TD_BORDER}`}>
+                              <span className="px-2 py-0.5 rounded-full text-white text-xs font-bold" style={{ backgroundColor: ANO_COLORS[Number(row['_ano'])] }}>
+                                {String(row['_ano'])}
+                              </span>
+                            </td>
+                          )}
+                          {visibleCols.map(col => (
+                            <td key={col.key} className={`px-3 py-2.5 ${TD_BORDER} ${col.type === 'currency' ? 'text-right font-mono' : ''}`}>
+                              {col.type === 'currency'
+                                ? <span className={Number(row[col.key]) < 0 ? 'text-red-500' : ''}>{fmt(row[col.key], col.type)}</span>
+                                : col.type === 'link' && row[col.key]
+                                  ? <a href={String(row[col.key])} target="_blank" rel="noopener noreferrer"
+                                      className={`underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>
+                                      Ver
+                                    </a>
+                                  : fmt(row[col.key], col.type)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              {totalPages > 1 && (
+                <div className={`px-5 py-3 flex flex-wrap items-center justify-between gap-2 border-t ${hc ? 'border-yellow-300' : 'border-gray-100'}`}>
+                  <p className={`text-xs ${hc ? 'text-yellow-300' : 'text-gray-500'}`}>Página {page} de {totalPages}</p>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setPage(1)} disabled={page === 1} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}>«</button>
+                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}><FaChevronLeft size={10} /></button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const p = Math.max(1, Math.min(totalPages - 4, page - 2)) + i
+                      return <button key={p} onClick={() => setPage(p)} className={`w-7 h-7 rounded text-xs font-medium ${p === page ? (hc ? 'bg-yellow-300 text-black' : 'bg-blue-600 text-white') : (hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100')}`}>{p}</button>
+                    })}
+                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}><FaChevronRight size={10} /></button>
+                    <button onClick={() => setPage(totalPages)} disabled={page === totalPages} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}>»</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         {/* ── Gráficos (Carrossel) ── */}
         {!loading && !error && activeTab === 'grafico' && (
           <div className={`${CARD_BG} rounded-xl overflow-hidden`}>
-            <div className={`px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b ${hc ? 'border-yellow-300' : 'border-gray-100'}`}>
-              <div className="flex items-center gap-3">
+            <div className={`px-5 py-4 border-b ${hc ? 'border-yellow-300' : 'border-gray-100'} space-y-4`}>
+              {/* Navegação do carrossel */}
+              <div className="flex items-center justify-between">
                 <button onClick={() => setChartIndex(i => (i - 1 + CHARTS.length) % CHARTS.length)}
                   className={`w-8 h-8 flex items-center justify-center rounded-full border transition ${hc ? 'border-yellow-300 text-yellow-300 hover:bg-yellow-300 hover:text-black' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>
                   <FaChevronLeft size={12} />
@@ -785,7 +1134,8 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                   <FaChevronRight size={12} />
                 </button>
               </div>
-              <div className="flex items-center gap-1.5">
+              
+              <div className="flex items-center justify-center gap-1.5">
                 {CHARTS.map((c, i) => (
                   <button key={c.id} onClick={() => setChartIndex(i)} title={c.label}
                     className={`rounded-full transition-all duration-300 ${i === chartIndex
@@ -793,6 +1143,37 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                       : hc ? 'w-2.5 h-2.5 bg-gray-600 hover:bg-gray-400' : 'w-2.5 h-2.5 bg-gray-300 hover:bg-gray-400'}`} />
                 ))}
               </div>
+
+              {/* Seletores de eixo X e Y */}
+              {(currentChart.id === 'combinado' || currentChart.id === 'barrasH' || currentChart.id === 'pizza') && (
+                <div className="flex gap-4">
+                  <div>
+                    <p className={`text-xs mb-1 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>Eixo X:</p>
+                    <select
+                      value={chartAxisX}
+                      onChange={e => setChartAxisX(e.target.value)}
+                      className={`px-2 py-1 rounded text-xs border ${hc ? 'bg-gray-900 border-yellow-300 text-yellow-300' : 'bg-white border-gray-300 text-gray-700'}`}
+                    >
+                      {config.columns.filter(c => c.type !== 'link').map(col => (
+                        <option key={col.key} value={col.key}>{col.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <p className={`text-xs mb-1 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>Eixo Y:</p>
+                    <select
+                      value={chartAxisY}
+                      onChange={e => setChartAxisY(e.target.value)}
+                      className={`px-2 py-1 rounded text-xs border ${hc ? 'bg-gray-900 border-yellow-300 text-yellow-300' : 'bg-white border-gray-300 text-gray-700'}`}
+                    >
+                      {config.columns.filter(c => c.type === 'currency' || c.type === 'number').map(col => (
+                        <option key={col.key} value={col.key}>{col.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
               {currentChart.id === 'evolucao' && (
                 <div className={`flex rounded-lg overflow-hidden border text-xs ${hc ? 'border-yellow-300' : 'border-gray-200'}`}>
                   {(['total', 'mes', 'ano'] as EvolucaoMode[]).map(m => (
@@ -818,8 +1199,8 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                       contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }}
                       labelStyle={{ color: hc ? '#fde047' : '#374151', fontWeight: 600 }} />
                     <Legend formatter={v => config.columns.find(c => c.key === v)?.label ?? v} wrapperStyle={{ fontSize: 11 }} />
-                    {chartBarCols.map((col, i) => <Bar key={col.key} dataKey={col.key} fill={CHART_COLORS[i]} radius={[4, 4, 0, 0]} />)}
-                    {chartLineCols.map((col, i) => <Line key={col.key} type="monotone" dataKey={col.key} stroke={CHART_COLORS[chartBarCols.length + i]} strokeWidth={2} dot={{ r: 3 }} />)}
+                    <Bar dataKey={chartAxisY || chartBarCols[0]?.key} fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                    {chartLineCols.length > 0 && <Line type="monotone" dataKey={chartLineCols[0].key} stroke={CHART_COLORS[1]} strokeWidth={2} dot={{ r: 3 }} />}
                   </ComposedChart>
                 </ResponsiveContainer>
               )}
@@ -860,11 +1241,9 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), config.columns.find(c => c.key === String(name))?.label ?? String(name)]}
                       contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    {chartBarCols.map((col, i) => (
-                      <Bar key={col.key} dataKey={col.key} fill={CHART_COLORS[i]} radius={[0, 4, 4, 0]}>
-                        {comboData.map((_, j) => <Cell key={j} fill={CHART_COLORS[i]} fillOpacity={0.65 + (j % 4) * 0.1} />)}
-                      </Bar>
-                    ))}
+                    <Bar dataKey={chartAxisY || chartBarCols[0]?.key} fill={CHART_COLORS[0]} radius={[0, 4, 4, 0]}>
+                      {comboData.map((_, j) => <Cell key={j} fill={CHART_COLORS[0]} fillOpacity={0.65 + (j % 4) * 0.1} />)}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -923,85 +1302,85 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                 </div>
               )}
 
-              {/* 6 — Comparação de Anos (via carrossel) */}
+              {/* 6 — Comparação de Anos */}
               {currentChart.id === 'comparacao' && (
-  <div className="space-y-4">
-    <div className="flex flex-wrap gap-6">
-      <div>
-        <p className={`text-xs font-semibold mb-2 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>Anos a comparar:</p>
-        <div className="flex flex-wrap gap-2">
-          {ANOS_DISPONIVEIS.map(year => {
-            const isSelected = anosComparacao.includes(year)
-            const isLoading = loadingYears.has(year)
-            return (
-              <button key={year} onClick={() => toggleAnoComparacao(year)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all duration-200 ${
-                  isSelected
-                    ? hc ? 'bg-yellow-300 text-black border-yellow-300' : 'text-white border-transparent shadow-md'
-                    : hc ? 'border-yellow-300 text-yellow-300 hover:bg-yellow-300 hover:text-black' : 'border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-600 bg-white'
-                }`}
-                style={isSelected && !hc ? { backgroundColor: ANO_COLORS[year], borderColor: ANO_COLORS[year] } : {}}>
-                {isLoading ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : isSelected && <span className="text-xs">✓</span>}
-                {year}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-      <div>
-        <p className={`text-xs font-semibold mb-2 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>Indicador:</p>
-        <div className="flex flex-wrap gap-2">
-          {config.columns.filter(c => c.type === 'currency' || c.type === 'number').map(col => (
-            <button key={col.key} onClick={() => setMetricaComparacao(col.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all duration-200 ${
-                metricaComparacao === col.key
-                  ? hc ? 'bg-yellow-300 text-black border-yellow-300' : 'bg-blue-600 text-white border-blue-600'
-                  : hc ? 'border-yellow-300 text-yellow-300 hover:bg-yellow-300 hover:text-black' : 'border-gray-200 text-gray-500 bg-white hover:border-blue-300 hover:text-blue-500'
-              }`}>
-              {col.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-6">
+                    <div>
+                      <p className={`text-xs font-semibold mb-2 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>Anos a comparar:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {ANOS_DISPONIVEIS.map(year => {
+                          const isSelected = anosComparacao.includes(year)
+                          const isLoading = loadingYears.has(year)
+                          return (
+                            <button key={year} onClick={() => toggleAnoComparacao(year)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all duration-200 ${
+                                isSelected
+                                  ? hc ? 'bg-yellow-300 text-black border-yellow-300' : 'text-white border-transparent shadow-md'
+                                  : hc ? 'border-yellow-300 text-yellow-300 hover:bg-yellow-300 hover:text-black' : 'border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-600 bg-white'
+                              }`}
+                              style={isSelected && !hc ? { backgroundColor: ANO_COLORS[year], borderColor: ANO_COLORS[year] } : {}}>
+                              {isLoading ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : isSelected && <span className="text-xs">✓</span>}
+                              {year}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <p className={`text-xs font-semibold mb-2 ${hc ? 'text-yellow-300' : 'text-gray-600'}`}>Indicador:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {config.columns.filter(c => c.type === 'currency' || c.type === 'number').map(col => (
+                          <button key={col.key} onClick={() => setMetricaComparacao(col.key)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-all duration-200 ${
+                              metricaComparacao === col.key
+                                ? hc ? 'bg-yellow-300 text-black border-yellow-300' : 'bg-blue-600 text-white border-blue-600'
+                                : hc ? 'border-yellow-300 text-yellow-300 hover:bg-yellow-300 hover:text-black' : 'border-gray-200 text-gray-500 bg-white hover:border-blue-300 hover:text-blue-500'
+                            }`}>
+                            {col.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
-    {anosParaComparar.length >= 2 && metricaComparacao ? (
-      <>
-        <ResponsiveContainer width="100%" height={360}>
-          <ComposedChart data={comparacaoData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={hc ? '#444' : '#e5e7eb'} />
-            <XAxis dataKey="_label" tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 11 }} />
-            <YAxis tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
-            <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), String(name).replace('ano_', '')]}
-              contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
-            <Legend formatter={v => String(v).replace('ano_', '')} wrapperStyle={{ fontSize: 11 }} />
-            {anosParaComparar.map(y => (
-              <Line key={y} type="monotone" dataKey={`ano_${y}`} name={`ano_${y}`}
-                stroke={ANO_COLORS[y]} strokeWidth={2.5} dot={{ r: 4, fill: ANO_COLORS[y] }} />
-            ))}
-          </ComposedChart>
-        </ResponsiveContainer>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {anosParaComparar.map(y => {
-            const rows = (dataByYear[y] ?? []).filter(r => config.showMovimentoFilter !== false ? r['movimento'] === 'S' : true)
-            const total = rows.reduce((acc, r) => acc + (Number(r[metricaComparacao]) || 0), 0)
-            return (
-              <div key={y} className={`rounded-lg p-3 text-center ${hc ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
-                <div className="w-3 h-3 rounded-full mx-auto mb-1" style={{ backgroundColor: ANO_COLORS[y] }} />
-                <p className={`text-xs font-bold ${hc ? 'text-yellow-300' : 'text-gray-700'}`}>{y}</p>
-                <p className={`text-sm font-semibold mt-1 ${hc ? 'text-yellow-200' : 'text-gray-800'}`}>{fmtShort(total)}</p>
-              </div>
-            )
-          })}
-        </div>
-      </>
-    ) : (
-      <p className={`text-sm text-center py-8 ${hc ? 'text-yellow-400' : 'text-gray-400'}`}>
-        Selecione pelo menos 2 anos e um indicador acima para visualizar a comparação.
-      </p>
-    )}
-  </div>
-)}
+                  {anosParaComparar.length >= 2 && metricaComparacao ? (
+                    <>
+                      <ResponsiveContainer width="100%" height={360}>
+                        <ComposedChart data={comparacaoData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={hc ? '#444' : '#e5e7eb'} />
+                          <XAxis dataKey="_label" tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 11 }} />
+                          <YAxis tickFormatter={fmtShort} tick={{ fill: hc ? '#fde047' : '#6b7280', fontSize: 10 }} />
+                          <Tooltip formatter={(v: unknown, name: unknown) => [Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), String(name).replace('ano_', '')]}
+                            contentStyle={{ background: hc ? '#111' : '#fff', borderRadius: 8, fontSize: 11 }} />
+                          <Legend formatter={v => String(v).replace('ano_', '')} wrapperStyle={{ fontSize: 11 }} />
+                          {anosParaComparar.map(y => (
+                            <Line key={y} type="monotone" dataKey={`ano_${y}`} name={`ano_${y}`}
+                              stroke={ANO_COLORS[y]} strokeWidth={2.5} dot={{ r: 4, fill: ANO_COLORS[y] }} />
+                          ))}
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {anosParaComparar.map(y => {
+                          const rows = (dataByYear[y] ?? []).filter(r => config.showMovimentoFilter !== false ? r['movimento'] === 'S' : true)
+                          const total = rows.reduce((acc, r) => acc + (Number(r[metricaComparacao]) || 0), 0)
+                          return (
+                            <div key={y} className={`rounded-lg p-3 text-center ${hc ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
+                              <div className="w-3 h-3 rounded-full mx-auto mb-1" style={{ backgroundColor: ANO_COLORS[y] }} />
+                              <p className={`text-xs font-bold ${hc ? 'text-yellow-300' : 'text-gray-700'}`}>{y}</p>
+                              <p className={`text-sm font-semibold mt-1 ${hc ? 'text-yellow-200' : 'text-gray-800'}`}>{fmtShort(total)}</p>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <p className={`text-sm text-center py-8 ${hc ? 'text-yellow-400' : 'text-gray-400'}`}>
+                      Selecione pelo menos 2 anos e um indicador acima para visualizar a comparação.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
