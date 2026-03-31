@@ -1,3 +1,5 @@
+//components/PdfPageLayout.tsx
+
 'use client'
 
 import GraficoEditor, { GraficoConfig, RenderGrafico } from '@/components/GraficoEditor'
@@ -74,6 +76,28 @@ interface Props {
 type AbaAdmin = 'tabelas' | 'graficos' | 'gerar-pdf' | 'exibicao' | 'historico' | 'arquivos'
 
 const uid = () => Math.random().toString(36).slice(2)
+
+// Função para converter URLs de arquivos
+const converterUrlArquivo = (texto: string) => {
+  if (!texto) return texto
+  
+  // Se já é uma URL completa do transparencia
+  if (texto.includes('transparencia.itabaiana.pb.gov.br/uploads/')) {
+    // Extrai apenas o path após /uploads/
+    const match = texto.match(/\/uploads\/(.+)$/)
+    if (match) {
+      return `/api/ftp-file?path=${match[1]}`
+    }
+  }
+  
+  // Se já começa com /uploads/
+  if (texto.startsWith('/uploads/')) {
+    return `/api/ftp-file?path=${texto.substring(9)}` // Remove "/uploads/"
+  }
+  
+  // Retorna como está se não for URL de arquivo
+  return texto
+}
 
 // ── Componente principal ──────────────────────────────────────
 
@@ -831,8 +855,10 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                                         {meta.colunas.map((_, ci) => (
                                           <td key={ci} className={`px-4 py-3 border ${hc ? 'border-gray-700 text-yellow-200' : 'border-gray-200 text-black'}`}>
                                             {termoBusca && l.dados[ci]?.toLowerCase().includes(termoBusca.toLowerCase()) ? (
-                                              <span dangerouslySetInnerHTML={{ __html: l.dados[ci].replace(new RegExp(`(${termoBusca})`, 'gi'), '<mark class="bg-yellow-200">$1</mark>') }} />
-                                            ) : l.dados[ci]}
+                                              <span dangerouslySetInnerHTML={{ __html: converterUrlArquivo(l.dados[ci] || '').replace(new RegExp(`(${termoBusca})`, 'gi'), '<mark class="bg-yellow-200">$1</mark>') }} />
+                                            ) : (
+                                              <span dangerouslySetInnerHTML={{ __html: converterUrlArquivo(l.dados[ci] || '') }} />
+                                            )}
                                           </td>
                                         ))}
                                         <td className={`px-4 py-3 border text-xs ${hc ? 'border-gray-700 text-yellow-300' : 'border-gray-200 text-black'}`}>
@@ -879,8 +905,10 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                                 {tabelaAtivaMeta?.colunas.map((_, ci) => (
                                   <td key={ci} className={`px-4 py-3 border ${hc ? 'border-gray-700 text-yellow-200' : 'border-gray-200 text-black'}`}>
                                     {termoBusca && l.dados[ci]?.toLowerCase().includes(termoBusca.toLowerCase()) ? (
-                                      <span dangerouslySetInnerHTML={{ __html: l.dados[ci].replace(new RegExp(`(${termoBusca})`, 'gi'), '<mark class="bg-yellow-200">$1</mark>') }} />
-                                    ) : l.dados[ci]}
+                                    <span dangerouslySetInnerHTML={{ __html: converterUrlArquivo(l.dados[ci] || '').replace(new RegExp(`(${termoBusca})`, 'gi'), '<mark class="bg-yellow-200">$1</mark>') }} />
+                                  ) : (
+                                    <span dangerouslySetInnerHTML={{ __html: converterUrlArquivo(l.dados[ci] || '') }} />
+                                  )}
                                   </td>
                                 ))}
                                 <td className={`px-4 py-3 border text-xs ${hc ? 'border-gray-700 text-yellow-300' : 'border-gray-200 text-black'}`}>

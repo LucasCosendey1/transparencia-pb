@@ -1,3 +1,5 @@
+//lib/ftp.ts
+
 import * as ftp from 'basic-ftp'
 import { Readable } from 'stream'
 
@@ -71,8 +73,7 @@ export async function uploadArquivoFTP(
     await client.uploadFrom(stream, fullRemotePath)
 
     // Monta URL pública
-    const publicUrl = process.env.PUBLIC_URL || 'https://transparencia.itabaiana.pb.gov.br'
-    return `${publicUrl}/${remotePath}`
+    return `/${remotePath}`
   } finally {
     client.close()
   }
