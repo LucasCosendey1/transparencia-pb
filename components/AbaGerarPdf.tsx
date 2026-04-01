@@ -14,7 +14,7 @@ interface TabelaMeta {
   texto_intro: string
   texto_final: string
   colunas: string[]
-  modo_exibicao: string
+ modo_exibicao: 'tabela' | 'lista' | 'pdf'
   colunas_pdf: number[]
   blocos_pdf?: BlocoPDF[]
   blocos_exibicao?: any[]
