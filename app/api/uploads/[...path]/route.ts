@@ -25,7 +25,7 @@ const mimeTypes: Record<string, string> = {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
     const { path: segments } = await params
