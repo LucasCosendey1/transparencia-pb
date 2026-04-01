@@ -18,7 +18,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     
     console.log('✅ Arquivo encontrado:', path)
     
-    return new Response(buffer, {
+    return new Response(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="${path.split('/').pop()}"`,
