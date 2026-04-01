@@ -31,10 +31,9 @@ const tipoMap: Record<string, string> = {
 // GET /api/arquivos/[paginaId]?categoria=pdf
 export async function GET(
   req: NextRequest,
-  { params }: { params: { paginaId: string } }
+  { params }: { params: Promise<{ paginaId: string }> }
 ) {
-  try {
-    const { paginaId } = await params
+  const { paginaId } = await params
     const { searchParams } = new URL(req.url)
     const categoriaFiltro = searchParams.get('categoria')
     const publicUrl = process.env.PUBLIC_URL || 'https://transparencia.itabaiana.pb.gov.br'
