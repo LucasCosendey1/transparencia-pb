@@ -1,14 +1,14 @@
 // app/api/ftp-file/route.ts
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { downloadArquivoFTP } from '@/lib/ftp'
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<Response> {
   const { searchParams } = new URL(req.url)
   const path = searchParams.get('path')
   
   if (!path) {
-    return NextResponse.json({ error: 'Path não fornecido' }, { status: 400 })
+    return Response.json({ error: 'Path não fornecido' }, { status: 400 })
   }
 
   try {
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     
     console.log('✅ Arquivo encontrado:', path)
     
-    return new NextResponse(buffer, {
+    return new Response(buffer, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="${path.split('/').pop()}"`,
@@ -26,6 +26,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     })
   } catch (e: any) {
     console.error('❌ Erro:', e)
-    return NextResponse.json({ error: 'Arquivo não encontrado' }, { status: 404 })
+    return Response.json({ error: 'Arquivo não encontrado' }, { status: 404 })
   }
 }
