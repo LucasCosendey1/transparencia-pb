@@ -1,3 +1,5 @@
+// app/api/ftp-file/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import Client from 'ftp'
 
@@ -8,7 +10,7 @@ const FTP_CONFIG = {
   password: process.env.FTP_PASS!,
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(req.url)
   const path = searchParams.get('path')
   
@@ -19,7 +21,7 @@ export async function GET(req: NextRequest) {
   const remotePath = `/Transparencia/uploads/${path}`
   console.log('🔍 Buscando arquivo FTP:', remotePath)
 
-  return new Promise((resolve) => {
+  return new Promise<NextResponse>((resolve) => {
     const client = new Client()
     
     client.on('ready', () => {
