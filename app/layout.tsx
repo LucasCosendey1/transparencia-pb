@@ -2,17 +2,15 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import Header from '@/components/Header'
 import './globals.css'
 import { HomeDataProvider } from '@/contexts/HomeDataContext'
+import { PreferencesProvider, usePreferences } from '@/contexts/PreferencesContext'
 
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const [fontSize, setFontSize] = useState(16)
-  const [highContrast, setHighContrast] = useState(false)
-
-  const adjustFontSize = (n: number) => setFontSize(p => Math.max(12, Math.min(24, p + n)))
+// Componente interno que usa as preferências
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  const { fontSize, highContrast } = usePreferences()
 
   // Aplica fontSize globalmente NO BODY e HTML
   useEffect(() => {
@@ -36,18 +34,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }, [highContrast])
 
   return (
-    <html lang="pt-BR" style={{ fontSize: `${fontSize}px` }}>
-      <body style={{ fontSize: `${fontSize}px` }}>
-        <Header
-          fontSize={fontSize}
-          setFontSize={setFontSize}
-          adjustFontSize={adjustFontSize}
-          highContrast={highContrast}
-          setHighContrast={setHighContrast}
-        />
-        <HomeDataProvider>
-          {children}
-        </HomeDataProvider>
+    <>
+      <Header />
+      <HomeDataProvider>
+        {children}
+      </HomeDataProvider>
+    </>
+  )
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR">
+      <body>
+        <PreferencesProvider>
+          <LayoutContent>{children}</LayoutContent>
+        </PreferencesProvider>
       </body>
     </html>
   )

@@ -6,6 +6,9 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { usePreferences } from '@/contexts/PreferencesContext'
+
+
 
 interface HeaderProps {
   highContrast?: boolean
@@ -30,6 +33,7 @@ const SECTIONS = [
 const GRADIENT = 'linear-gradient(to right, #0d6efd, #ffc107, #0d6efd)'
 
 export default function Header(props?: HeaderProps) {
+  const { highContrast, fontSize, setHighContrast, setFontSize, adjustFontSize } = usePreferences()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -47,12 +51,6 @@ export default function Header(props?: HeaderProps) {
   const animTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Se receber props, usa elas; senão usa estado interno
-  const highContrast = props?.highContrast ?? (internalTheme === 'contrast')
-  const fontSize = props?.fontSize ?? internalFontSize
-  const setFontSize = props?.setFontSize ?? setInternalFontSize
-  const adjustFontSize = props?.adjustFontSize ?? ((n: number) => setInternalFontSize(p => Math.max(12, Math.min(24, p + n))))
-  const setHighContrast = props?.setHighContrast ?? ((value: boolean) => setInternalTheme(value ? 'contrast' : 'light'))
 
   useEffect(() => {
     const handleScroll = () => {

@@ -15,32 +15,44 @@ const MESES: Record<string, string> = {
 
 function parsearArquivo(nome: string, ano: string) {
   const semExt = nome.replace(/\.pdf$/i, '')
+  console.log(`🔍 Parseando: "${semExt}"`)
 
   // Formato 2018: "05.10" = dia.mes
   if (/^\d{2}\.\d{2}$/.test(semExt)) {
     const [dia, mes] = semExt.split('.')
+    console.log(`✅ Formato 2018 detectado: ${dia}/${mes}/${ano}`)
     return {
       titulo: `Diário Oficial — ${dia}/${mes}/${ano}`,
       data: `${ano}-${mes}-${dia}`,
     }
   }
 
-  // Formato novo: "FOLHA-161-01-de-Outubro"
-  const match = semExt.match(/(\d{1,2})-de-([a-záéíóúãõç]+)/i)
+  // Procura por padrão: qualquer coisa + DD de MÊS (ignora números antes)
+  const match = semExt.match(/[^\d]*(\d{1,2})\s+de\s+([a-záéíóúãõç]+)/i)
+  console.log(`🔍 Match resultado:`, match)
+  
   if (match) {
     const dia = String(match[1]).padStart(2, '0')
     const mesNome = match[2].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    console.log(`📅 Dia: ${dia}, Mês nome: ${mesNome}`)
+    
     const mes = MESES[mesNome]
+    console.log(`📅 Mês código: ${mes}`)
+    
     if (mes) {
-      return {
-        titulo: semExt.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      const resultado = {
+        titulo: semExt.replace(/-/g, ' ').replace(/\s+/g, ' ').trim(),
         data: `${ano}-${mes}-${dia}`,
       }
+      console.log(`✅ Data final: ${resultado.data}`)
+      return resultado
     }
   }
 
+  console.log(`⚠️ Nenhum padrão encontrado, usando data padrão: ${ano}-01-01`)
+  
   return {
-    titulo: semExt.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    titulo: semExt.replace(/-/g, ' ').replace(/\s+/g, ' ').trim(),
     data: `${ano}-01-01`,
   }
 }
@@ -71,12 +83,19 @@ export async function GET(req: NextRequest) {
   try {
     // Listar pastas de anos
     const { files: pastas } = await listarArquivos(PASTA_RAIZ_ID)
+    console.log('📁 Total de pastas encontradas:', pastas.length)
+    console.log('📁 Pastas:', pastas.map((p: any) => p.name))
+
     const pastasAno = pastas
       .filter((f: any) => f.mimeType === 'application/vnd.google-apps.folder')
+      .filter((f: any) => /^\d{4}$/.test(f.name.trim()))
       .sort((a: any, b: any) => a.name.localeCompare(b.name))
+
+    console.log('📅 Pastas de anos válidas:', pastasAno.map((p: any) => p.name))
 
     for (const pasta of pastasAno) {
       const ano = pasta.name.trim()
+      console.log(`\n📅 Processando ano: ${ano}`)
 
       try {
         let arquivos: any[] = []
@@ -92,26 +111,55 @@ export async function GET(req: NextRequest) {
           f.mimeType === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
         )
 
+        console.log(`📄 PDFs encontrados em ${ano}:`, pdfs.length)
+        console.log(`📄 Primeiros 5 PDFs:`, pdfs.slice(0, 5).map((p: any) => p.name))
+
         for (const pdf of pdfs) {
           try {
             const { titulo, data } = parsearArquivo(pdf.name, ano)
+            console.log(`🔍 Processando: ${pdf.name} → ${titulo} (${data})`)
+            
             const url = urlPdf(pdf.id)
 
             const [existente]: any = await conn.execute(
-              'SELECT id FROM diario_oficial WHERE url LIKE ?',
-              [`%${pdf.id}%`]
-            )
+  'SELECT id FROM diario_oficial WHERE url LIKE ?',
+  [`%${pdf.id}%`]
+                )
+
+                if (existente.length === 0) {
+                  await conn.execute(
+                    'INSERT INTO diario_oficial (titulo, data_publicacao, url, categoria) VALUES (?,?,?,?)',
+                    [titulo, data, url, null]
+                  )
+                  console.log(`✅ Inserido: ${titulo}`)
+                  inseridos++
+                } else {
+                  // ATUALIZA a data se estiver diferente
+                  await conn.execute(
+                    'UPDATE diario_oficial SET data_publicacao = ?, titulo = ? WHERE id = ?',
+                    [data, titulo, existente[0].id]
+                  )
+                  console.log(`🔄 Atualizado: ${titulo}`)
+                }
 
             if (existente.length === 0) {
               await conn.execute(
                 'INSERT INTO diario_oficial (titulo, data_publicacao, url, categoria) VALUES (?,?,?,?)',
                 [titulo, data, url, null]
               )
+              console.log(`✅ Inserido: ${titulo}`)
               inseridos++
+            } else {
+              console.log(`⏭️  Já existe: ${titulo}`)
             }
-          } catch { erros++ }
+          } catch (err) {
+            console.error(`❌ Erro ao processar ${pdf.name}:`, err)
+            erros++
+          }
         }
-      } catch { /* pasta com erro — pula */ }
+      } catch (err) {
+        console.error(`❌ Erro ao processar pasta ${ano}:`, err)
+      }
     }
 
     // Atualiza última atualização
@@ -122,12 +170,17 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    console.log(`\n✅ Sincronização concluída: ${inseridos} inseridos, ${erros} erros`)
+
     return NextResponse.json({
       ok: true,
       inseridos,
       erros,
       executadoEm: new Date().toISOString(),
     })
+  } catch (err) {
+    console.error('❌ Erro fatal:', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
   } finally {
     conn.release()
   }

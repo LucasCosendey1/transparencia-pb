@@ -1,9 +1,12 @@
+// app/diario-oficial/page.tsx
+
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
+import { usePreferences } from '@/contexts/PreferencesContext'
 
 import {
   FaHome, FaCog, FaEye, FaEdit, FaSave, FaTimes, FaSearch,
@@ -83,8 +86,7 @@ const COR_MES = [
 ]
 
 export default function DiarioOficial() {
-  const [fontSize, setFontSize] = useState(16)
-  const [highContrast, setHighContrast] = useState(false)
+  const { highContrast, fontSize, setHighContrast, setFontSize, adjustFontSize: adjustFontSizeContext } = usePreferences()
   const [isAdmin, setIsAdmin] = useState(false)
   const [painelAberto, setPainelAberto] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -109,7 +111,6 @@ export default function DiarioOficial() {
   const [form, setForm] = useState<Partial<Diario>>({})
 
   const hc = highContrast
-  const adjustFontSize = (n: number) => setFontSize(p => Math.max(12, Math.min(24, p + n)))
 
   useEffect(() => {
     setIsAdmin(localStorage.getItem('isAdmin') === 'true')
@@ -173,8 +174,7 @@ export default function DiarioOficial() {
 
   return (
     <div className={`min-h-screen ${hc ? 'bg-black' : 'bg-gray-50'}`} style={{ fontSize }}>
-      <Header highContrast={hc} fontSize={fontSize} adjustFontSize={adjustFontSize}
-        setHighContrast={setHighContrast} setFontSize={setFontSize} />
+      <Header />
 
       {/* Breadcrumb */}
       <div className={`${hc ? 'bg-black' : 'bg-white'} border-b mt-32`}>
@@ -473,7 +473,18 @@ export default function DiarioOficial() {
   </div>
 </div>
             {/* iframe */}
-            <iframe src={modalPdf.url} className="flex-1 w-full" title={modalPdf.titulo} />
+{modalPdf.url.includes('1drv.ms') || modalPdf.url.includes('sharepoint.com') ? (
+  <div className="flex-1 flex items-center justify-center flex-col gap-4 bg-gray-50">
+    <FaExternalLinkAlt size={40} className="text-gray-400" />
+    <p className="text-gray-600 text-sm">OneDrive não permite visualização inline.</p>
+    <a href={modalPdf.url} target="_blank" rel="noreferrer"
+      className="px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg flex items-center gap-2">
+      <FaExternalLinkAlt /> Abrir PDF em nova aba
+    </a>
+  </div>
+) : (
+  <iframe src={modalPdf.url} className="flex-1 w-full" title={modalPdf.titulo} />
+)}
           </div>
         </div>
       )}

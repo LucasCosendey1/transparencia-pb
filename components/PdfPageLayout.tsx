@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Header from './Header'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
+import { usePreferences } from '@/contexts/PreferencesContext'
 import {
   FaHome, FaFilePdf, FaDownload, FaPlus, FaTrash,
   FaSave, FaTimes, FaFileAlt, FaTable, FaLayerGroup,
@@ -104,8 +105,7 @@ const converterUrlArquivo = (texto: string) => {
 // ── Componente principal ──────────────────────────────────────
 
 export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
-  const [fontSize, setFontSize]         = useState(16)
-  const [highContrast, setHighContrast] = useState(false)
+  const { highContrast, fontSize, setHighContrast, setFontSize, adjustFontSize: adjustFontSizeContext } = usePreferences()
   const [isAdmin, setIsAdmin]           = useState(false)
   const [painelAberto, setPainelAberto] = useState(false)
   const [abaAdmin, setAbaAdmin]         = useState<AbaAdmin>('tabelas')
@@ -140,7 +140,6 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
   const [tabelasSelecionadas, setTabelasSelecionadas] = useState<string[]>([])
   const [pdfsSelecionados, setPdfsSelecionados]       = useState<string[]>([])
 
-  const adjustFontSize = (n: number) => setFontSize(p => Math.max(12, Math.min(24, p + n)))
   const tabelaAtivaMeta = tabelas.find(t => t.nome_tabela === tabelaAtiva)
   const linhasFiltradas = termoBusca.trim()
     ? linhas.filter(l => l.dados.some(d => d?.toLowerCase().includes(termoBusca.toLowerCase())))
@@ -462,8 +461,7 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
   // ── Render ──
   return (
     <div className={`min-h-screen ${hc ? 'bg-black' : 'bg-gray-50'}`} style={{ fontSize }}>
-      <Header highContrast={hc} fontSize={fontSize} adjustFontSize={adjustFontSize}
-        setHighContrast={setHighContrast} setFontSize={setFontSize} />
+      <Header />
 
       <div className={`${hc ? 'bg-black' : 'bg-white'} border-b mt-32`}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">

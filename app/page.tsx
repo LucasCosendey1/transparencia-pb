@@ -6,9 +6,13 @@ import Header from '@/components/Header'
 import Link from 'next/link'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
 import { useHomeData } from '@/contexts/HomeDataContext'
+import { usePreferences } from '@/contexts/PreferencesContext'
+
+
 
 import { 
   FaDollarSign, FaMoneyBillWave, FaUsers, FaFileContract, FaBuilding,
+  FaHandshake,
   FaChartLine, FaUserFriends, FaGavel, FaLandmark, FaBalanceScale,
   FaComments, FaHeartbeat, FaGraduationCap, FaShieldAlt, FaFileAlt,
   FaKeyboard, FaRegistered, FaClipboardCheck, FaCrosshairs, FaSave,
@@ -102,6 +106,7 @@ const CARDS: { chave: string; icon: IconType; defaultTitulo: string }[] = [
   { chave: 'mapa-obras',            icon: FaGavel,            defaultTitulo: 'Mapa de Obras' },
   { chave: 'obras-paralisadas',     icon: FaPause,            defaultTitulo: 'Obras Paralisadas' },
   { chave: 'fiscais-obras',         icon: FaHardHat,          defaultTitulo: 'Fiscais de Obras' },
+  { chave: 'convenios-celebrados',  icon: FaHandshake,        defaultTitulo: 'Convênios Celebrados' },
   { chave: 'prestacoes-contas',     icon: FaFileArchive,      defaultTitulo: 'Prestações de Contas' },
   { chave: 'relatorio-gestao',      icon: FaClipboardList,    defaultTitulo: 'Relatório de Gestão e Atividades' },
   { chave: 'pareceres-tce',         icon: FaFolder,           defaultTitulo: 'Pareceres do Tribunal de Contas' },
@@ -150,7 +155,7 @@ const SECOES = [
   { titulo: 'Consultas sobre despesas',                            color: 'green'  as const, chaves: ['despesa-fixada','empenhos','subempenhos','pagamentos','liquidacao','despesa-extra','restos-pagar','cronograma-pagamentos','diarias-viagens','convenios-estaduais','convenios-federais','transferencia-realizada','tabela-diarias','despesas-covid'] },
   { titulo: 'Consultas sobre receitas',                            color: 'blue'   as const, chaves: ['receita-prevista','receita-realizada','receita-extra','divida-ativa','receitas-covid','desoneracoes','renuncia-fiscal','beneficiarios','incentivo-cultura','emendas-federais','emendas-estaduais','transferencias-especiais','recursos-federais'] },
   { titulo: 'Consultas sobre recursos humanos',                    color: 'pink'   as const, chaves: ['folha-pagamento','quadro-funcional','temporarios','cedidos','requisitados','plano-cargos','folha-covid','estagiarios','terceirizados','selecoes'] },
-  { titulo: 'Consultas sobre licitações, contratos e obras',       color: 'orange' as const, chaves: ['licitacoes','editais','documentos-licitacao','inexigibilidade','dispensas','adesoes-srp','plano-contratacao','sancionados','contratos','aditivos','gestores-contratos','ordem-pagamentos','mapa-obras','obras-paralisadas','fiscais-obras'] },
+  { titulo: 'Consultas sobre licitações, contratos e obras',       color: 'orange' as const, chaves: ['licitacoes','editais','documentos-licitacao','inexigibilidade','dispensas','adesoes-srp','plano-contratacao','sancionados','contratos','aditivos','gestores-contratos','ordem-pagamentos','mapa-obras','obras-paralisadas','fiscais-obras','convenios-celebrados'] },
   { titulo: 'Consultas sobre responsabilidade fiscal',             color: 'indigo' as const, chaves: ['prestacoes-contas','relatorio-gestao','pareceres-tce','julgamentos-contas','rgf','rreo','ppa','loa','ldo-atual','ldo-projeto'] },
   { titulo: 'Consultas sobre a gestão municipal',                  color: 'green'  as const, chaves: ['plano-estrategico','estrutura-org','competencias','responsaveis-gestao','contatos','decretos','diario-oficial','faq','conselhos'] },
   { titulo: 'Consultas sobre participação cidadã',                 color: 'cyan'   as const, chaves: ['sic','esic','relatorio-sic','docs-classificados','docs-desclassificados','ouvidoria','ouvidoria-falabr','carta-servicos','plano-de-governo','plano-de-acao'] },
@@ -169,8 +174,7 @@ function pickRandom<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.
 
 // ── Componente principal ──────────────────────────────────────
 export default function HomePage() {
-  const [fontSize, setFontSize] = useState(16)
-  const [highContrast, setHighContrast] = useState(false)
+  const { highContrast, fontSize, setHighContrast, setFontSize, adjustFontSize } = usePreferences()
   const [isAdmin, setIsAdmin] = useState(false)
   const [editingFooter, setEditingFooter] = useState<string | null>(null)
   const [editingButton, setEditingButton] = useState<string | null>(null)
