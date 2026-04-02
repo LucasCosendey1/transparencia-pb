@@ -457,6 +457,8 @@ function CategoryCard({ icon: Icon, chave, titulo, caminho, description, ultimaA
   const [animColor, setAnimColor]   = useState('#0d6efd')
   const [animSpeed, setAnimSpeed]   = useState('1.2s')
   const [triggered, setTriggered]   = useState(false)
+  const [hasAnimated, setHasAnimated] = useState(false)
+  const [isActive, setIsActive]     = useState(false)
   const [cardVisible, setCardVisible] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isExternal = caminho.startsWith('http')
@@ -470,18 +472,40 @@ function CategoryCard({ icon: Icon, chave, titulo, caminho, description, ultimaA
   }, [sectionVisible, cardIndex])
 
   const handleMouseEnter = () => {
-    if (triggered) return
-    if (timerRef.current) clearTimeout(timerRef.current)
+    // Cancela qualquer timer de fadeout E reativa imediatamente
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    setIsActive(true) // Sempre reativa, mesmo se estiver apagando
 
+    // Se já animou alguma vez, para aqui (não anima de novo)
+    if (hasAnimated) return
+    
     setRandomTerm(pickRandom(TERMS))
     setAnimClass(pickRandom(ANIMS))
     setAnimColor(pickRandom(ANIM_COLORS))
     const speed = pickRandom(SPEEDS)
     setAnimSpeed(speed)
     setTriggered(true)
+    setHasAnimated(true)
 
     const durationMs = parseFloat(speed) * 1000 + 200
-    timerRef.current = setTimeout(() => setTriggered(false), durationMs)
+    setTimeout(() => {
+      setTriggered(false)
+    }, durationMs)
+  }
+
+  const handleMouseLeave = () => {
+    // Aguarda 3 segundos para desativar o azul/descrição
+    timerRef.current = setTimeout(() => {
+      setIsActive(false)
+      
+      // Aguarda mais 3 segundos (tempo do fadeout) para permitir nova animação
+      setTimeout(() => {
+        setHasAnimated(false) // Reseta após o fadeout completo
+      }, 3000)
+    }, 3000)
   }
 
   return (
@@ -494,6 +518,7 @@ function CategoryCard({ icon: Icon, chave, titulo, caminho, description, ultimaA
           className={`card-animated ${animClass} ${triggered ? 'card-triggered' : ''} group relative bg-white rounded-lg shadow-md hover:shadow-2xl transition-shadow duration-300 p-6 border-2 border-gray-100 overflow-hidden`}
           style={{ '--anim-speed': animSpeed } as React.CSSProperties}
           onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           {isAdmin && (
             <button onClick={e => { e.preventDefault(); e.stopPropagation(); onEdit(chave) }}
@@ -502,14 +527,33 @@ function CategoryCard({ icon: Icon, chave, titulo, caminho, description, ultimaA
             </button>
           )}
           <div className="card-bg-yellow absolute inset-0 bg-[#ffc107] opacity-0" />
-          <div className="card-bg-blue absolute inset-0 opacity-0" style={{ backgroundColor: animColor }} />
+          <div 
+            className="card-bg-blue absolute inset-0 transition-opacity duration-[3000ms]" 
+            style={{ 
+              backgroundColor: animColor,
+              opacity: isActive ? 1 : 0
+            }} 
+          />
           <div className="relative z-10">
             <div className="relative w-12 h-12 mb-3 mx-auto">
-              <Icon className="card-icon absolute inset-0 w-12 h-12 text-gray-600 transition-all duration-300" />
+              <Icon 
+                className="card-icon absolute inset-0 w-12 h-12 transition-all duration-300" 
+                style={{ color: isActive ? '#fff' : '#4b5563' }}
+              />
               <span className="card-itabaiana absolute inset-0 flex items-center justify-center text-[#ffc107] font-black text-lg opacity-0">{randomTerm}</span>
             </div>
-            <h3 className="card-title font-bold text-sm leading-tight mb-2 text-center text-gray-800 transition-colors">{titulo}</h3>
-            <p className="card-description text-xs text-white opacity-0 transition-opacity duration-300 font-medium text-center">{description}</p>
+            <h3 
+              className="card-title font-bold text-sm leading-tight mb-2 text-center transition-colors duration-[3000ms]"
+              style={{ color: isActive ? '#fff' : '#1f2937' }}
+            >
+              {titulo}
+            </h3>
+            <p 
+              className="card-description text-xs text-white font-medium text-center transition-opacity duration-[3000ms]"
+              style={{ opacity: isActive ? 1 : 0 }}
+            >
+              {description}
+            </p>
           </div>
         </div>
       </Link>
