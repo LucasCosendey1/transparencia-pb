@@ -254,13 +254,7 @@ export default function HomePage() {
 
   return (
   <div className="min-h-screen bg-white" style={{ fontSize: `${fontSize}px` }}>
-    <Header 
-      fontSize={fontSize}
-      highContrast={highContrast}
-      adjustFontSize={(n) => setFontSize(p => Math.max(12, Math.min(24, p + n)))}
-      setHighContrast={setHighContrast}
-      setFontSize={setFontSize}
-    />
+    <Header />
       <style jsx global>{`
         .card-bg-yellow, .card-bg-blue { transform-origin: center; }
         .card-triggered.card-anim-circle .card-bg-blue   { border-radius:50%; animation:blueCircle var(--anim-speed) .15s ease-out forwards }
