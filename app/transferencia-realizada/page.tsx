@@ -73,17 +73,6 @@ const config: ApiPageConfig = {
 }
 
 export default function TransferenciaRealizadaPage() {
-  const [fontSize, setFontSize]         = useState(16)
-  const [highContrast, setHighContrast] = useState(false)
-
-  return (
-    <ApiPageLayout
-      config={config}
-      highContrast={highContrast}
-      fontSize={fontSize}
-      adjustFontSize={n => setFontSize(prev => Math.max(12, Math.min(24, prev + n)))}
-      setHighContrast={setHighContrast}
-      setFontSize={setFontSize}
-    />
-  )
+  return <ApiPageLayout config={config} />
 }
+
