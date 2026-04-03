@@ -1,3 +1,5 @@
+// app/estagiarios/page.tsx
+
 import PdfPageLayout from '@/components/PdfPageLayout'
 
 export default function Page() {

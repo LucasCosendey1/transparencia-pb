@@ -1,4 +1,4 @@
-// app/api/licitacoes/route.ts
+// app/api/avisos-licitacao/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -10,9 +10,8 @@ export async function GET(request: NextRequest) {
   const exercicio = searchParams.get('exercicio') ?? String(new Date().getFullYear())
 
   try {
-    const url = new URL(`${BASE}/licitacao/listar`)
+    const url = new URL(`${BASE}/licitacao/avisos`)
     url.searchParams.set('api-version', VERSION)
-    url.searchParams.set('exercicio', exercicio)
 
     const res = await fetch(url.toString(), {
       headers: { Accept: 'application/json' },
@@ -24,8 +23,14 @@ export async function GET(request: NextRequest) {
     const json = await res.json()
     const data = Array.isArray(json) ? json : (json.data ?? [])
 
+    // Filtra pelo exercício
+    const filtered = data.filter((r: Record<string, unknown>) => {
+      const assinatura = String(r['assinatura'] ?? '')
+      return assinatura.startsWith(exercicio)
+    })
+
     return NextResponse.json({
-      data,
+      data: filtered,
       exercicio,
       ultimaAtualizacao: json.infoUltimaAtualizacao,
     })

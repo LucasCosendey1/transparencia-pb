@@ -105,11 +105,20 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ pagina_id: string }> }
 ) {
-  await params
+  const { pagina_id } = await params
   try {
-    const { id } = await req.json()
+    const body = await req.json()
     const conn = await mysql.createConnection(dbConfig)
-    await conn.execute('DELETE FROM tabela_linhas WHERE id = ?', [id])
+
+    if (body.todos && body.nome_tabela) {
+      await conn.execute(
+        'DELETE FROM tabela_linhas WHERE pagina_id = ? AND nome_tabela = ?',
+        [pagina_id, body.nome_tabela]
+      )
+    } else {
+      await conn.execute('DELETE FROM tabela_linhas WHERE id = ?', [body.id])
+    }
+
     await conn.end()
     return NextResponse.json({ success: true })
   } catch (error) {

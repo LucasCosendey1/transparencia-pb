@@ -1,4 +1,4 @@
-// app/api/licitacoes/route.ts
+// app/api/inexigibilidade/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
     if (!res.ok) throw new Error(`Erro ${res.status}`)
 
     const json = await res.json()
-    const data = Array.isArray(json) ? json : (json.data ?? [])
+    const raw = Array.isArray(json) ? json : (json.data ?? [])
 
-    return NextResponse.json({
-      data,
-      exercicio,
-      ultimaAtualizacao: json.infoUltimaAtualizacao,
-    })
+    const data = raw.filter((r: Record<string, unknown>) =>
+      String(r['modalidade'] ?? '').toUpperCase() === 'INEXIGÍVEL'
+    )
+
+    return NextResponse.json({ data, exercicio, ultimaAtualizacao: json.infoUltimaAtualizacao })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Erro ao buscar dados'
     return NextResponse.json({ error: message }, { status: 500 })

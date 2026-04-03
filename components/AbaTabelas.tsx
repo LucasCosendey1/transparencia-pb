@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import * as XLSX from 'xlsx'
 import {
   FaPlus, FaTrash, FaSave, FaTimes, FaEdit,
-  FaArrowUp, FaArrowDown,
+  FaArrowUp, FaArrowDown, FaFileImport,
 } from 'react-icons/fa'
 
 interface TabelaMeta {
@@ -44,6 +45,8 @@ interface AbaTabemasProps {
   carregarLinhas: (nome?: string, di?: string, df?: string) => Promise<void>
 }
 
+const PER_PAGE = 10
+
 export default function AbaTabelas({
   paginaId, tabelas, setTabelas, tabelaAtiva, setTabelaAtiva,
   linhas, setLinhas, linhasPorTabela, setLinhasPorTabela,
@@ -54,13 +57,29 @@ export default function AbaTabelas({
   const [linhasEditando, setLinhasEditando] = useState<Record<number, string[]>>({})
   const [novaLinha, setNovaLinha] = useState<string[]>([])
 
+  // Paginação local
+  const [linhasVisiveis, setLinhasVisiveis] = useState(PER_PAGE)
+
+  // Import
+  const [modalImport, setModalImport] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importTemColunas, setImportTemColunas] = useState<boolean | null>(null)
+  const [importLinhaHeader, setImportLinhaHeader] = useState(1)
+  const [importSubstituir, setImportSubstituir] = useState<boolean | null>(null)
+  const [importStep, setImportStep] = useState<'arquivo' | 'colunas' | 'substituir'>('arquivo')
+  const [importando, setImportando] = useState(false)
+
   const tabelaAtivaMeta = tabelas.find(t => t.nome_tabela === tabelaAtiva)
 
-  // Sync novaLinha quando tabelaAtiva muda (o pai já cuida do carregarLinhas)
-  // O pai deve chamar setNovaLinha via useEffect — aqui mantemos local
-  useState(() => {
-    if (tabelaAtivaMeta) setNovaLinha(tabelaAtivaMeta.colunas.map(() => ''))
-  })
+  useEffect(() => {
+    if (tabelaAtivaMeta) {
+      setNovaLinha(tabelaAtivaMeta.colunas.map(() => ''))
+      setLinhasVisiveis(PER_PAGE)
+    }
+  }, [tabelaAtiva])
+
+  const linhasExibidas = linhas.slice(0, linhasVisiveis)
+  const temMais = linhasVisiveis < linhas.length
 
   // ── Tabelas CRUD ──
   const criarTabela = async () => {
@@ -191,6 +210,109 @@ export default function AbaTabelas({
     setLinhasPorTabela(p => ({ ...p, [tabelaAtiva]: linhasAtualizadas }))
   }
 
+  // ── Importação ──
+  const resetImport = () => {
+    setImportFile(null)
+    setImportTemColunas(null)
+    setImportLinhaHeader(1)
+    setImportSubstituir(null)
+    setImportStep('arquivo')
+    setModalImport(false)
+  }
+
+  const processarImport = async () => {
+    if (!importFile || !tabelaAtivaMeta) return
+    setImportando(true)
+    try {
+      const buffer = await importFile.arrayBuffer()
+      let rows: string[][] = []
+      let novasColunas: string[] = tabelaAtivaMeta.colunas
+
+      if (importFile.name.endsWith('.json')) {
+        const json = JSON.parse(new TextDecoder().decode(buffer))
+        const arr = Array.isArray(json) ? json : (json.data ?? [])
+        if (arr.length === 0) return alert('JSON vazio.')
+        const keys = Object.keys(arr[0])
+        if (importTemColunas) novasColunas = keys
+        rows = arr.map((r: Record<string, unknown>) => keys.map(k => String(r[k] ?? '')))
+      } else {
+        const wb = XLSX.read(buffer, { type: 'array' })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const all: string[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as string[][]
+
+        // Remove linhas completamente vazias
+        const allFiltrado = all.filter(row => row.some(cell => String(cell).trim() !== ''))
+
+        if (importTemColunas) {
+          const headerRow = allFiltrado[importLinhaHeader - 1] ?? []
+
+          // Descobre até qual coluna tem conteúdo no cabeçalho
+          let lastColComDado = 0
+          headerRow.forEach((cell, i) => {
+            if (String(cell).trim() !== '') lastColComDado = i
+          })
+
+          novasColunas = headerRow.slice(0, lastColComDado + 1).map(String)
+
+          // Aplica o mesmo corte nas linhas de dados
+          rows = allFiltrado.slice(importLinhaHeader).map(r =>
+            r.slice(0, lastColComDado + 1).map(String)
+          )
+        } else {
+          // Sem cabeçalho: descobre o máximo de colunas com conteúdo em todas as linhas
+          let lastColComDado = 0
+          allFiltrado.forEach(row => {
+            row.forEach((cell, i) => {
+              if (String(cell).trim() !== '') lastColComDado = i
+            })
+          })
+
+          rows = allFiltrado.map(r => r.slice(0, lastColComDado + 1).map(String))
+          novasColunas = Array.from({ length: lastColComDado + 1 }, (_, i) => `Coluna ${i + 1}`)
+        }
+
+        // Remove linhas que ficaram todas vazias após o corte de colunas
+        rows = rows.filter(r => r.some(cell => cell.trim() !== ''))
+      }
+
+      // Atualiza colunas se vieram do arquivo
+      if (importTemColunas && novasColunas.length > 0) {
+        const metaAtualizada = {
+          ...tabelaAtivaMeta,
+          colunas: novasColunas,
+          colunas_pdf: novasColunas.map((_, i) => i),
+        }
+        setTabelas(p => p.map(t => t.nome_tabela === tabelaAtiva ? metaAtualizada : t))
+        await salvarMeta(metaAtualizada)
+      }
+
+      // Substituir ou acrescentar
+      if (importSubstituir) {
+        await fetch(`/api/linhas/${paginaId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome_tabela: tabelaAtiva, todos: true }),
+        })
+      }
+
+      await fetch(`/api/linhas/${paginaId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome_tabela: tabelaAtiva, linhas: rows }),
+      })
+
+      await carregarLinhas(tabelaAtiva)
+      setLinhasVisiveis(PER_PAGE)
+      resetImport()
+      alert(`✅ ${rows.length} linhas e ${novasColunas.length} colunas importadas com sucesso!`)
+    } catch (e) {
+      console.error(e)
+      alert('❌ Erro ao importar.')
+    } finally {
+      setImportando(false)
+    }
+  }
+
   return (
     <div className="flex gap-6">
       {/* Sidebar tabelas */}
@@ -199,19 +321,28 @@ export default function AbaTabelas({
         <ul className="space-y-1 mb-3">
           {tabelas.map(t => (
             <li key={t.nome_tabela}>
-              <div onClick={() => { setTabelaAtiva(t.nome_tabela); const meta = tabelas.find(x => x.nome_tabela === t.nome_tabela); if (meta) setNovaLinha(meta.colunas.map(() => '')) }}
+              <div
+                onClick={() => {
+                  setTabelaAtiva(t.nome_tabela)
+                  const meta = tabelas.find(x => x.nome_tabela === t.nome_tabela)
+                  if (meta) setNovaLinha(meta.colunas.map(() => ''))
+                }}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between group transition cursor-pointer ${
                   tabelaAtiva === t.nome_tabela ? 'bg-blue-600 text-white' : 'text-black hover:bg-gray-100'
-                }`}>
+                }`}
+              >
                 <span className="truncate">{t.nome_tabela}</span>
-                <button onClick={e => { e.stopPropagation(); deletarTabela(t.nome_tabela) }}
-                  className={`opacity-0 group-hover:opacity-100 ${tabelaAtiva === t.nome_tabela ? 'text-white' : 'text-red-400'}`}>
+                <button
+                  onClick={e => { e.stopPropagation(); deletarTabela(t.nome_tabela) }}
+                  className={`opacity-0 group-hover:opacity-100 ${tabelaAtiva === t.nome_tabela ? 'text-white' : 'text-red-400'}`}
+                >
                   <FaTrash size={10} />
                 </button>
               </div>
             </li>
           ))}
         </ul>
+
         {criandoNova ? (
           <div className="space-y-2">
             <input autoFocus value={novoNome} onChange={e => setNovoNome(e.target.value)}
@@ -233,6 +364,8 @@ export default function AbaTabelas({
       {/* Editor tabela ativa */}
       {tabelaAtivaMeta && (
         <div className="flex-1 min-w-0">
+
+          {/* Título */}
           <div className="mb-4">
             <label className="block text-xs font-medium text-black mb-1">Título</label>
             <input value={tabelaAtivaMeta.titulo_tabela}
@@ -263,7 +396,14 @@ export default function AbaTabelas({
             </div>
           </div>
 
-          {/* Linhas */}
+          {/* Info contagem */}
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-500">
+              Exibindo <strong>{Math.min(linhasVisiveis, linhas.length)}</strong> de <strong>{linhas.length}</strong> linha(s)
+            </p>
+          </div>
+
+          {/* Tabela de linhas */}
           <div className="overflow-x-auto mb-3">
             <table className="min-w-full border-collapse text-xs">
               <thead>
@@ -275,6 +415,7 @@ export default function AbaTabelas({
                 </tr>
               </thead>
               <tbody>
+                {/* Linha nova */}
                 <tr className="bg-green-50 border-b border-green-200">
                   <td className="p-1 text-center text-green-500 font-bold">+</td>
                   {tabelaAtivaMeta.colunas.map((_, ci) => (
@@ -292,7 +433,9 @@ export default function AbaTabelas({
                       className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:opacity-50">Add</button>
                   </td>
                 </tr>
-                {linhas.map(l => (
+
+                {/* Linhas existentes paginadas */}
+                {linhasExibidas.map(l => (
                   <tr key={l.id} className="border-b hover:bg-gray-50">
                     <td className="p-1 text-center">
                       <button onClick={() => deletarLinha(l.id)} className="text-red-400 hover:text-red-600"><FaTrash size={9} /></button>
@@ -325,10 +468,132 @@ export default function AbaTabelas({
             </table>
           </div>
 
-          <button onClick={() => salvarMeta(tabelaAtivaMeta)} disabled={salvando}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition disabled:opacity-60">
-            <FaSave size={11} /> {salvando ? 'Salvando…' : 'Salvar tabela'}
-          </button>
+          {/* Botão carregar mais */}
+          {temMais && (
+            <div className="flex justify-center mb-4">
+              <button
+                onClick={() => setLinhasVisiveis(v => v + PER_PAGE)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-black text-xs rounded-lg border border-gray-300 transition"
+              >
+                Carregar mais ({Math.min(PER_PAGE, linhas.length - linhasVisiveis)} de {linhas.length - linhasVisiveis} restantes)
+              </button>
+            </div>
+          )}
+
+          {/* Ações */}
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={() => salvarMeta(tabelaAtivaMeta)} disabled={salvando}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition disabled:opacity-60">
+              <FaSave size={11} /> {salvando ? 'Salvando…' : 'Salvar tabela'}
+            </button>
+            <button onClick={() => { setModalImport(true); setImportStep('arquivo') }}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition">
+              <FaFileImport size={11} /> Importar planilha
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal de importação ── */}
+      {modalImport && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md space-y-4">
+            <h2 className="font-semibold text-black text-lg">Importar planilha</h2>
+
+            {/* Step 1: escolher arquivo */}
+            {importStep === 'arquivo' && (
+              <>
+                <p className="text-sm text-gray-600">Selecione um arquivo <strong>.xlsx</strong>, <strong>.xls</strong> ou <strong>.json</strong>.</p>
+                <input type="file" accept=".xlsx,.xls,.json"
+                  onChange={e => setImportFile(e.target.files?.[0] ?? null)}
+                  className="w-full text-sm text-black border rounded p-2" />
+                {importFile && (
+                  <p className="text-xs text-green-600">✅ {importFile.name}</p>
+                )}
+                <div className="flex gap-2 justify-end pt-2">
+                  <button onClick={resetImport} className="px-3 py-1.5 bg-gray-200 text-black text-sm rounded hover:bg-gray-300">Cancelar</button>
+                  <button disabled={!importFile} onClick={() => setImportStep('colunas')}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded disabled:opacity-40 hover:bg-blue-700">Próximo →</button>
+                </div>
+              </>
+            )}
+
+            {/* Step 2: tem cabeçalho? */}
+            {importStep === 'colunas' && (
+              <>
+                <p className="text-sm text-black font-medium">A planilha possui linha com nomes das colunas?</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setImportTemColunas(true)}
+                    className={`flex-1 py-2 rounded text-sm border-2 transition ${importTemColunas === true ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold' : 'border-gray-200 text-black hover:border-gray-400'}`}>
+                    ✅ Sim
+                  </button>
+                  <button onClick={() => setImportTemColunas(false)}
+                    className={`flex-1 py-2 rounded text-sm border-2 transition ${importTemColunas === false ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold' : 'border-gray-200 text-black hover:border-gray-400'}`}>
+                    ❌ Não
+                  </button>
+                </div>
+
+                {importTemColunas === true && (
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Em qual linha estão os nomes? (ex: 1 para a primeira linha)</label>
+                    <input type="number" min={1} value={importLinhaHeader}
+                      onChange={e => setImportLinhaHeader(Number(e.target.value))}
+                      className="w-full px-3 py-1.5 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                  </div>
+                )}
+
+                {importTemColunas === false && (
+                  <p className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                    As colunas serão nomeadas automaticamente como "Coluna 1", "Coluna 2", etc. Colunas e linhas vazias serão ignoradas automaticamente.
+                  </p>
+                )}
+
+                <div className="flex gap-2 justify-end pt-2">
+                  <button onClick={() => setImportStep('arquivo')} className="px-3 py-1.5 bg-gray-200 text-black text-sm rounded hover:bg-gray-300">← Voltar</button>
+                  <button
+                    disabled={importTemColunas === null}
+                    onClick={() => {
+                      if (linhas.length > 0) setImportStep('substituir')
+                      else processarImport()
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded disabled:opacity-40 hover:bg-blue-700">
+                    {linhas.length > 0 ? 'Próximo →' : importando ? 'Importando...' : 'Importar'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Step 3: substituir ou acrescentar */}
+            {importStep === 'substituir' && (
+              <>
+                <p className="text-sm text-black font-medium">
+                  Esta tabela já possui <strong>{linhas.length}</strong> linha(s). O que deseja fazer?
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => setImportSubstituir(true)}
+                    className={`flex-1 py-3 rounded text-sm border-2 transition ${importSubstituir === true ? 'border-red-500 bg-red-50 text-red-700 font-semibold' : 'border-gray-200 text-black hover:border-red-300'}`}>
+                    🗑️ Substituir tudo
+                  </button>
+                  <button onClick={() => setImportSubstituir(false)}
+                    className={`flex-1 py-3 rounded text-sm border-2 transition ${importSubstituir === false ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold' : 'border-gray-200 text-black hover:border-blue-300'}`}>
+                    ➕ Acrescentar abaixo
+                  </button>
+                </div>
+                {importSubstituir === true && (
+                  <p className="text-xs text-red-500 bg-red-50 p-2 rounded">⚠️ Todos os dados atuais serão apagados permanentemente.</p>
+                )}
+                <div className="flex gap-2 justify-end pt-2">
+                  <button onClick={() => setImportStep('colunas')} className="px-3 py-1.5 bg-gray-200 text-black text-sm rounded hover:bg-gray-300">← Voltar</button>
+                  <button
+                    disabled={importSubstituir === null || importando}
+                    onClick={processarImport}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded disabled:opacity-40 hover:bg-blue-700">
+                    {importando ? 'Importando...' : 'Importar'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

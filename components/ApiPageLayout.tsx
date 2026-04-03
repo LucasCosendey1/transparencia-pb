@@ -1,9 +1,10 @@
 'use client'
-
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Header from './Header'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
+import { usePreferences } from '@/contexts/PreferencesContext'
+
 import {
   FaHome, FaSearch, FaDownload, FaChevronLeft, FaChevronRight,
   FaChevronDown, FaChevronUp, FaInfoCircle, FaSync, FaFilter,
@@ -58,11 +59,6 @@ export interface ApiPageConfig {
 
 interface Props {
   config: ApiPageConfig
-  highContrast: boolean
-  fontSize: number
-  adjustFontSize: (n: number) => void
-  setHighContrast: (v: boolean) => void
-  setFontSize: (v: number) => void
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -76,7 +72,6 @@ const MESES = [
   { value: '09', label: 'Set' }, { value: '10', label: 'Out' },
   { value: '11', label: 'Nov' }, { value: '12', label: 'Dez' },
 ]
-
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 const ANO_COLORS: Record<number, string> = {}
 ANOS_DISPONIVEIS.forEach((a, i) => { ANO_COLORS[a] = CHART_COLORS[i % CHART_COLORS.length] })
@@ -87,6 +82,7 @@ type EvolucaoMode = 'total' | 'ano' | 'mes'
 // ─── Utilitários ──────────────────────────────────────────────────────────────
 
 function fmt(value: unknown, type?: string): string {
+  console.log(type, value)
   if (value === null || value === undefined) return '—'
   
   if (type === 'date') {
@@ -96,7 +92,9 @@ function fmt(value: unknown, type?: string): string {
     
     // ISO: 2024-03-15
     if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-      d = new Date(str)
+      const [datePart] = str.split('T')
+      const [ano, mes, dia] = datePart.split('-')
+      d = new Date(Number(ano), Number(mes) - 1, Number(dia))
     }
     // BR: 15/03/2024
     else if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
@@ -151,6 +149,92 @@ function getUniqueValues(data: Record<string, unknown>[], columnKey: string): st
   return Array.from(unique).sort()
 }
 
+function ColFilterDropdown({ col, allData, columnFilters, setColumnFilters, setPage, hc }: {
+  col: ApiColumn
+  allData: Record<string, unknown>[]
+  columnFilters: Record<string, string>
+  setColumnFilters: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  setPage: React.Dispatch<React.SetStateAction<number>>
+  hc: boolean
+}) {
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [search, setSearch] = useState('')
+  const uniqueVals = getUniqueValues(allData, col.key)
+  const selectedValues = columnFilters[col.key]?.split('|||') || []
+  const filtered = uniqueVals.filter(v => v.toLowerCase().includes(search.toLowerCase()))
+
+  function toggle(val: string) {
+    const next = selectedValues.includes(val)
+      ? selectedValues.filter(v => v !== val)
+      : [...selectedValues, val]
+    setColumnFilters(prev => {
+      const updated = { ...prev }
+      if (next.length === 0) delete updated[col.key]
+      else updated[col.key] = next.join('|||')
+      return updated
+    })
+    setPage(1)
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShowDropdown(d => !d)}
+        className={`w-full text-left px-2 py-1.5 text-xs rounded border transition ${
+          selectedValues.length > 0
+            ? hc ? 'bg-yellow-300 text-black border-yellow-300' : 'bg-blue-50 border-blue-400 text-blue-700'
+            : hc ? 'bg-gray-900 border-yellow-300 text-yellow-300' : 'bg-white border-gray-300 text-gray-700'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <span className="truncate">{col.label}</span>
+          {selectedValues.length > 0 && (
+            <span className={`ml-1 px-1.5 rounded-full text-xs font-bold ${hc ? 'bg-black text-yellow-300' : 'bg-blue-600 text-white'}`}>
+              {selectedValues.length}
+            </span>
+          )}
+        </div>
+      </button>
+
+      {showDropdown && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setShowDropdown(false)} />
+          <div className={`absolute top-full left-0 mt-1 z-20 w-64 rounded-lg border shadow-lg ${hc ? 'bg-gray-900 border-yellow-300' : 'bg-white border-gray-200'}`}>
+            <div className={`p-2 border-b ${hc ? 'border-yellow-300' : 'border-gray-200'}`}>
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar..."
+                className={`w-full px-2 py-1 text-xs rounded border ${hc ? 'bg-gray-800 border-yellow-300 text-yellow-300 placeholder-yellow-600' : 'border-gray-300 text-gray-700'}`}
+              />
+            </div>
+            <div className="max-h-48 overflow-y-auto p-2 space-y-1">
+              {filtered.map(val => (
+                <label key={val} className={`flex items-center gap-2 text-xs cursor-pointer px-1 py-0.5 rounded hover:bg-gray-100 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-700'}`}>
+                  <input type="checkbox" checked={selectedValues.includes(val)} onChange={() => toggle(val)} className="w-3 h-3 accent-blue-600" />
+                  <span className="truncate">{val}</span>
+                </label>
+              ))}
+              {filtered.length === 0 && <p className={`text-xs text-center py-2 ${hc ? 'text-yellow-500' : 'text-gray-400'}`}>Nenhum valor</p>}
+            </div>
+            {selectedValues.length > 0 && (
+              <div className={`border-t p-2 ${hc ? 'border-yellow-300' : 'border-gray-200'}`}>
+                <button
+                  onClick={() => { setColumnFilters(prev => { const u = { ...prev }; delete u[col.key]; return u }); setPage(1) }}
+                  className={`w-full text-xs px-2 py-1 rounded transition ${hc ? 'bg-red-400 text-black hover:bg-red-500' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
+                >
+                  Limpar filtro
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 const CARD_COLORS: Record<string, string> = {
   blue: 'bg-blue-600', green: 'bg-emerald-600',
   red: 'bg-red-600', yellow: 'bg-amber-500', purple: 'bg-purple-600',
@@ -202,9 +286,11 @@ function download(blob: Blob, filename: string) {
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
-export default function ApiPageLayout({ config, highContrast, fontSize, adjustFontSize, setHighContrast, setFontSize }: Props) {
+export default function ApiPageLayout({ config }: Props) {
+  const { highContrast, fontSize } = usePreferences()
   const hc = highContrast
-
+  const [showColDropdown, setShowColDropdown] = useState(false)
+  const colDropdownTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // ── Estados adicionais ──
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({})
   const [groupByColumn, setGroupByColumn] = useState<string | null>(null)
@@ -569,7 +655,7 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
 
   return (
     <div className={`min-h-screen ${hc ? 'bg-black text-yellow-300' : 'bg-gray-50 text-gray-800'}`} style={{ fontSize: `${fontSize}px` }}>
-      <Header highContrast={hc} fontSize={fontSize} adjustFontSize={adjustFontSize} setHighContrast={setHighContrast} setFontSize={setFontSize} />
+      <Header />
 
       <div className={`${hc ? 'bg-black' : 'bg-white'} border-b mt-32`}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center text-sm">
@@ -736,124 +822,17 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
                     Filtros por coluna
                   </p>
                   <div className="grid grid-cols-7 gap-2">
-                    {visibleCols.map(col => {
-                      const uniqueVals = getUniqueValues(allData, col.key)
-                      const [showDropdown, setShowDropdown] = useState(false)
-                      const selectedValues = columnFilters[col.key]?.split('|||') || []
-                      
-                      return (
-                        <div key={col.key} className="relative">
-                          <button
-                            onClick={() => setShowDropdown(!showDropdown)}
-                            className={`w-full text-left px-2 py-1.5 text-xs rounded border transition ${
-                              selectedValues.length > 0
-                                ? hc ? 'bg-yellow-300 text-black border-yellow-300' : 'bg-blue-50 border-blue-400 text-blue-700'
-                                : hc ? 'bg-gray-900 border-yellow-300 text-yellow-300' : 'bg-white border-gray-300 text-gray-700'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="truncate">{col.label}</span>
-                              {selectedValues.length > 0 && (
-                                <span className={`ml-1 px-1.5 rounded-full text-xs font-bold ${hc ? 'bg-black text-yellow-300' : 'bg-blue-600 text-white'}`}>
-                                  {selectedValues.length}
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                          
-                          {showDropdown && (
-  <>
-    <div 
-      className="fixed inset-0 z-10" 
-      onClick={() => setShowDropdown(false)}
-    />
-    <div className={`absolute top-full left-0 mt-1 z-20 w-64 rounded-lg border shadow-lg ${hc ? 'bg-gray-900 border-yellow-300' : 'bg-white border-gray-200'}`}>
-      {/* Campo de busca */}
-      <div className="p-2 border-b ${hc ? 'border-yellow-300' : 'border-gray-200'}">
-        <input
-          type="text"
-          placeholder="Digite para filtrar..."
-          value={searchTerms[col.key] || ''}
-          onChange={(e) => setSearchTerms(prev => ({ ...prev, [col.key]: e.target.value }))}
-          className={`w-full px-2 py-1.5 text-xs rounded border focus:outline-none ${hc ? 'bg-gray-800 border-yellow-300 text-yellow-300 placeholder-yellow-600' : 'bg-white border-gray-300 text-gray-700'}`}
-          onClick={(e) => e.stopPropagation()}
-        />
-      </div>
-      
-      {/* Lista de opções */}
-      <div className="max-h-48 overflow-y-auto">
-        <div className="p-2 space-y-1">
-          {uniqueVals
-            .filter(val => 
-              (searchTerms[col.key] || '').trim() === '' || 
-                String(val).toLowerCase().includes((searchTerms[col.key] || '').toLowerCase())
-            )
-            .slice(0, 100)
-            .map(val => {
-              const isSelected = selectedValues.includes(val)
-              return (
-                <label
-                  key={val}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs transition ${
-                    hc ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => {
-                      const newSelected = isSelected
-                        ? selectedValues.filter(v => v !== val)
-                        : [...selectedValues, val]
-                      
-                      setColumnFilters(prev => {
-                        if (newSelected.length === 0) {
-                          const newFilters = { ...prev }
-                          delete newFilters[col.key]
-                          return newFilters
-                        }
-                        return {
-                          ...prev,
-                          [col.key]: newSelected.join('|||')
-                        }
-                      })
-                      setPage(1)
-                    }}
-                    className="w-3.5 h-3.5 rounded border-gray-300"
-                  />
-                  <span className={`truncate flex-1 ${hc ? 'text-yellow-300' : 'text-gray-700'}`}>
-                    {val}
-                  </span>
-                </label>
-              )
-            })}
-        </div>
-      </div>
-      
-      {/* Botão limpar */}
-      {selectedValues.length > 0 && (
-        <div className={`border-t p-2 ${hc ? 'border-yellow-300' : 'border-gray-200'}`}>
-          <button
-            onClick={() => {
-              setColumnFilters(prev => {
-                const newFilters = { ...prev }
-                delete newFilters[col.key]
-                return newFilters
-              })
-              setPage(1)
-            }}
-            className={`w-full text-xs px-2 py-1 rounded transition ${hc ? 'bg-red-400 text-black hover:bg-red-500' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
-          >
-            Limpar filtro
-          </button>
-        </div>
-      )}
-    </div>
-  </>
-)}
-                        </div>
-                      )
-                    })}
+                    {visibleCols.map(col => (
+                    <ColFilterDropdown
+                      key={col.key}
+                      col={col}
+                      allData={allData}
+                      columnFilters={columnFilters}
+                      setColumnFilters={setColumnFilters}
+                      setPage={setPage}
+                      hc={hc}
+                    />
+                  ))}
                   </div>
                   {Object.keys(columnFilters).length > 0 && (
                     <button
@@ -880,45 +859,59 @@ export default function ApiPageLayout({ config, highContrast, fontSize, adjustFo
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="relative group">
-              <button className={`flex items-center gap-1 text-xs px-3 py-2 rounded-lg border transition ${hc ? 'border-yellow-300 text-yellow-300 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
-                <FaEye size={11} /> Colunas
-              </button>
-              <div className={`absolute right-0 top-full mt-1 z-20 rounded-lg shadow-lg border p-3 min-w-[200px] hidden group-hover:block ${hc ? 'bg-gray-900 border-yellow-300' : 'bg-white border-gray-200'}`}>
-                {config.columns.map(col => (
-                  <label key={col.key} className={`flex items-center gap-2 py-1 text-xs cursor-pointer ${hc ? 'text-yellow-300' : 'text-gray-700'}`}>
-                    <input type="checkbox" checked={!hiddenCols.has(col.key)} onChange={() => toggleCol(col.key)} className="w-4 h-4 accent-blue-600" />
-                    {col.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="relative">
-              <button onClick={() => setExportOpen(o => !o)}
-                className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border transition ${hc ? 'border-yellow-300 text-yellow-300 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
-                <FaDownload size={11} /> Exportar {exportOpen ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
-              </button>
-              {exportOpen && (
-                <div className={`absolute right-0 top-full mt-1 z-20 rounded-lg shadow-lg border overflow-hidden ${hc ? 'bg-gray-900 border-yellow-300' : 'bg-white border-gray-200'}`}>
-                  {[
-                    { fmt: 'csv',  icon: <FaFileCsv />,  label: 'CSV' },
-                    { fmt: 'xlsx', icon: <FaFileExcel />, label: 'Excel (XLS)' },
-                    { fmt: 'json', icon: <FaFileCode />,  label: 'JSON' },
-                    { fmt: 'pdf',  icon: <FaFilePdf />,   label: 'PDF (imprimir)' },
-                    { fmt: 'txt',  icon: <FaFileAlt />,   label: 'TXT' },
-                    { fmt: 'rtf',  icon: <FaFileWord />,  label: 'RTF' },
-                  ].map(({ fmt: f, icon, label }) => (
-                    <button key={f} onClick={() => { exportData(filtered, config.columns, f, config.titulo); setExportOpen(false) }}
-                      className={`w-full flex items-center gap-2 px-4 py-2 text-xs text-left transition ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
-                      {icon} {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+         <div className="flex items-center gap-2">
+        <div
+          className="relative"
+          onMouseEnter={() => {
+            if (colDropdownTimer.current) clearTimeout(colDropdownTimer.current)
+            setShowColDropdown(true)
+          }}
+          onMouseLeave={() => {
+            colDropdownTimer.current = setTimeout(() => setShowColDropdown(false), 1000)
+          }}
+        >
+          <button className={`flex items-center gap-1 text-xs px-3 py-2 rounded-lg border transition ${hc ? 'border-yellow-300 text-yellow-300 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+            <FaEye size={11} /> Colunas
+          </button>
+          <div
+            className={`absolute right-0 top-full mt-1 z-20 rounded-lg shadow-lg border p-3 min-w-[200px] ${hc ? 'bg-gray-900 border-yellow-300' : 'bg-white border-gray-200'} ${showColDropdown ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+            style={{ transition: showColDropdown ? 'opacity 200ms ease' : 'opacity 1000ms ease 500ms' }}
+          >
+            {config.columns.map(col => (
+              <label key={col.key} className={`flex items-center gap-2 py-1 text-xs cursor-pointer ${hc ? 'text-yellow-300' : 'text-gray-700'}`}>
+                <input type="checkbox" checked={!hiddenCols.has(col.key)} onChange={() => toggleCol(col.key)} className="w-4 h-4 accent-blue-600" />
+                {col.label}
+              </label>
+            ))}
           </div>
         </div>
+
+        <div className="relative">
+          <button onClick={() => setExportOpen(o => !o)}
+            className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border transition ${hc ? 'border-yellow-300 text-yellow-300 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+            <FaDownload size={11} /> Exportar {exportOpen ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
+          </button>
+          {exportOpen && (
+            <div className={`absolute right-0 top-full mt-1 z-20 rounded-lg shadow-lg border overflow-hidden ${hc ? 'bg-gray-900 border-yellow-300' : 'bg-white border-gray-200'}`}>
+              {[
+                { fmt: 'csv',  icon: <FaFileCsv />,  label: 'CSV' },
+                { fmt: 'xlsx', icon: <FaFileExcel />, label: 'Excel (XLS)' },
+                { fmt: 'json', icon: <FaFileCode />,  label: 'JSON' },
+                { fmt: 'pdf',  icon: <FaFilePdf />,   label: 'PDF (imprimir)' },
+                { fmt: 'txt',  icon: <FaFileAlt />,   label: 'TXT' },
+                { fmt: 'rtf',  icon: <FaFileWord />,  label: 'RTF' },
+              ].map(({ fmt: f, icon, label }) => (
+                <button key={f} onClick={() => { exportData(filtered, config.columns, f, config.titulo); setExportOpen(false) }}
+                  className={`w-full flex items-center gap-2 px-4 py-2 text-xs text-left transition ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
+                  {icon} {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+            </div>
+
 
         {/* ── Loading / Erro ── */}
         {loading && (
