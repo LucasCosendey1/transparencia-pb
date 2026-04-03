@@ -6,7 +6,7 @@ import {
   PieChart, Pie, Cell, RadialBarChart, RadialBar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
-import { FaPlus, FaTrash, FaLightbulb, FaArrowRight, FaTimes, FaGripVertical } from 'react-icons/fa'
+import { FaPlus, FaTrash, FaLightbulb, FaTimes, FaGripVertical, FaCheck, FaExclamationTriangle } from 'react-icons/fa'
 
 // ─── Tipos ────────────────────────────────────────────────────
 
@@ -44,35 +44,120 @@ interface Props {
   salvando?: boolean
   onSalvar: () => void
   onCancelar: () => void
+  highContrast?: boolean
+}
+
+// ─── Paletas de cores ─────────────────────────────────────────
+
+const PALETAS: { nome: string; cores: string[] }[] = [
+  { nome: 'Power BI', cores: ['#118DFF','#12239E','#E66C37','#6B007B','#E044A7','#744EC2','#D9B300','#D64550'] },
+  { nome: 'Oceano',   cores: ['#0EA5E9','#06B6D4','#10B981','#3B82F6','#8B5CF6','#6366F1','#14B8A6','#22D3EE'] },
+  { nome: 'Pôr do Sol',cores: ['#F97316','#EF4444','#EC4899','#A855F7','#F59E0B','#84CC16','#06B6D4','#3B82F6'] },
+  { nome: 'Floresta', cores: ['#16A34A','#15803D','#4ADE80','#86EFAC','#065F46','#6EE7B7','#D97706','#92400E'] },
+  { nome: 'Mono',     cores: ['#1E293B','#334155','#475569','#64748B','#94A3B8','#CBD5E1','#E2E8F0','#F8FAFC'] },
+]
+
+export const CORES_PADRAO = PALETAS[0].cores
+
+// ─── Ícones SVG para tipos de gráfico ─────────────────────────
+
+const TIPO_ICONS: Record<TipoGrafico, (cor: string) => JSX.Element> = {
+  barra_v: (cor) => (
+    <svg width="36" height="28" viewBox="0 0 36 28">
+      <rect x="2"  y="14" width="7" height="13" fill={cor} opacity="0.9" rx="1"/>
+      <rect x="11" y="6"  width="7" height="21" fill={cor} rx="1"/>
+      <rect x="20" y="10" width="7" height="17" fill={cor} opacity="0.8" rx="1"/>
+      <rect x="29" y="2"  width="7" height="25" fill={cor} opacity="0.7" rx="1"/>
+    </svg>
+  ),
+  barra_h: (cor) => (
+    <svg width="36" height="28" viewBox="0 0 36 28">
+      <rect x="0" y="2"  width="20" height="5" fill={cor} rx="1"/>
+      <rect x="0" y="9"  width="30" height="5" fill={cor} opacity="0.9" rx="1"/>
+      <rect x="0" y="16" width="15" height="5" fill={cor} opacity="0.8" rx="1"/>
+      <rect x="0" y="23" width="25" height="5" fill={cor} opacity="0.7" rx="1"/>
+    </svg>
+  ),
+  linha: (cor) => (
+    <svg width="36" height="28" viewBox="0 0 36 28">
+      <polyline points="2,22 10,12 18,16 26,6 34,10" fill="none" stroke={cor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+      <circle cx="2"  cy="22" r="2.5" fill={cor}/>
+      <circle cx="10" cy="12" r="2.5" fill={cor}/>
+      <circle cx="18" cy="16" r="2.5" fill={cor}/>
+      <circle cx="26" cy="6"  r="2.5" fill={cor}/>
+      <circle cx="34" cy="10" r="2.5" fill={cor}/>
+    </svg>
+  ),
+  area: (cor) => (
+    <svg width="36" height="28" viewBox="0 0 36 28">
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={cor} stopOpacity="0.6"/>
+          <stop offset="100%" stopColor={cor} stopOpacity="0.05"/>
+        </linearGradient>
+      </defs>
+      <polygon points="2,26 2,20 10,12 18,15 26,6 34,9 34,26" fill="url(#areaGrad)"/>
+      <polyline points="2,20 10,12 18,15 26,6 34,9" fill="none" stroke={cor} strokeWidth="2" strokeLinejoin="round"/>
+    </svg>
+  ),
+  donut: (cor) => (
+    <svg width="36" height="28" viewBox="0 0 36 28">
+      <circle cx="18" cy="14" r="12" fill="none" stroke={cor} strokeWidth="6" strokeDasharray="37.7 75.4" strokeDashoffset="0" transform="rotate(-90 18 14)"/>
+      <circle cx="18" cy="14" r="12" fill="none" stroke={cor} strokeWidth="6" strokeDasharray="18.8 75.4" strokeDashoffset="-37.7" opacity="0.55" transform="rotate(-90 18 14)"/>
+      <circle cx="18" cy="14" r="12" fill="none" stroke={cor} strokeWidth="6" strokeDasharray="12.6 75.4" strokeDashoffset="-56.5" opacity="0.35" transform="rotate(-90 18 14)"/>
+      <circle cx="18" cy="14" r="6" fill="white" opacity="0.08"/>
+    </svg>
+  ),
+  pizza: (cor) => (
+    <svg width="36" height="28" viewBox="0 0 36 28">
+      <circle cx="18" cy="14" r="12" fill={cor} opacity="0.25"/>
+      <path d="M18,14 L18,2 A12,12 0 0,1 29.4,21 Z" fill={cor}/>
+      <path d="M18,14 L29.4,21 A12,12 0 0,1 8,23.5 Z" fill={cor} opacity="0.65"/>
+      <path d="M18,14 L8,23.5 A12,12 0 0,1 18,2 Z" fill={cor} opacity="0.4"/>
+    </svg>
+  ),
+  gauge: (cor) => (
+    <svg width="36" height="28" viewBox="0 0 36 28">
+      <path d="M4,24 A14,14 0 0,1 32,24" fill="none" stroke="#e2e8f0" strokeWidth="5" strokeLinecap="round" opacity="0.2"/>
+      <path d="M4,24 A14,14 0 0,1 32,24" fill="none" stroke={cor} strokeWidth="5" strokeLinecap="round" strokeDasharray="33 44"/>
+      <line x1="18" y1="24" x2="27" y2="10" stroke={cor} strokeWidth="2.5" strokeLinecap="round"/>
+      <circle cx="18" cy="24" r="3" fill={cor}/>
+    </svg>
+  ),
+  card: (cor) => (
+    <svg width="36" height="28" viewBox="0 0 36 28">
+      <rect x="1" y="1" width="16" height="12" rx="2" fill={cor} opacity="0.9"/>
+      <rect x="19" y="1" width="16" height="12" rx="2" fill={cor} opacity="0.6"/>
+      <rect x="1" y="15" width="16" height="12" rx="2" fill={cor} opacity="0.4"/>
+      <rect x="19" y="15" width="16" height="12" rx="2" fill={cor} opacity="0.7"/>
+      <text x="9"  y="10" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">KPI</text>
+      <text x="27" y="10" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold">KPI</text>
+    </svg>
+  ),
 }
 
 // ─── Constantes ───────────────────────────────────────────────
 
-export const CORES_PADRAO = [
-  '#3b82f6','#10b981','#f59e0b','#ef4444',
-  '#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16',
-]
-
-const TIPOS_INFO: Record<TipoGrafico, { emoji: string; label: string; desc: string }> = {
-  barra_v: { emoji: '📊', label: 'Barras',        desc: 'Comparar valores' },
-  barra_h: { emoji: '📉', label: 'Barras H.',      desc: 'Rótulos longos' },
-  linha:   { emoji: '📈', label: 'Linha',          desc: 'Evolução temporal' },
-  area:    { emoji: '🏔️', label: 'Área',           desc: 'Tendência visual' },
-  donut:   { emoji: '🍩', label: 'Donut',          desc: 'Proporções' },
-  pizza:   { emoji: '🥧', label: 'Pizza',          desc: 'Distribuição' },
-  gauge:   { emoji: '⏱️', label: 'Gauge',          desc: 'Meta/progresso' },
-  card:    { emoji: '🃏', label: 'Card KPI',       desc: 'Valor destaque' },
+const TIPOS_INFO: Record<TipoGrafico, { label: string; desc: string }> = {
+  barra_v: { label: 'Barras',    desc: 'Comparar valores' },
+  barra_h: { label: 'Barras H.', desc: 'Rótulos longos' },
+  linha:   { label: 'Linha',     desc: 'Evolução temporal' },
+  area:    { label: 'Área',      desc: 'Tendência visual' },
+  donut:   { label: 'Donut',     desc: 'Proporções' },
+  pizza:   { label: 'Pizza',     desc: 'Distribuição' },
+  gauge:   { label: 'Gauge',     desc: 'Meta/progresso' },
+  card:    { label: 'Card KPI',  desc: 'Valor destaque' },
 }
 
 const OPERACOES: { id: Operacao; label: string; short: string }[] = [
-  { id: 'sum',   label: 'Soma',          short: 'Σ' },
-  { id: 'avg',   label: 'Média',         short: 'x̄' },
-  { id: 'count', label: 'Contagem',      short: '#' },
-  { id: 'max',   label: 'Máximo',        short: '↑' },
-  { id: 'min',   label: 'Mínimo',        short: '↓' },
-  { id: 'mul',   label: 'A × B',         short: '×' },
-  { id: 'div',   label: 'A ÷ B',         short: '÷' },
-  { id: 'pct',   label: 'A/B × 100%',   short: '%' },
+  { id: 'sum',   label: 'Soma',        short: 'Σ' },
+  { id: 'avg',   label: 'Média',       short: 'x̄' },
+  { id: 'count', label: 'Contagem',    short: '#' },
+  { id: 'max',   label: 'Máximo',      short: '↑' },
+  { id: 'min',   label: 'Mínimo',      short: '↓' },
+  { id: 'mul',   label: 'A × B',       short: '×' },
+  { id: 'div',   label: 'A ÷ B',       short: '÷' },
+  { id: 'pct',   label: 'A/B × 100%', short: '%' },
 ]
 
 const uid = () => Math.random().toString(36).slice(2, 8)
@@ -99,8 +184,6 @@ function analisarColunas(linhas: Linha[], colunas: string[]) {
     return { ci, nome, tipo, unicos }
   })
 }
-
-// ─── Sugestão inteligente de tipo de gráfico ─────────────────
 
 function sugerirTipo(analise: ReturnType<typeof analisarColunas>): TipoGrafico {
   const temData   = analise.some(c => c.tipo === 'date')
@@ -152,13 +235,40 @@ export function fmtNum(v: number): string {
   return v.toLocaleString('pt-BR', { maximumFractionDigits: 2 })
 }
 
-// ─── Componente de Preview ────────────────────────────────────
+// ─── Tooltip Customizado ──────────────────────────────────────
 
-export function RenderGrafico({ grafico, linhasPorTabela, tabelas }: {
+const CustomTooltip = ({ active, payload, label, isDark }: any) => {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{
+      background: isDark ? 'rgba(15,23,42,0.97)' : 'rgba(255,255,255,0.97)',
+      border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`,
+      borderRadius: 10, padding: '10px 14px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+    }}>
+      <p style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: 11, marginBottom: 6, fontFamily: 'monospace' }}>{label}</p>
+      {payload.map((p: any, i: number) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+          <span style={{ color: isDark ? '#cbd5e1' : '#475569', fontSize: 11 }}>{p.name}</span>
+          <span style={{ color: isDark ? '#f8fafc' : '#0f172a', fontSize: 12, fontWeight: 700, marginLeft: 'auto', paddingLeft: 12 }}>
+            {fmtNum(Number(p.value))}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── RenderGrafico ────────────────────────────────────────────
+
+export function RenderGrafico({ grafico, linhasPorTabela, tabelas, highContrast }: {
   grafico: GraficoConfig
   linhasPorTabela: Record<string, Linha[]>
   tabelas: { nome_tabela: string; colunas: string[] }[]
+  highContrast?: boolean
 }) {
+  const isDark = !!highContrast
   const linhas = linhasPorTabela[grafico.nome_tabela] ?? []
   const { tipo, series } = grafico
 
@@ -173,29 +283,40 @@ export function RenderGrafico({ grafico, linhasPorTabela, tabelas }: {
   }, [linhas, grafico])
 
   if (!series.length || !linhas.length) return (
-    <div className="flex flex-col items-center justify-center h-40 text-gray-300 gap-2">
-      <span className="text-4xl">📊</span>
-      <p className="text-sm">Configure X e Y para ver o gráfico</p>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, gap: 10, color: isDark ? '#475569' : '#94a3b8' }}>
+      <div style={{ fontSize: 40, opacity: 0.3 }}>📊</div>
+      <p style={{ fontSize: 13 }}>Configure os eixos para visualizar o gráfico</p>
     </div>
   )
 
+  const gridColor  = isDark ? '#1e293b' : '#f1f5f9'
+  const axisColor  = isDark ? '#64748b' : '#94a3b8'
+  const axisStyle  = { fontSize: 10, fill: axisColor, fontFamily: 'monospace' }
+  const gridStyle  = { strokeDasharray: '3 3', stroke: gridColor }
+  const tt = (props: any) => <CustomTooltip {...props} isDark={isDark} />
+
   if (tipo === 'card') {
     return (
-      <div className="grid grid-cols-2 gap-3 p-2">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, padding: 8 }}>
         {series.map(s => {
           const val = calcularValor(linhas, s.coluna, s.operacao, s.coluna2)
           const pct = s.meta ? Math.min(100, (val / s.meta) * 100) : null
           return (
-            <div key={s.id} className="rounded-xl p-4 text-white shadow" style={{ backgroundColor: s.cor }}>
-              <p className="text-xs font-semibold opacity-80 uppercase">{s.label}</p>
-              <p className="text-2xl font-black mt-1">{fmtNum(val)}</p>
+            <div key={s.id} style={{
+              borderRadius: 16, padding: 20, position: 'relative', overflow: 'hidden',
+              background: isDark ? `linear-gradient(135deg, ${s.cor}22, ${s.cor}11)` : `linear-gradient(135deg, ${s.cor}18, ${s.cor}08)`,
+              border: `1px solid ${s.cor}${isDark ? '44' : '33'}`,
+            }}>
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: s.cor, opacity: 0.08 }} />
+              <p style={{ color: s.cor, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{s.label}</p>
+              <p style={{ color: isDark ? '#f1f5f9' : '#0f172a', fontSize: 28, fontWeight: 800, fontFamily: 'monospace', lineHeight: 1 }}>{fmtNum(val)}</p>
               {pct !== null && (
-                <div className="mt-2">
-                  <div className="flex justify-between text-xs opacity-70 mb-1">
-                    <span>Meta {fmtNum(s.meta!)}</span><span>{pct.toFixed(1)}%</span>
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: isDark ? '#94a3b8' : '#64748b', marginBottom: 4 }}>
+                    <span>Meta {fmtNum(s.meta!)}</span><span style={{ color: s.cor }}>{pct.toFixed(1)}%</span>
                   </div>
-                  <div className="h-2 bg-white bg-opacity-30 rounded-full">
-                    <div className="h-2 bg-white rounded-full" style={{ width: `${pct}%` }} />
+                  <div style={{ height: 4, background: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', borderRadius: 2 }}>
+                    <div style={{ height: 4, background: s.cor, borderRadius: 2, width: `${pct}%`, transition: 'width 0.8s ease' }} />
                   </div>
                 </div>
               )}
@@ -209,19 +330,19 @@ export function RenderGrafico({ grafico, linhasPorTabela, tabelas }: {
   if (tipo === 'gauge') {
     const s = series[0]; const val = calcularValor(linhas, s.coluna, s.operacao, s.coluna2)
     const pct = Math.min(100, (val / (s.meta ?? 100)) * 100)
-    const rd = [{ value: pct, fill: s.cor }, { value: 100 - pct, fill: '#e5e7eb' }]
+    const rd = [{ value: pct, fill: s.cor }, { value: 100 - pct, fill: isDark ? '#1e293b' : '#f1f5f9' }]
     return (
-      <div className="flex flex-col items-center py-2">
-        <ResponsiveContainer width="100%" height={180}>
-          <RadialBarChart cx="50%" cy="70%" innerRadius="55%" outerRadius="100%" startAngle={180} endAngle={0} data={rd}>
-            <RadialBar dataKey="value" cornerRadius={6} background={{ fill: '#f3f4f6' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 16 }}>
+        <ResponsiveContainer width="100%" height={200}>
+          <RadialBarChart cx="50%" cy="75%" innerRadius="55%" outerRadius="100%" startAngle={180} endAngle={0} data={rd}>
+            <RadialBar dataKey="value" cornerRadius={8} background={{ fill: isDark ? '#0f172a' : '#f8fafc' }}>
               {rd.map((d, i) => <Cell key={i} fill={d.fill} />)}
             </RadialBar>
           </RadialBarChart>
         </ResponsiveContainer>
-        <div className="text-center -mt-6">
-          <p className="text-3xl font-black text-gray-800">{pct.toFixed(1)}%</p>
-          <p className="text-xs text-gray-500">{fmtNum(val)} / {fmtNum(s.meta ?? 100)}</p>
+        <div style={{ textAlign: 'center', marginTop: -40 }}>
+          <p style={{ fontSize: 36, fontWeight: 900, color: s.cor, fontFamily: 'monospace', lineHeight: 1 }}>{pct.toFixed(1)}%</p>
+          <p style={{ fontSize: 11, color: isDark ? '#64748b' : '#94a3b8', marginTop: 4 }}>{fmtNum(val)} / {fmtNum(s.meta ?? 100)}</p>
         </div>
       </div>
     )
@@ -230,75 +351,78 @@ export function RenderGrafico({ grafico, linhasPorTabela, tabelas }: {
   if (tipo === 'donut' || tipo === 'pizza') {
     const s = series[0]
     const pd = dados.map(d => ({ name: String(d['_label']), value: Number(d[s.label]) || 0 }))
+    const colors = [s.cor, ...CORES_PADRAO.filter(c => c !== s.cor)]
     return (
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer width="100%" height={280}>
         <PieChart>
-          <Pie data={pd} cx="50%" cy="50%" innerRadius={tipo==='donut'?55:0} outerRadius={95}
-            dataKey="value" nameKey="name" paddingAngle={tipo==='donut'?3:0}
-            label={({ percent }) => `${((percent??0)*100).toFixed(0)}%`}>
-            {pd.map((_,i) => <Cell key={i} fill={CORES_PADRAO[i%CORES_PADRAO.length]} />)}
+          <Pie data={pd} cx="50%" cy="48%" innerRadius={tipo==='donut'?65:0} outerRadius={100}
+            dataKey="value" nameKey="name" paddingAngle={tipo==='donut'?4:0}
+            label={({ percent }) => `${((percent??0)*100).toFixed(0)}%`}
+            labelLine={{ stroke: axisColor, strokeWidth: 1 }}>
+            {pd.map((_,i) => <Cell key={i} fill={colors[i%colors.length]} stroke="transparent" />)}
           </Pie>
-          <Tooltip formatter={(v: unknown) => fmtNum(Number(v))} />
-          <Legend />
+          <Tooltip content={tt} />
+          <Legend wrapperStyle={{ fontSize: 11, color: axisColor, paddingTop: 8 }} />
         </PieChart>
       </ResponsiveContainer>
     )
   }
 
   if (tipo === 'barra_h') return (
-    <ResponsiveContainer width="100%" height={Math.max(220, dados.length * 32)}>
-      <BarChart data={dados} layout="vertical" margin={{ top:5, right:50, left:10, bottom:5 }}>
-        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-        <XAxis type="number" tickFormatter={fmtNum} tick={{ fontSize:10 }} />
-        <YAxis type="category" dataKey="_label" width={120} tick={{ fontSize:10 }} />
-        <Tooltip formatter={(v: unknown) => fmtNum(Number(v))} />
-        <Legend />
-        {series.map(s => <Bar key={s.id} dataKey={s.label} fill={s.cor} radius={[0,4,4,0]} />)}
+    <ResponsiveContainer width="100%" height={Math.max(240, dados.length * 36)}>
+      <BarChart data={dados} layout="vertical" margin={{ top:5, right:60, left:10, bottom:5 }}>
+        <CartesianGrid {...gridStyle} horizontal={false} />
+        <XAxis type="number" tickFormatter={fmtNum} tick={axisStyle} axisLine={false} tickLine={false} />
+        <YAxis type="category" dataKey="_label" width={120} tick={axisStyle} axisLine={false} tickLine={false} />
+        <Tooltip content={tt} />
+        <Legend wrapperStyle={{ fontSize: 11, color: axisColor }} />
+        {series.map(s => <Bar key={s.id} dataKey={s.label} fill={s.cor} radius={[0,6,6,0]} maxBarSize={28} />)}
       </BarChart>
     </ResponsiveContainer>
   )
 
   if (tipo === 'area') return (
-    <ResponsiveContainer width="100%" height={260}>
-      <AreaChart data={dados} margin={{ top:5, right:20, left:0, bottom:35 }}>
+    <ResponsiveContainer width="100%" height={280}>
+      <AreaChart data={dados} margin={{ top:10, right:20, left:0, bottom:40 }}>
         <defs>{series.map(s => (
           <linearGradient key={s.id} id={`g_${s.id}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor={s.cor} stopOpacity={0.4}/>
-            <stop offset="95%" stopColor={s.cor} stopOpacity={0.05}/>
+            <stop offset="5%"  stopColor={s.cor} stopOpacity={isDark ? 0.35 : 0.25}/>
+            <stop offset="95%" stopColor={s.cor} stopOpacity={0.02}/>
           </linearGradient>
         ))}</defs>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="_label" tick={{ fontSize:10 }} angle={-30} textAnchor="end" height={55} />
-        <YAxis tickFormatter={fmtNum} tick={{ fontSize:10 }} />
-        <Tooltip formatter={(v: unknown) => fmtNum(Number(v))} />
-        <Legend />
-        {series.map(s => <Area key={s.id} type="monotone" dataKey={s.label} stroke={s.cor} strokeWidth={2} fill={`url(#g_${s.id})`} />)}
+        <CartesianGrid {...gridStyle} />
+        <XAxis dataKey="_label" tick={axisStyle} angle={-30} textAnchor="end" height={55} axisLine={false} tickLine={false} />
+        <YAxis tickFormatter={fmtNum} tick={axisStyle} axisLine={false} tickLine={false} />
+        <Tooltip content={tt} />
+        <Legend wrapperStyle={{ fontSize: 11, color: axisColor }} />
+        {series.map(s => <Area key={s.id} type="monotone" dataKey={s.label} stroke={s.cor} strokeWidth={2.5} fill={`url(#g_${s.id})`} dot={{ r:3, fill:s.cor, strokeWidth:0 }} activeDot={{ r:5 }} />)}
       </AreaChart>
     </ResponsiveContainer>
   )
 
   if (tipo === 'linha') return (
-    <ResponsiveContainer width="100%" height={260}>
-      <LineChart data={dados} margin={{ top:5, right:20, left:0, bottom:35 }}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="_label" tick={{ fontSize:10 }} angle={-30} textAnchor="end" height={55} />
-        <YAxis tickFormatter={fmtNum} tick={{ fontSize:10 }} />
-        <Tooltip formatter={(v: unknown) => fmtNum(Number(v))} />
-        <Legend />
-        {series.map(s => <Line key={s.id} type="monotone" dataKey={s.label} stroke={s.cor} strokeWidth={2.5} dot={{ r:3, fill:s.cor }} />)}
+    <ResponsiveContainer width="100%" height={280}>
+      <LineChart data={dados} margin={{ top:10, right:20, left:0, bottom:40 }}>
+        <CartesianGrid {...gridStyle} />
+        <XAxis dataKey="_label" tick={axisStyle} angle={-30} textAnchor="end" height={55} axisLine={false} tickLine={false} />
+        <YAxis tickFormatter={fmtNum} tick={axisStyle} axisLine={false} tickLine={false} />
+        <Tooltip content={tt} />
+        <Legend wrapperStyle={{ fontSize: 11, color: axisColor }} />
+        {series.map(s => <Line key={s.id} type="monotone" dataKey={s.label} stroke={s.cor} strokeWidth={2.5} dot={{ r:3, fill:s.cor, strokeWidth:0 }} activeDot={{ r:5 }} />)}
       </LineChart>
     </ResponsiveContainer>
   )
 
+  // barra_v default
   return (
-    <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={dados} margin={{ top:5, right:20, left:0, bottom:35 }}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="_label" tick={{ fontSize:10 }} angle={-30} textAnchor="end" height={55} />
-        <YAxis tickFormatter={fmtNum} tick={{ fontSize:10 }} />
-        <Tooltip formatter={(v: unknown) => fmtNum(Number(v))} />
-        <Legend />
-        {series.map(s => <Bar key={s.id} dataKey={s.label} fill={s.cor} radius={[4,4,0,0]} />)}
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={dados} margin={{ top:10, right:20, left:0, bottom:40 }} barGap={4}>
+        <CartesianGrid {...gridStyle} vertical={false} />
+        <XAxis dataKey="_label" tick={axisStyle} angle={-30} textAnchor="end" height={55} axisLine={false} tickLine={false} />
+        <YAxis tickFormatter={fmtNum} tick={axisStyle} axisLine={false} tickLine={false} />
+        <Tooltip content={tt} />
+        <Legend wrapperStyle={{ fontSize: 11, color: axisColor }} />
+        {series.map(s => <Bar key={s.id} dataKey={s.label} fill={s.cor} radius={[5,5,0,0]} maxBarSize={40} />)}
       </BarChart>
     </ResponsiveContainer>
   )
@@ -306,12 +430,24 @@ export function RenderGrafico({ grafico, linhasPorTabela, tabelas }: {
 
 // ─── Editor Principal ─────────────────────────────────────────
 
-export default function GraficoEditor({ tabelas, linhasPorTabela, grafico, onChange, salvando, onSalvar, onCancelar }: Props) {
+export default function GraficoEditor({ tabelas, linhasPorTabela, grafico, onChange, salvando, onSalvar, onCancelar, highContrast }: Props) {
+  const isDark = !!highContrast
+
   const meta    = tabelas.find(t => t.nome_tabela === grafico.nome_tabela)
   const colunas = meta?.colunas ?? []
   const linhas  = linhasPorTabela[grafico.nome_tabela] ?? []
-
   const analise = useMemo(() => analisarColunas(linhas, colunas), [linhas, colunas])
+
+  const [paletaSelecionada, setPaletaSelecionada] = useState(0)
+  const [dropTarget, setDropTarget] = useState<'x' | 'y' | null>(null)
+  const [dragging, setDragging] = useState<number | null>(null)
+  const [activeSection, setActiveSection] = useState<'tipo' | 'dados' | 'series' | 'visual'>('tipo')
+  const [erros, setErros] = useState<string[]>([])
+
+  // Refs para scroll
+  const tituloRef  = useRef<HTMLInputElement>(null)
+  const seriesRef  = useRef<HTMLDivElement>(null)
+  const dadosRef   = useRef<HTMLDivElement>(null)
 
   // Sugestão automática ao montar
   useEffect(() => {
@@ -321,268 +457,368 @@ export default function GraficoEditor({ tabelas, linhasPorTabela, grafico, onCha
     const colY = analise.find(c => c.tipo === 'number' && c.ci !== colX?.ci) ?? analise.find(c => c.ci !== colX?.ci)
     if (!colX || !colY) return
     onChange({
-      ...grafico,
-      tipo: sugestao,
-      coluna_categoria: colX.ci,
-      series: [{
-        id: uid(),
-        label: colY.nome,
-        coluna: colY.ci,
-        operacao: 'sum',
-        cor: CORES_PADRAO[0],
-      }],
+      ...grafico, tipo: sugestao, coluna_categoria: colX.ci,
+      series: [{ id: uid(), label: colY.nome, coluna: colY.ci, operacao: 'sum', cor: PALETAS[paletaSelecionada].cores[0] }],
     })
   }, [analise])
 
   const update = (p: Partial<GraficoConfig>) => onChange({ ...grafico, ...p })
 
-  // Drag & Drop de colunas
-  const [dragging, setDragging] = useState<number | null>(null)
-  const [dropTarget, setDropTarget] = useState<'x' | 'y' | null>(null)
-
   const onDragStart = (ci: number) => setDragging(ci)
   const onDragOver  = (e: React.DragEvent, zone: 'x' | 'y') => { e.preventDefault(); setDropTarget(zone) }
   const onDragLeave = () => setDropTarget(null)
-
   const onDrop = (e: React.DragEvent, zone: 'x' | 'y') => {
-    e.preventDefault()
-    setDropTarget(null)
+    e.preventDefault(); setDropTarget(null)
     if (dragging === null) return
     if (zone === 'x') {
       update({ coluna_categoria: dragging })
     } else {
-      const existe = grafico.series.find(s => s.coluna === dragging)
-      if (!existe) {
-        update({
-          series: [...grafico.series, {
-            id: uid(),
-            label: colunas[dragging] ?? `Col ${dragging}`,
-            coluna: dragging,
-            operacao: 'sum',
-            cor: CORES_PADRAO[grafico.series.length % CORES_PADRAO.length],
-          }]
-        })
+      if (!grafico.series.find(s => s.coluna === dragging)) {
+        const paleta = PALETAS[paletaSelecionada].cores
+        update({ series: [...grafico.series, { id: uid(), label: colunas[dragging] ?? `Col ${dragging}`, coluna: dragging, operacao: 'sum', cor: paleta[grafico.series.length % paleta.length] }] })
       }
     }
     setDragging(null)
   }
 
-  const updateSerie = (id: string, p: Partial<Serie>) =>
-    update({ series: grafico.series.map(s => s.id === id ? { ...s, ...p } : s) })
-  const removeSerie = (id: string) =>
-    update({ series: grafico.series.filter(s => s.id !== id) })
+  const updateSerie = (id: string, p: Partial<Serie>) => update({ series: grafico.series.map(s => s.id === id ? { ...s, ...p } : s) })
+  const removeSerie = (id: string) => update({ series: grafico.series.filter(s => s.id !== id) })
 
   const usaCategoria = !['card', 'gauge'].includes(grafico.tipo)
   const usaMeta      = ['card', 'gauge'].includes(grafico.tipo)
 
-  // Badge de tipo de coluna
-  const typeBadge = (t: ColType) => {
-    if (t === 'number') return <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-mono">123</span>
-    if (t === 'date')   return <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-mono">📅</span>
-    return <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 font-mono">Abc</span>
+  // Validação com scroll para o erro
+  const handleSalvar = () => {
+    const novosErros: string[] = []
+    if (!grafico.titulo.trim()) novosErros.push('titulo')
+    if (grafico.series.length === 0) novosErros.push('series')
+    setErros(novosErros)
+
+    if (novosErros.length > 0) {
+      if (novosErros.includes('titulo')) {
+        setActiveSection('tipo')
+        setTimeout(() => tituloRef.current?.focus(), 100)
+      } else if (novosErros.includes('series')) {
+        setActiveSection('dados')
+        setTimeout(() => dadosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+      }
+      return
+    }
+    onSalvar()
   }
 
-  return (
-    <div className="flex gap-0 min-h-[600px] border rounded-xl overflow-hidden bg-white">
+  // Limpa erro ao corrigir
+  useEffect(() => {
+    if (grafico.titulo.trim() && erros.includes('titulo')) setErros(e => e.filter(x => x !== 'titulo'))
+    if (grafico.series.length > 0 && erros.includes('series')) setErros(e => e.filter(x => x !== 'series'))
+  }, [grafico.titulo, grafico.series.length])
 
-      {/* ══ Painel esquerdo: Configuração ══ */}
-      <div className="w-[420px] flex-shrink-0 border-r flex flex-col overflow-y-auto">
+  // Tema
+  const panelBg  = isDark ? '#0f172a' : '#ffffff'
+  const panelBg2 = isDark ? '#1e293b' : '#f8fafc'
+  const panelBg3 = isDark ? '#0a1628' : '#f1f5f9'
+  const border   = isDark ? '#334155' : '#e2e8f0'
+  const text1    = isDark ? '#f1f5f9' : '#0f172a'
+  const text2    = isDark ? '#94a3b8' : '#64748b'
+  const accent   = '#3b82f6'
+  const previewBg = isDark ? '#0d1626' : '#f8fafc'
+
+  const typeBadge = (t: ColType) => {
+    const styles: Record<ColType, { bg: string; color: string; label: string }> = {
+      number: { bg: isDark ? '#052e16' : '#dcfce7', color: isDark ? '#4ade80' : '#16a34a', label: '123' },
+      date:   { bg: isDark ? '#1e1b4b' : '#ede9fe', color: isDark ? '#818cf8' : '#7c3aed', label: '📅' },
+      text:   { bg: isDark ? '#1c1917' : '#f5f5f4', color: isDark ? '#a8a29e' : '#78716c', label: 'Abc' },
+    }
+    const s = styles[t]
+    return <span style={{ background: s.bg, color: s.color, fontSize: 9, padding: '2px 5px', borderRadius: 4, fontFamily: 'monospace', fontWeight: 700 }}>{s.label}</span>
+  }
+
+  const sectionBtn = (key: typeof activeSection, label: string) => (
+    <button onClick={() => setActiveSection(key)}
+      style={{
+        flex: 1, padding: '7px 4px', fontSize: 11, fontWeight: 600,
+        background: activeSection === key ? accent : 'transparent',
+        color: activeSection === key ? '#fff' : text2,
+        border: 'none', borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s',
+      }}>{label}</button>
+  )
+
+  const hasError = (campo: string) => erros.includes(campo)
+
+  return (
+    <div style={{ display: 'flex', minHeight: 640, border: `1px solid ${border}`, borderRadius: 16, overflow: 'hidden', background: panelBg, fontFamily: "'Inter', system-ui, sans-serif" }}>
+
+      {/* ══ Painel esquerdo ══ */}
+      <div style={{ width: 400, flexShrink: 0, borderRight: `1px solid ${border}`, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
 
         {/* Header */}
-        <div className="px-5 py-4 border-b bg-gray-50">
+        <div style={{ padding: '20px 20px 16px', background: panelBg3, borderBottom: `1px solid ${border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent }} />
+            <span style={{ color: text2, fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Editor de Gráfico</span>
+          </div>
           <input
+            ref={tituloRef}
             value={grafico.titulo}
             onChange={e => update({ titulo: e.target.value })}
             placeholder="Nome do gráfico..."
-            className="w-full text-base font-semibold bg-transparent border-0 border-b-2 border-transparent focus:border-blue-500 focus:outline-none text-gray-800 pb-1 transition"
+            style={{
+              width: '100%', background: 'transparent', border: 'none',
+              borderBottom: `2px solid ${hasError('titulo') ? '#ef4444' : grafico.titulo ? accent : border}`,
+              color: text1, fontSize: 16, fontWeight: 700, padding: '4px 0 6px',
+              outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
+            }}
           />
-          <div className="flex items-center gap-2 mt-2">
+          {hasError('titulo') && (
+            <p style={{ color: '#ef4444', fontSize: 11, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <FaExclamationTriangle size={10} /> Informe um nome para o gráfico
+            </p>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
             <select value={grafico.nome_tabela}
               onChange={e => update({ nome_tabela: e.target.value, coluna_categoria: 0, series: [] })}
-              className="text-xs px-2 py-1 border rounded text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-400">
+              style={{ background: panelBg2, border: `1px solid ${border}`, color: text1, fontSize: 11, padding: '4px 8px', borderRadius: 6, outline: 'none', flex: 1 }}>
               {tabelas.map(t => <option key={t.nome_tabela} value={t.nome_tabela}>{t.nome_tabela}</option>)}
             </select>
-            <span className="text-xs text-gray-400">{linhas.length} registros</span>
+            <span style={{ color: text2, fontSize: 10, background: panelBg2, padding: '4px 8px', borderRadius: 6, border: `1px solid ${border}`, whiteSpace: 'nowrap' }}>
+              {linhas.length} reg.
+            </span>
           </div>
         </div>
 
-        {/* Tipo de gráfico */}
-        <div className="px-5 py-4 border-b">
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Tipo de gráfico</p>
-          <div className="grid grid-cols-4 gap-1.5">
-            {(Object.entries(TIPOS_INFO) as [TipoGrafico, typeof TIPOS_INFO[TipoGrafico]][]).map(([id, info]) => (
-              <button key={id} onClick={() => update({ tipo: id })} title={info.desc}
-                className={`flex flex-col items-center gap-1 py-2.5 rounded-lg text-xs font-medium border-2 transition ${
-                  grafico.tipo === id
-                    ? 'border-blue-600 bg-blue-50 text-blue-700'
-                    : 'border-transparent bg-gray-50 text-gray-600 hover:bg-blue-50 hover:border-blue-200'
-                }`}>
-                <span className="text-lg">{info.emoji}</span>
-                <span className="text-center leading-tight">{info.label}</span>
-              </button>
-            ))}
-          </div>
+        {/* Nav sections */}
+        <div style={{ display: 'flex', gap: 4, padding: '10px 14px', background: panelBg3, borderBottom: `1px solid ${border}` }}>
+          {sectionBtn('tipo', 'Tipo')}
+          {sectionBtn('dados', 'Dados')}
+          {sectionBtn('series', 'Séries')}
+          {sectionBtn('visual', 'Visual')}
         </div>
 
-        {/* Colunas disponíveis — resumo + drag */}
-        <div className="px-5 py-4 border-b">
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Colunas disponíveis</p>
-          <p className="text-xs text-gray-400 mb-3">Arraste para os eixos X ou Y abaixo</p>
-          <div className="flex flex-wrap gap-2">
-            {analise.map(col => (
-              <div
-                key={col.ci}
-                draggable
-                onDragStart={() => onDragStart(col.ci)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border-2 border-gray-200 rounded-lg text-xs cursor-grab active:cursor-grabbing hover:border-blue-400 hover:shadow-sm transition select-none"
-              >
-                <FaGripVertical size={9} className="text-gray-300" />
-                <span className="text-gray-700 font-medium">{col.nome}</span>
-                {typeBadge(col.tipo)}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Zonas de drop X e Y */}
-        <div className="px-5 py-4 border-b space-y-3">
-
-          {/* Eixo X */}
-          {usaCategoria && (
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="w-5 h-5 rounded bg-blue-600 text-white text-xs font-bold flex items-center justify-center">X</span>
-                <span className="text-xs font-semibold text-gray-700">Eixo X — Categoria</span>
-              </div>
-              <div
-                onDragOver={e => onDragOver(e, 'x')}
-                onDragLeave={onDragLeave}
-                onDrop={e => onDrop(e, 'x')}
-                className={`min-h-[42px] rounded-lg border-2 border-dashed flex items-center px-3 transition ${
-                  dropTarget === 'x' ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'
-                }`}>
-                {grafico.coluna_categoria !== undefined && colunas[grafico.coluna_categoria] ? (
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 bg-blue-600 text-white text-xs rounded-full font-medium">
-                      {colunas[grafico.coluna_categoria]}
-                    </span>
-                    {typeBadge(analise[grafico.coluna_categoria]?.tipo ?? 'text')}
-                    <span className="text-xs text-gray-400">{analise[grafico.coluna_categoria]?.unicos} valores únicos</span>
-                  </div>
-                ) : (
-                  <span className="text-xs text-gray-400">Arraste uma coluna aqui ou clique acima</span>
-                )}
-              </div>
-              {/* Clique rápido */}
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {analise.map(col => (
-                  <button key={col.ci} onClick={() => update({ coluna_categoria: col.ci })}
-                    className={`text-xs px-2 py-0.5 rounded-full border transition ${
-                      grafico.coluna_categoria === col.ci
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600'
-                    }`}>
-                    {col.nome}
+        {/* ── Seção: Tipo ── */}
+        {activeSection === 'tipo' && (
+          <div style={{ padding: 16 }}>
+            <p style={{ color: text2, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Tipo de gráfico</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+              {(Object.entries(TIPOS_INFO) as [TipoGrafico, typeof TIPOS_INFO[TipoGrafico]][]).map(([id, info]) => {
+                const isSelected = grafico.tipo === id
+                const iconColor = isSelected ? accent : (isDark ? '#64748b' : '#94a3b8')
+                return (
+                  <button key={id} onClick={() => update({ tipo: id })} title={info.desc}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                      padding: '12px 4px 10px', borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+                      background: isSelected ? (isDark ? `${accent}22` : `${accent}12`) : panelBg2,
+                      border: `2px solid ${isSelected ? accent : border}`,
+                      color: isSelected ? accent : text2,
+                    }}>
+                    {TIPO_ICONS[id](iconColor)}
+                    <span style={{ fontSize: 10, fontWeight: 600 }}>{info.label}</span>
                   </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Eixo Y */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">Y</span>
-                <span className="text-xs font-semibold text-gray-700">Eixo Y — Valores</span>
-              </div>
-              <button onClick={() => {
-                const prox = analise.find(c => c.tipo === 'number' && !grafico.series.some(s => s.coluna === c.ci) && c.ci !== grafico.coluna_categoria)
-                if (prox) update({ series: [...grafico.series, { id: uid(), label: prox.nome, coluna: prox.ci, operacao: 'sum', cor: CORES_PADRAO[grafico.series.length % CORES_PADRAO.length] }] })
-                else update({ series: [...grafico.series, { id: uid(), label: `Série ${grafico.series.length+1}`, coluna: 0, operacao: 'count', cor: CORES_PADRAO[grafico.series.length % CORES_PADRAO.length] }] })
-              }} className="text-xs flex items-center gap-1 text-emerald-600 hover:text-emerald-800">
-                <FaPlus size={9} /> Série
-              </button>
+                )
+              })}
             </div>
 
-            {/* Drop zone Y */}
-            <div
-              onDragOver={e => onDragOver(e, 'y')}
-              onDragLeave={onDragLeave}
-              onDrop={e => onDrop(e, 'y')}
-              className={`min-h-[42px] rounded-lg border-2 border-dashed px-3 py-2 transition ${
-                dropTarget === 'y' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-300 bg-gray-50'
-              }`}>
-              {grafico.series.length === 0 ? (
-                <span className="text-xs text-gray-400">Arraste colunas numéricas aqui</span>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {grafico.series.map(s => (
-                    <div key={s.id} className="flex items-center gap-1 px-2 py-1 rounded-full text-xs text-white font-medium"
-                      style={{ backgroundColor: s.cor }}>
-                      {s.label}
-                      <button onClick={() => removeSerie(s.id)} className="opacity-70 hover:opacity-100 ml-0.5">
-                        <FaTimes size={8} />
-                      </button>
+            {/* Sugestão */}
+            {analise.length > 0 && (
+              <div style={{ marginTop: 16, background: isDark ? '#1a1a2e' : '#eef2ff', border: `1px solid ${isDark ? '#3730a3' : '#c7d2fe'}`, borderRadius: 10, padding: '10px 12px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <FaLightbulb style={{ color: isDark ? '#818cf8' : '#6366f1', flexShrink: 0, marginTop: 2 }} size={12} />
+                <div style={{ flex: 1 }}>
+                  <span style={{ color: isDark ? '#818cf8' : '#4f46e5', fontSize: 10, fontWeight: 700 }}>Sugestão IA: </span>
+                  <span style={{ color: isDark ? '#a5b4fc' : '#6366f1', fontSize: 10 }}>
+                    {(() => {
+                      const s = sugerirTipo(analise)
+                      const temData = analise.some(c => c.tipo === 'date')
+                      const numCols = analise.filter(c => c.tipo === 'number').length
+                      if (temData) return `Coluna de data detectada — ${TIPOS_INFO[s].label} ideal para evolução.`
+                      if (numCols >= 2) return `${numCols} colunas numéricas — ${TIPOS_INFO[s].label} permite comparação.`
+                      return `${TIPOS_INFO[s].label} recomendado para este conjunto.`
+                    })()}
+                  </span>
+                  <button onClick={() => update({ tipo: sugerirTipo(analise) })}
+                    style={{ display: 'block', marginTop: 5, color: isDark ? '#818cf8' : '#4f46e5', fontSize: 10, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                    Aplicar sugestão →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Visibilidade */}
+            <div style={{ marginTop: 16, display: 'flex', gap: 14 }}>
+              {[{ key: 'aparecer_pagina' as const, label: 'Exibir na página' }, { key: 'aparecer_pdf' as const, label: 'Incluir no PDF' }].map(({ key, label }) => (
+                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 11, color: text2 }}>
+                  <div onClick={() => update({ [key]: !grafico[key] })}
+                    style={{
+                      width: 16, height: 16, borderRadius: 4, border: `2px solid ${grafico[key] ? accent : border}`,
+                      background: grafico[key] ? accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0,
+                    }}>
+                    {grafico[key] && <FaCheck size={8} color="#fff" />}
+                  </div>
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Seção: Dados ── */}
+        {activeSection === 'dados' && (
+          <div style={{ padding: 16 }}>
+            <p style={{ color: text2, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Colunas disponíveis</p>
+            <p style={{ color: isDark ? '#475569' : '#94a3b8', fontSize: 10, marginBottom: 10 }}>Arraste para os eixos abaixo</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+              {analise.map(col => (
+                <div key={col.ci} draggable onDragStart={() => onDragStart(col.ci)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px',
+                    background: panelBg2, border: `1px solid ${border}`, borderRadius: 20,
+                    fontSize: 11, cursor: 'grab', color: text1, userSelect: 'none',
+                  }}>
+                  <FaGripVertical size={8} style={{ color: text2 }} />
+                  <span style={{ fontWeight: 500 }}>{col.nome}</span>
+                  {typeBadge(col.tipo)}
+                </div>
+              ))}
+            </div>
+
+            {/* Eixo X */}
+            {usaCategoria && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ width: 20, height: 20, borderRadius: 5, background: '#1d4ed8', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>X</span>
+                  <span style={{ color: text2, fontSize: 11, fontWeight: 600 }}>Eixo X — Categoria</span>
+                </div>
+                <div onDragOver={e => onDragOver(e, 'x')} onDragLeave={onDragLeave} onDrop={e => onDrop(e, 'x')}
+                  style={{
+                    minHeight: 44, borderRadius: 8, border: `2px dashed ${dropTarget === 'x' ? accent : border}`,
+                    background: dropTarget === 'x' ? `${accent}11` : panelBg2,
+                    display: 'flex', alignItems: 'center', padding: '0 12px', transition: 'all 0.15s',
+                  }}>
+                  {grafico.coluna_categoria !== undefined && colunas[grafico.coluna_categoria] ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ background: accent, color: '#fff', padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{colunas[grafico.coluna_categoria]}</span>
+                      {typeBadge(analise[grafico.coluna_categoria]?.tipo ?? 'text')}
+                      <span style={{ color: text2, fontSize: 10 }}>{analise[grafico.coluna_categoria]?.unicos} únicos</span>
                     </div>
+                  ) : (
+                    <span style={{ color: text2, fontSize: 11 }}>Arraste uma coluna aqui</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                  {analise.map(col => (
+                    <button key={col.ci} onClick={() => update({ coluna_categoria: col.ci })}
+                      style={{
+                        fontSize: 10, padding: '3px 8px', borderRadius: 12, cursor: 'pointer', transition: 'all 0.15s',
+                        background: grafico.coluna_categoria === col.ci ? accent : 'transparent',
+                        color: grafico.coluna_categoria === col.ci ? '#fff' : text2,
+                        border: `1px solid ${grafico.coluna_categoria === col.ci ? accent : border}`,
+                      }}>{col.nome}</button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Eixo Y */}
+            <div ref={dadosRef}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 20, height: 20, borderRadius: 5, background: '#166534', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Y</span>
+                  <span style={{ color: text2, fontSize: 11, fontWeight: 600 }}>Eixo Y — Valores</span>
+                </div>
+                <button onClick={() => {
+                  const prox = analise.find(c => c.tipo === 'number' && !grafico.series.some(s => s.coluna === c.ci) && c.ci !== grafico.coluna_categoria)
+                  const paleta = PALETAS[paletaSelecionada].cores
+                  const novaCor = paleta[grafico.series.length % paleta.length]
+                  if (prox) update({ series: [...grafico.series, { id: uid(), label: prox.nome, coluna: prox.ci, operacao: 'sum', cor: novaCor }] })
+                  else update({ series: [...grafico.series, { id: uid(), label: `Série ${grafico.series.length+1}`, coluna: 0, operacao: 'count', cor: novaCor }] })
+                }} style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#16a34a', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, padding: 0 }}>
+                  <FaPlus size={9} /> Adicionar série
+                </button>
+              </div>
+              <div onDragOver={e => onDragOver(e, 'y')} onDragLeave={onDragLeave} onDrop={e => onDrop(e, 'y')}
+                style={{
+                  minHeight: 50, borderRadius: 8,
+                  border: `2px dashed ${hasError('series') ? '#ef4444' : (dropTarget === 'y' ? '#16a34a' : border)}`,
+                  background: dropTarget === 'y' ? '#05471122' : (hasError('series') ? '#7f1d1d11' : panelBg2),
+                  display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, padding: '6px 12px', transition: 'all 0.15s',
+                }}>
+                {grafico.series.length === 0 ? (
+                  <span style={{ color: hasError('series') ? '#ef4444' : text2, fontSize: 11 }}>
+                    {hasError('series') ? '⚠️ Arraste pelo menos uma coluna numérica aqui' : 'Arraste colunas numéricas aqui'}
+                  </span>
+                ) : grafico.series.map(s => (
+                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 12, fontSize: 11, color: '#fff', fontWeight: 600, background: s.cor }}>
+                    {s.label}
+                    <button onClick={() => removeSerie(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', padding: 0, display: 'flex' }}>
+                      <FaTimes size={8} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {hasError('series') && (
+                <p style={{ color: '#ef4444', fontSize: 11, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <FaExclamationTriangle size={10} /> Adicione pelo menos uma série no eixo Y
+                </p>
               )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Configuração detalhada das séries */}
-        {grafico.series.length > 0 && (
-          <div className="px-5 py-4 border-b space-y-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase">Configurar séries</p>
-            {grafico.series.map((s, idx) => (
-              <div key={s.id} className="border rounded-xl overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ background: s.cor + '18' }}>
+        {/* ── Seção: Séries ── */}
+        {activeSection === 'series' && (
+          <div style={{ padding: 16 }} ref={seriesRef}>
+            {grafico.series.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 16px', color: text2 }}>
+                <div style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }}>📊</div>
+                <p style={{ fontSize: 12 }}>Nenhuma série configurada.</p>
+                <p style={{ fontSize: 11, marginTop: 4, color: isDark ? '#475569' : '#94a3b8' }}>Vá para "Dados" e arraste colunas para o eixo Y.</p>
+              </div>
+            ) : grafico.series.map((s) => (
+              <div key={s.id} style={{ marginBottom: 12, border: `1px solid ${border}`, borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: isDark ? `${s.cor}18` : `${s.cor}10`, borderBottom: `1px solid ${border}` }}>
                   <input type="color" value={s.cor} onChange={e => updateSerie(s.id, { cor: e.target.value })}
-                    className="w-6 h-6 rounded cursor-pointer border-0 p-0 flex-shrink-0" />
+                    style={{ width: 24, height: 24, border: 'none', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
                   <input value={s.label} onChange={e => updateSerie(s.id, { label: e.target.value })}
-                    className="flex-1 text-xs font-semibold bg-transparent border-0 focus:outline-none text-gray-700" />
-                  <button onClick={() => removeSerie(s.id)} className="text-red-400 hover:text-red-600">
-                    <FaTrash size={10} />
+                    style={{ flex: 1, background: 'transparent', border: 'none', color: text1, fontSize: 12, fontWeight: 700, outline: 'none' }} />
+                  <button onClick={() => removeSerie(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: 0, display: 'flex' }}>
+                    <FaTrash size={11} />
                   </button>
                 </div>
-                <div className="p-3 grid grid-cols-2 gap-2 bg-white">
+                <div style={{ padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, background: panelBg }}>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Coluna</label>
+                    <label style={{ display: 'block', color: text2, fontSize: 10, marginBottom: 4, fontWeight: 600 }}>Coluna</label>
                     <select value={s.coluna} onChange={e => updateSerie(s.id, { coluna: Number(e.target.value), label: colunas[Number(e.target.value)] ?? s.label })}
-                      className="w-full px-2 py-1.5 border rounded text-xs text-black focus:outline-none focus:ring-1 focus:ring-blue-400">
+                      style={{ width: '100%', background: panelBg2, border: `1px solid ${border}`, color: text1, fontSize: 11, padding: '6px 8px', borderRadius: 6, outline: 'none' }}>
                       {colunas.map((col, ci) => <option key={ci} value={ci}>{col}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Operação</label>
+                    <label style={{ display: 'block', color: text2, fontSize: 10, marginBottom: 4, fontWeight: 600 }}>Operação</label>
                     <select value={s.operacao} onChange={e => updateSerie(s.id, { operacao: e.target.value as Operacao })}
-                      className="w-full px-2 py-1.5 border rounded text-xs text-black focus:outline-none focus:ring-1 focus:ring-blue-400">
+                      style={{ width: '100%', background: panelBg2, border: `1px solid ${border}`, color: text1, fontSize: 11, padding: '6px 8px', borderRadius: 6, outline: 'none' }}>
                       {OPERACOES.map(op => <option key={op.id} value={op.id}>{op.short} {op.label}</option>)}
                     </select>
                   </div>
                   {['mul','div','pct'].includes(s.operacao) && (
-                    <div className="col-span-2">
-                      <label className="block text-xs text-gray-500 mb-1">Coluna B</label>
+                    <div style={{ gridColumn: '1/-1' }}>
+                      <label style={{ display: 'block', color: text2, fontSize: 10, marginBottom: 4, fontWeight: 600 }}>Coluna B</label>
                       <select value={s.coluna2 ?? 0} onChange={e => updateSerie(s.id, { coluna2: Number(e.target.value) })}
-                        className="w-full px-2 py-1.5 border rounded text-xs text-black focus:outline-none focus:ring-1 focus:ring-blue-400">
+                        style={{ width: '100%', background: panelBg2, border: `1px solid ${border}`, color: text1, fontSize: 11, padding: '6px 8px', borderRadius: 6, outline: 'none' }}>
                         {colunas.map((col, ci) => <option key={ci} value={ci}>{col}</option>)}
                       </select>
                     </div>
                   )}
                   {usaMeta && (
-                    <div className="col-span-2">
-                      <label className="block text-xs text-gray-500 mb-1">Meta (opcional)</label>
+                    <div style={{ gridColumn: '1/-1' }}>
+                      <label style={{ display: 'block', color: text2, fontSize: 10, marginBottom: 4, fontWeight: 600 }}>Meta (opcional)</label>
                       <input type="number" value={s.meta ?? ''} placeholder="Ex: 100000"
                         onChange={e => updateSerie(s.id, { meta: e.target.value ? Number(e.target.value) : undefined })}
-                        className="w-full px-2 py-1.5 border rounded text-xs text-black focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                        style={{ width: '100%', background: panelBg2, border: `1px solid ${border}`, color: text1, fontSize: 11, padding: '6px 8px', borderRadius: 6, outline: 'none', boxSizing: 'border-box' }} />
                     </div>
                   )}
-                  {/* Resultado atual */}
-                  <div className="col-span-2 flex items-center justify-between bg-gray-50 rounded px-2 py-1.5 text-xs">
-                    <span className="text-gray-500">Resultado atual</span>
-                    <span className="font-bold text-emerald-700">{fmtNum(calcularValor(linhas, s.coluna, s.operacao, s.coluna2))}</span>
+                  <div style={{ gridColumn: '1/-1', display: 'flex', justifyContent: 'space-between', background: isDark ? '#052e16' : '#f0fdf4', borderRadius: 6, padding: '6px 10px', border: `1px solid ${isDark ? '#166534' : '#bbf7d0'}` }}>
+                    <span style={{ color: '#16a34a', fontSize: 10, fontWeight: 600 }}>Resultado atual</span>
+                    <span style={{ color: '#16a34a', fontSize: 12, fontWeight: 800, fontFamily: 'monospace' }}>{fmtNum(calcularValor(linhas, s.coluna, s.operacao, s.coluna2))}</span>
                   </div>
                 </div>
               </div>
@@ -590,95 +826,104 @@ export default function GraficoEditor({ tabelas, linhasPorTabela, grafico, onCha
           </div>
         )}
 
-        {/* Visibilidade + Sugestão */}
-        <div className="px-5 py-4 mt-auto">
-          {/* Sugestão inteligente */}
-          {analise.length > 0 && (
-            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-xs text-amber-800">
-              <FaLightbulb className="flex-shrink-0 mt-0.5 text-amber-500" />
-              <div>
-                <span className="font-semibold">Sugestão: </span>
-                {(() => {
-                  const s = sugerirTipo(analise)
-                  const temData = analise.some(c => c.tipo === 'date')
-                  const numCols = analise.filter(c => c.tipo === 'number').length
-                  if (temData) return `Detectamos uma coluna de data — gráfico de ${TIPOS_INFO[s].label} é ideal para mostrar evolução temporal.`
-                  if (numCols >= 2) return `${numCols} colunas numéricas encontradas — ${TIPOS_INFO[s].label} permite comparar todas ao mesmo tempo.`
-                  return `Use ${TIPOS_INFO[s].label} para este conjunto de dados.`
-                })()}
-                <button onClick={() => update({ tipo: sugerirTipo(analise) })}
-                  className="ml-1 underline font-semibold">Aplicar</button>
-              </div>
+        {/* ── Seção: Visual ── */}
+        {activeSection === 'visual' && (
+          <div style={{ padding: 16 }}>
+            <p style={{ color: text2, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Paleta de cores</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {PALETAS.map((paleta, pi) => (
+                <button key={pi} onClick={() => {
+                  setPaletaSelecionada(pi)
+                  update({ series: grafico.series.map((s, si) => ({ ...s, cor: paleta.cores[si % paleta.cores.length] })) })
+                }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                    background: paletaSelecionada === pi ? (isDark ? `${accent}22` : `${accent}10`) : panelBg2,
+                    border: `2px solid ${paletaSelecionada === pi ? accent : border}`,
+                    borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+                  }}>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {paleta.cores.slice(0, 6).map((cor, ci) => (
+                      <div key={ci} style={{ width: 14, height: 14, borderRadius: 3, background: cor }} />
+                    ))}
+                  </div>
+                  <span style={{ color: paletaSelecionada === pi ? accent : text2, fontSize: 12, fontWeight: 600 }}>{paleta.nome}</span>
+                  {paletaSelecionada === pi && <FaCheck size={10} style={{ color: accent, marginLeft: 'auto' }} />}
+                </button>
+              ))}
             </div>
-          )}
 
-          <div className="flex gap-4 mb-4">
-            <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-              <input type="checkbox" checked={grafico.aparecer_pagina} onChange={e => update({ aparecer_pagina: e.target.checked })} className="w-3.5 h-3.5 accent-blue-600" />
-              Na página
-            </label>
-            <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-              <input type="checkbox" checked={grafico.aparecer_pdf} onChange={e => update({ aparecer_pdf: e.target.checked })} className="w-3.5 h-3.5 accent-blue-600" />
-              No PDF
-            </label>
+            <p style={{ color: text2, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '16px 0 10px' }}>Cores individuais</p>
+            {grafico.series.length === 0 ? (
+              <p style={{ color: isDark ? '#475569' : '#94a3b8', fontSize: 11 }}>Configure séries primeiro.</p>
+            ) : grafico.series.map(s => (
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <input type="color" value={s.cor} onChange={e => updateSerie(s.id, { cor: e.target.value })}
+                  style={{ width: 36, height: 36, border: `2px solid ${border}`, borderRadius: 8, cursor: 'pointer', padding: 2, background: panelBg2 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ color: text1, fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{s.label}</p>
+                  <p style={{ color: text2, fontSize: 10, fontFamily: 'monospace' }}>{s.cor}</p>
+                </div>
+              </div>
+            ))}
           </div>
+        )}
 
-          <div className="flex gap-2">
-            <button onClick={onCancelar} className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
+        {/* Footer */}
+        <div style={{ marginTop: 'auto', padding: 16, borderTop: `1px solid ${border}`, background: panelBg3 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={onCancelar}
+              style={{ flex: 1, padding: '10px', background: 'transparent', color: text2, border: `1px solid ${border}`, borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.15s' }}>
               Cancelar
             </button>
-            <button onClick={onSalvar}
-              disabled={salvando || !grafico.titulo.trim() || grafico.series.length === 0}
-              className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition">
-              {salvando ? 'Salvando…' : '✅ Salvar'}
+            <button onClick={handleSalvar} disabled={!!salvando}
+              style={{
+                flex: 2, padding: '10px', borderRadius: 8, cursor: 'pointer',
+                fontSize: 13, fontWeight: 700, border: 'none', transition: 'all 0.15s',
+                background: `linear-gradient(135deg, ${accent}, #1d4ed8)`,
+                color: '#fff',
+                boxShadow: `0 4px 16px ${accent}44`,
+                opacity: salvando ? 0.7 : 1,
+              }}>
+              {salvando ? 'Salvando...' : '✓ Salvar gráfico'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* ══ Painel direito: Preview ao vivo ══ */}
-      <div className="flex-1 flex flex-col bg-gray-50">
-        <div className="px-6 py-4 border-b bg-white flex items-center justify-between">
+      {/* ══ Painel direito: Preview ══ */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: previewBg }}>
+        <div style={{ padding: '16px 24px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isDark ? '#0a1628' : '#ffffff' }}>
           <div>
-            <p className="text-sm font-semibold text-gray-800">{grafico.titulo || 'Preview ao vivo'}</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {TIPOS_INFO[grafico.tipo].emoji} {TIPOS_INFO[grafico.tipo].label}
+            <p style={{ color: text1, fontSize: 14, fontWeight: 700 }}>{grafico.titulo || 'Preview ao vivo'}</p>
+            <p style={{ color: text2, fontSize: 11, marginTop: 3 }}>
+              {TIPOS_INFO[grafico.tipo].label}
               {usaCategoria && grafico.coluna_categoria !== undefined && colunas[grafico.coluna_categoria] && (
-                <> · X: <strong>{colunas[grafico.coluna_categoria]}</strong></>
+                <> · X: <strong style={{ color: accent }}>{colunas[grafico.coluna_categoria]}</strong></>
               )}
-              {grafico.series.map(s => (
-                <span key={s.id}> · <span className="font-medium" style={{ color: s.cor }}>{s.label}</span></span>
-              ))}
             </p>
           </div>
-          {/* Mini resumo dos dados */}
-          <div className="flex gap-2">
+          <div style={{ display: 'flex', gap: 6 }}>
             {analise.filter(c => c.tipo === 'number').length > 0 && (
-              <span className="text-xs px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
-                {analise.filter(c => c.tipo === 'number').length} colunas numéricas
+              <span style={{ fontSize: 10, padding: '3px 8px', background: isDark ? '#052e16' : '#f0fdf4', color: '#16a34a', borderRadius: 20, border: `1px solid ${isDark ? '#166534' : '#bbf7d0'}` }}>
+                {analise.filter(c => c.tipo === 'number').length} numéricas
               </span>
             )}
-            {analise.some(c => c.tipo === 'date') && (
-              <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-200">
-                📅 data detectada
-              </span>
-            )}
-            <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-              {linhas.length} registros
+            <span style={{ fontSize: 10, padding: '3px 8px', background: panelBg2, color: text2, borderRadius: 20, border: `1px solid ${border}` }}>
+              {linhas.length} reg.
             </span>
           </div>
         </div>
 
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full">
-            <RenderGrafico grafico={grafico} linhasPorTabela={linhasPorTabela} tabelas={tabelas} />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 20px' }}>
+          <div style={{ width: '100%' }}>
+            <RenderGrafico grafico={grafico} linhasPorTabela={linhasPorTabela} tabelas={tabelas} highContrast={highContrast} />
           </div>
         </div>
 
-        {/* Dica de drag */}
         {grafico.series.length === 0 && (
-          <div className="px-6 pb-6 text-center text-xs text-gray-400">
-            👈 Arraste colunas da esquerda para os eixos X e Y para começar
+          <div style={{ padding: '0 24px 20px', textAlign: 'center', color: text2, fontSize: 12 }}>
+            👈 Arraste colunas nos eixos X e Y para começar
           </div>
         )}
       </div>
