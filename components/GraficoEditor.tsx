@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
@@ -61,7 +62,7 @@ export const CORES_PADRAO = PALETAS[0].cores
 
 // ─── Ícones SVG para tipos de gráfico ─────────────────────────
 
-const TIPO_ICONS: Record<TipoGrafico, (cor: string) => JSX.Element> = {
+const TIPO_ICONS: Record<TipoGrafico, (cor: string) => React.ReactElement> = {
   barra_v: (cor) => (
     <svg width="36" height="28" viewBox="0 0 36 28">
       <rect x="2"  y="14" width="7" height="13" fill={cor} opacity="0.9" rx="1"/>
