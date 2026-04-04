@@ -575,9 +575,7 @@ function CategoryCard({ icon: Icon, chave, titulo, caminho, description, ultimaA
 function Carousel() {
   const [current, setCurrent] = useState(0)
   const slides = [
-    { image: '/banner1.jpg', title: 'Novas informações sobre saúde estão disponíveis no Portal de Dados Abertos', link: '' },
-    { image: '/banner2.jpg', title: 'Transparência: Acompanhe as obras da sua cidade', link: '' },
-    { image: '/banner3.jpg', title: 'Consulte o orçamento municipal de forma fácil e rápida', link: '' },
+  { image: '/Radartransparencia.png', title: '', link: 'https://radardatransparencia.atricon.org.br/' },
   ]
   useEffect(() => {
     const t = setInterval(() => setCurrent(p => (p + 1) % slides.length), 30000)
@@ -586,11 +584,11 @@ function Carousel() {
 
   return (
     <div className="relative rounded-lg overflow-hidden shadow-xl">
-      <div className="relative h-[150px] md:h-[200px]">
+      <div className="relative h-[80px] md:h-[108px]">
         {slides.map((s, i) => (
-          <Link key={i} href={s.link || '#'} className={`absolute inset-0 transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
+          <Link key={i} href={s.link || '#'} target="_blank" rel="noopener noreferrer" className={`absolute inset-0 transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
             <div className="relative w-full h-full">
-              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${s.image})`, filter: 'brightness(0.7)' }} />
+              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${s.image})` }} />
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
               <div className="relative h-full flex items-center px-8 md:px-16">
                 <h2 className="text-white text-3xl md:text-5xl font-bold leading-tight drop-shadow-lg max-w-2xl">{s.title}</h2>
@@ -599,12 +597,6 @@ function Carousel() {
           </Link>
         ))}
       </div>
-      <button onClick={() => setCurrent(p => (p - 1 + slides.length) % slides.length)} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white rounded-full p-3 transition backdrop-blur-sm" aria-label="Slide anterior">
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-      </button>
-      <button onClick={() => setCurrent(p => (p + 1) % slides.length)} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 hover:bg-white/50 text-white rounded-full p-3 transition backdrop-blur-sm" aria-label="Próximo slide">
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-      </button>
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
         {slides.map((_, i) => (
           <button key={i} onClick={() => setCurrent(i)} className={`h-3 rounded-full transition-all ${i === current ? 'bg-white w-8' : 'bg-white/50 w-3 hover:bg-white/75'}`} aria-label={`Ir para slide ${i + 1}`} />
