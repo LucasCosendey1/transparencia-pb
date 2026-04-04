@@ -1,5 +1,3 @@
-//components/Header.tsx
-
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
@@ -39,7 +37,6 @@ export default function Header(props?: HeaderProps) {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [showResults, setShowResults] = useState(false)
   
-  // Estados internos (usados quando não há props)
   const [internalTheme, setInternalTheme] = useState<'light' | 'dark' | 'contrast'>('light')
   const [internalFontSize, setInternalFontSize] = useState(16)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -50,7 +47,6 @@ export default function Header(props?: HeaderProps) {
   const tickingRef = useRef(false)
   const animTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
 
   useEffect(() => {
     const handleScroll = () => {
@@ -109,7 +105,6 @@ export default function Header(props?: HeaderProps) {
     return () => document.removeEventListener('mousedown', handler)
   }, [mobileOpen])
 
-  // Cleanup do timeout de busca
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
@@ -122,7 +117,6 @@ export default function Header(props?: HeaderProps) {
     const query = e.target.value
     setSearchQuery(query)
     
-    // Limpa o timeout anterior
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
@@ -133,12 +127,10 @@ export default function Header(props?: HeaderProps) {
       return
     }
 
-    // Aguarda 500ms após o usuário parar de digitar
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
         const results = await response.json()
-        
         setSearchResults(results)
         setShowResults(results.length > 0)
       } catch (error) {
@@ -157,6 +149,15 @@ export default function Header(props?: HeaderProps) {
     setShowResults(false)
     setMobileOpen(false)
   }
+
+  const toggleVLibras = () => {
+  const btn = document.querySelector('.vp-btn, [class*="vp-btn"], .vp-access-button') as HTMLElement
+  if (btn) {
+    btn.style.display = 'block'
+    btn.click()
+    setTimeout(() => { btn.style.display = 'none' }, 100)
+  }
+}
 
   const navLinks = [
     { href: '/portal',                                                                        label: 'O Portal'      },
@@ -212,28 +213,68 @@ export default function Header(props?: HeaderProps) {
           transform-origin: center;
           animation: spreadCenter 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
+        .vlibras-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 8px 2px 4px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+          background: #1351b4;
+          color: #fff;
+          transition: background 0.15s;
+          height: 32px;
+        }
+        .vlibras-btn:hover { background: #0d3e8a; }
+        .vlibras-btn img { width: 22px; height: 22px; object-fit: contain; }
       `}</style>
 
       {/* Header Principal */}
-      <header 
+      <header
         className={`fixed top-0 left-0 right-0 z-[1000] ${themeClasses.header} transition-all duration-300 ${isScrolled ? 'shadow-lg' : ''}`}
         style={{ fontSize: `${fontSize}px` }}
       >
-        
+
         {/* Linha 1: Botões de Acessibilidade */}
         <div className={`border-b ${themeClasses.searchResultBorder}`}>
           <div className="max-w-7xl mx-auto px-4 py-1.5 flex justify-end items-center gap-2">
-            <button onClick={() => adjustFontSize(1)} className={`${themeClasses.button} font-bold px-2.5 py-1 text-xs rounded transition-colors`} title="Aumentar fonte">A+</button>
-            <button onClick={() => adjustFontSize(-1)} className={`${themeClasses.button} font-bold px-2.5 py-1 text-xs rounded transition-colors`} title="Diminuir fonte">A-</button>
-            <button onClick={() => setFontSize(16)} className={`${themeClasses.button} font-bold px-2.5 py-1 text-xs rounded transition-colors`} title="Fonte padrão">A</button>
-            <button 
-              onClick={() => setHighContrast(!highContrast)} 
+
+            {/* Botão VLibras com visual padrão gov.br */}
+            <button onClick={toggleVLibras} className="vlibras-btn" title="VLibras - Acessibilidade em Libras">
+            <img src="/vlibras.png" alt="VLibras" />
+            <span>VLibras</span>
+          </button>
+
+            <button
+              onClick={() => adjustFontSize(1)}
+              className={`${themeClasses.button} font-bold px-2.5 py-1 text-xs rounded transition-colors`}
+              title="Aumentar fonte"
+            >A+</button>
+
+            <button
+              onClick={() => setFontSize(16)}
+              className={`${themeClasses.button} font-bold px-2.5 py-1 text-xs rounded transition-colors`}
+              title="Fonte padrão"
+            >A</button>
+
+            <button
+              onClick={() => adjustFontSize(-1)}
+              className={`${themeClasses.button} font-bold px-2.5 py-1 text-xs rounded transition-colors`}
+              title="Diminuir fonte"
+            >A-</button>
+
+            <button
+              onClick={() => setHighContrast(!highContrast)}
               className={`${themeClasses.button} px-2.5 py-1 text-xs rounded transition-colors flex items-center gap-1`}
               title={`Contraste: ${highContrast ? 'Alto' : 'Normal'}`}
             >
               <span>◐</span>
               <span className="hidden lg:inline">{highContrast ? 'Contraste' : 'Normal'}</span>
             </button>
+
           </div>
         </div>
 
@@ -277,7 +318,6 @@ export default function Header(props?: HeaderProps) {
                 onBlur={() => setTimeout(() => setShowResults(false), 200)}
                 className={`w-full px-4 py-2 text-sm border ${themeClasses.input} rounded focus:outline-none focus:ring-2 focus:ring-[#0d6efd] transition-colors`}
               />
-              
               {showResults && searchResults.length > 0 && (
                 <div className={`absolute top-full mt-1 w-full ${themeClasses.searchResult} border ${themeClasses.searchResultBorder} rounded shadow-lg z-50 max-h-64 overflow-y-auto`}>
                   {searchResults.map((result: any, idx) => (
@@ -351,7 +391,6 @@ export default function Header(props?: HeaderProps) {
             onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
             className={`w-full px-4 py-2 text-sm border ${themeClasses.input} rounded focus:outline-none focus:ring-2 focus:ring-[#0d6efd] transition-colors`}
           />
-          
           {showResults && searchResults.length > 0 && (
             <div className={`absolute top-full left-4 right-4 mt-1 ${themeClasses.searchResult} border ${themeClasses.searchResultBorder} rounded shadow-lg z-50 max-h-48 overflow-y-auto`}>
               {searchResults.map((result: any, idx) => (
@@ -389,9 +428,13 @@ export default function Header(props?: HeaderProps) {
         <div className={`px-4 py-3 border-t ${themeClasses.searchResultBorder}`}>
           <p className={`text-xs font-semibold mb-2 ${themeClasses.text}`}>ACESSIBILIDADE</p>
           <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={toggleVLibras} className="vlibras-btn" title="VLibras - Acessibilidade em Libras">
+              <img src="/vlibras.png" alt="VLibras" />
+              <span>VLibras</span>
+            </button>
             <button onClick={() => adjustFontSize(1)} className={`px-3 py-1.5 rounded text-xs font-bold ${themeClasses.button} transition-colors`}>A+</button>
-            <button onClick={() => adjustFontSize(-1)} className={`px-3 py-1.5 rounded text-xs font-bold ${themeClasses.button} transition-colors`}>A-</button>
             <button onClick={() => setFontSize(16)} className={`px-3 py-1.5 rounded text-xs font-bold ${themeClasses.button} transition-colors`}>A</button>
+            <button onClick={() => adjustFontSize(-1)} className={`px-3 py-1.5 rounded text-xs font-bold ${themeClasses.button} transition-colors`}>A-</button>
             <button onClick={() => setHighContrast(!highContrast)} className={`px-3 py-1.5 rounded text-xs ${themeClasses.button} transition-colors`}>
               ◐ {highContrast ? 'Contraste' : 'Normal'}
             </button>

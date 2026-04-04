@@ -6,7 +6,7 @@ import AbaGerarPdf from './AbaGerarPdf'
 import AbaHistorico from './AbaHistorico'
 import AbaArquivos from './AbaArquivos'
 import { FaFolderOpen } from 'react-icons/fa'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Header from './Header'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
@@ -55,6 +55,8 @@ interface BlocoExibicao {
   tipo: 'texto' | 'tabela' | 'pdf' | 'grafico' | 'arquivo_ftp'
   nome_tabela?: string
   mostrar_data?: boolean
+  coluna?: 1 | 2  
+  linhaId?: string 
   nome_pdf?: string
   arquivo_ftp_url?: string
   arquivo_ftp_nome?: string
@@ -429,6 +431,33 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
   const getPaginaBloco = (blocoId: string) => paginasPorBloco[blocoId] ?? 1
   const setPaginaBloco = (blocoId: string, p: number) => setPaginasPorBloco(prev => ({ ...prev, [blocoId]: p }))
 
+  // ← AQUI
+ const linhasAgrupadas = useMemo(() => {
+  const grupos: BlocoExibicao[][] = []
+  const visto = new Set<string>()
+  for (const bloco of blocosExibicao) {
+    if (visto.has(bloco.id)) continue
+    if (!bloco.linhaId) {
+      // Bloco sem linhaId — verifica se algum outro aponta para ele
+      const dependente = blocosExibicao.find(b => b.linhaId === bloco.id && !visto.has(b.id))
+      if (dependente) {
+        grupos.push([bloco, dependente])
+        visto.add(bloco.id); visto.add(dependente.id)
+      } else {
+        grupos.push([bloco])
+        visto.add(bloco.id)
+      }
+    } else {
+      // Bloco com linhaId — já foi processado junto com seu pai
+      if (!visto.has(bloco.id)) {
+        grupos.push([bloco])
+        visto.add(bloco.id)
+      }
+    }
+  }
+  return grupos
+}, [blocosExibicao])
+
   // ── Render tabela visitante com paginação e filtros ──
   const renderTabelaVisitante = (bloco: BlocoExibicao) => {
     const meta = tabelas.find(t => t.nome_tabela === bloco.nome_tabela)
@@ -440,12 +469,10 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
 
     let linhasBloco = linhasPorTabela[bloco.nome_tabela!] || []
 
-    // Filtro busca geral
     if (termoBusca.trim()) {
       linhasBloco = linhasBloco.filter(l => l.dados.some(d => d?.toLowerCase().includes(termoBusca.toLowerCase())))
     }
 
-    // Filtros por coluna
     const chaveFiltro = `${bloco.id}`
     Object.entries(filtrosColunas).forEach(([chave, valor]) => {
       if (chave.startsWith(chaveFiltro + '_') && valor.trim()) {
@@ -454,36 +481,32 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
       }
     })
 
-    const totalPaginas = Math.ceil(linhasBloco.length / PER_PAGE_VISITANTE)
     const sortInfo = sortPorBloco[bloco.id]
-      if (sortInfo) {
-        linhasBloco = [...linhasBloco].sort((a, b) => {
-          const va = String(a.dados[sortInfo.col] ?? '')
-          const vb = String(b.dados[sortInfo.col] ?? '')
-          const na = parseFloat(va.replace(/[^\d,.\-]/g, '').replace(',', '.'))
-          const nb = parseFloat(vb.replace(/[^\d,.\-]/g, '').replace(',', '.'))
-          const ambosNumericos = va.trim() !== '' && vb.trim() !== '' && !isNaN(na) && !isNaN(nb)
-          const cmp = ambosNumericos ? na - nb : va.localeCompare(vb, 'pt-BR', { sensitivity: 'base' })
-          return sortInfo.dir === 'asc' ? cmp : -cmp
-        })
-      }
-    const paginaAtual = getPaginaBloco(bloco.id)
+    if (sortInfo) {
+      linhasBloco = [...linhasBloco].sort((a, b) => {
+        const va = String(a.dados[sortInfo.col] ?? '')
+        const vb = String(b.dados[sortInfo.col] ?? '')
+        const na = parseFloat(va.replace(/[^\d,.\-]/g, '').replace(',', '.'))
+        const nb = parseFloat(vb.replace(/[^\d,.\-]/g, '').replace(',', '.'))
+        const ambosNumericos = va.trim() !== '' && vb.trim() !== '' && !isNaN(na) && !isNaN(nb)
+        const cmp = ambosNumericos ? na - nb : va.localeCompare(vb, 'pt-BR', { sensitivity: 'base' })
+        return sortInfo.dir === 'asc' ? cmp : -cmp
+      })
+    }
 
+    const totalPaginas = Math.ceil(linhasBloco.length / PER_PAGE_VISITANTE)
+    const paginaAtual = getPaginaBloco(bloco.id)
     const linhasPagina = linhasBloco.slice((paginaAtual - 1) * PER_PAGE_VISITANTE, paginaAtual * PER_PAGE_VISITANTE)
 
     return (
       <div className="overflow-x-auto">
         {meta.texto_intro && <div className={`text-sm mb-3 ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: meta.texto_intro }} />}
-
-        {/* Filtros por coluna */}
         {colsVisiveis.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
             {colsVisiveis.map(ci => (
               <div key={ci} className="flex flex-col">
                 <label className={`text-xs mb-0.5 ${hc ? 'text-yellow-300' : 'text-gray-500'}`}>{meta.colunas[ci]}</label>
-                <input
-                  type="text"
-                  placeholder={`Filtrar...`}
+                <input type="text" placeholder="Filtrar..."
                   value={filtrosColunas[`${chaveFiltro}_${ci}`] ?? ''}
                   onChange={e => setFiltrosColunas(prev => ({ ...prev, [`${chaveFiltro}_${ci}`]: e.target.value }))}
                   className={`px-2 py-1 text-xs border rounded w-32 ${hc ? 'bg-gray-800 border-yellow-300 text-yellow-300' : 'bg-white border-gray-300 text-black'}`}
@@ -491,24 +514,19 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
               </div>
             ))}
             {Object.keys(filtrosColunas).some(k => k.startsWith(chaveFiltro) && filtrosColunas[k]) && (
-              <button
-                onClick={() => setFiltrosColunas(prev => {
-                  const next = { ...prev }
-                  Object.keys(next).forEach(k => { if (k.startsWith(chaveFiltro)) delete next[k] })
-                  return next
-                })}
-                className="self-end px-2 py-1 text-xs bg-red-50 text-red-500 border border-red-200 rounded hover:bg-red-100"
-              >
+              <button onClick={() => setFiltrosColunas(prev => {
+                const next = { ...prev }
+                Object.keys(next).forEach(k => { if (k.startsWith(chaveFiltro)) delete next[k] })
+                return next
+              })} className="self-end px-2 py-1 text-xs bg-red-50 text-red-500 border border-red-200 rounded hover:bg-red-100">
                 Limpar filtros
               </button>
             )}
           </div>
         )}
-
         <p className={`text-xs mb-2 ${hc ? 'text-yellow-200' : 'text-gray-500'}`}>
           {linhasBloco.length} registro(s){totalPaginas > 1 && ` — página ${paginaAtual} de ${totalPaginas}`}
         </p>
-
         <table className="min-w-full border-collapse text-sm">
           <thead>
             <tr className="bg-blue-600 text-white">
@@ -517,10 +535,7 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                 const isActive = sorted?.col === ci
                 return (
                   <th key={ci}
-                    onClick={() => setSortPorBloco(prev => ({
-                      ...prev,
-                      [bloco.id]: { col: ci, dir: isActive && sorted.dir === 'asc' ? 'desc' : 'asc' }
-                    }))}
+                    onClick={() => setSortPorBloco(prev => ({ ...prev, [bloco.id]: { col: ci, dir: isActive && sorted.dir === 'asc' ? 'desc' : 'asc' } }))}
                     className="px-4 py-3 text-left font-semibold border border-blue-500 cursor-pointer select-none hover:bg-blue-700 transition">
                     <span className="flex items-center gap-1">
                       {meta.colunas[ci]}
@@ -557,18 +572,14 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
             ))}
           </tbody>
         </table>
-
-        {/* Paginação */}
         {totalPaginas > 1 && (
           <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
             <p className={`text-xs ${hc ? 'text-yellow-300' : 'text-gray-500'}`}>
               Mostrando {(paginaAtual - 1) * PER_PAGE_VISITANTE + 1}–{Math.min(paginaAtual * PER_PAGE_VISITANTE, linhasBloco.length)} de {linhasBloco.length}
             </p>
             <div className="flex items-center gap-1">
-              <button onClick={() => setPaginaBloco(bloco.id, 1)} disabled={paginaAtual === 1}
-                className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}>«</button>
-              <button onClick={() => setPaginaBloco(bloco.id, paginaAtual - 1)} disabled={paginaAtual === 1}
-                className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}><FaChevronLeft size={10} /></button>
+              <button onClick={() => setPaginaBloco(bloco.id, 1)} disabled={paginaAtual === 1} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}>«</button>
+              <button onClick={() => setPaginaBloco(bloco.id, paginaAtual - 1)} disabled={paginaAtual === 1} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}><FaChevronLeft size={10} /></button>
               {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
                 const p = Math.max(1, Math.min(totalPaginas - 4, paginaAtual - 2)) + i
                 return (
@@ -578,18 +589,16 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                   </button>
                 )
               })}
-              <button onClick={() => setPaginaBloco(bloco.id, paginaAtual + 1)} disabled={paginaAtual === totalPaginas}
-                className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}><FaChevronRight size={10} /></button>
-              <button onClick={() => setPaginaBloco(bloco.id, totalPaginas)} disabled={paginaAtual === totalPaginas}
-                className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}>»</button>
+              <button onClick={() => setPaginaBloco(bloco.id, paginaAtual + 1)} disabled={paginaAtual === totalPaginas} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}><FaChevronRight size={10} /></button>
+              <button onClick={() => setPaginaBloco(bloco.id, totalPaginas)} disabled={paginaAtual === totalPaginas} className={`px-2 py-1 rounded text-xs disabled:opacity-30 ${hc ? 'text-yellow-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}>»</button>
             </div>
           </div>
         )}
-
         {meta.texto_final && <div className={`text-sm mt-3 ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: meta.texto_final }} />}
       </div>
     )
   }
+
 
   // ── Render ──
   return (
@@ -741,6 +750,18 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                         const metaBloco = tabelas.find(t => t.nome_tabela === bloco.nome_tabela)
                         return (
                           <div key={bloco.id} className="border rounded-lg overflow-hidden">
+                            {idx > 0 && (bloco.linhaId === undefined || bloco.linhaId === bloco.id) && (
+                              <button onClick={() => {
+                                const anterior = blocosExibicao[idx - 1]
+                                const chaveAnterior = anterior.linhaId ?? anterior.id
+                                setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, linhaId: chaveAnterior } : b))
+                              }} className="text-blue-400 hover:text-blue-600 text-xs px-1" title="Colocar ao lado do anterior">⬅ Ao lado</button>
+                            )}
+                            {bloco.linhaId && bloco.linhaId !== bloco.id && (
+                              <button onClick={() => {
+                                setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, linhaId: undefined } : b))
+                              }} className="text-gray-400 hover:text-gray-600 text-xs px-1" title="Separar em linha própria">↕ Separar</button>
+                            )}
                             <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border-b">
                               <div className="flex flex-col gap-0.5">
                                 <button onClick={() => moverBloco(blocosExibicao, setBlocosExibicao, idx, 'cima')} disabled={idx === 0} className="text-black disabled:opacity-20"><FaArrowUp size={9} /></button>
@@ -1009,46 +1030,49 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                   {/* Conteúdo */}
                   <div className="p-6">
                     {blocosExibicao.length > 0 ? (
-                      blocosExibicao.map(bloco => (
-                        <div key={bloco.id} className="mb-8">
-                          {bloco.tipo === 'texto' && bloco.conteudo && (
-                            <div className={`text-sm ${hc ? 'text-yellow-200' : 'text-black'}`}
-                              dangerouslySetInnerHTML={{ __html: bloco.conteudo }} />
-                          )}
-                          {bloco.tipo === 'grafico' && (() => {
-                            const g = graficos.find(x => x.id === bloco.grafico_id)
-                            if (!g) return null
-                            return <RenderGrafico grafico={g} linhasPorTabela={linhasPorTabela} tabelas={tabelas} />
-                          })()}
-                          {bloco.tipo === 'tabela' && renderTabelaVisitante(bloco)}
-                          {bloco.tipo === 'pdf' && (() => {
-                            const pdf = pdfsSalvos.find(p => p.nome_pdf === bloco.nome_pdf)
-                            if (!pdf) return null
-                            return (
-                              <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
-                                <div className="flex items-center gap-2 mb-3">
-                                  <FaFilePdf className="text-red-600" />
-                                  <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{pdf.nome_pdf}</span>
-                                </div>
-                                <div style={{ height: 600 }}>
-                                  <iframe src={`data:application/pdf;base64,${pdf.pdf_base64}`} className="w-full h-full border-0 rounded" title={pdf.nome_pdf} />
-                                </div>
-                              </div>
-                            )
-                          })()}
-                          {bloco.tipo === 'arquivo_ftp' && bloco.arquivo_ftp_url && (
-                            <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
-                              <div className="flex items-center gap-2 mb-3">
-                                <FaFilePdf className="text-red-600" />
-                                <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{bloco.arquivo_ftp_nome}</span>
-                              </div>
-                              <div style={{ height: 600 }}>
-                                <iframe src={bloco.arquivo_ftp_url} className="w-full h-full border-0 rounded" title={bloco.arquivo_ftp_nome} />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))
+                      linhasAgrupadas.map((grupo, gi) => (
+                      <div key={gi} className={`mb-8 ${grupo.length === 2 ? 'flex gap-4' : ''}`}>
+                        {grupo.map(bloco => (
+  <div key={bloco.id} className={grupo.length === 2 ? 'flex-1 min-w-0' : ''}>
+    {bloco.tipo === 'texto' && bloco.conteudo && (
+      <div className={`text-sm ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: bloco.conteudo }} />
+    )}
+    {bloco.tipo === 'grafico' && (() => {
+      const g = graficos.find(x => x.id === bloco.grafico_id)
+      if (!g) return null
+      return <RenderGrafico grafico={g} linhasPorTabela={linhasPorTabela} tabelas={tabelas} />
+    })()}
+    {bloco.tipo === 'tabela' && renderTabelaVisitante(bloco)}
+    {bloco.tipo === 'pdf' && (() => {
+      const pdf = pdfsSalvos.find(p => p.nome_pdf === bloco.nome_pdf)
+      if (!pdf) return null
+      return (
+        <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
+          <div className="flex items-center gap-2 mb-3">
+            <FaFilePdf className="text-red-600" />
+            <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{pdf.nome_pdf}</span>
+          </div>
+          <div style={{ height: 600 }}>
+            <iframe src={`data:application/pdf;base64,${pdf.pdf_base64}`} className="w-full h-full border-0 rounded" title={pdf.nome_pdf} />
+          </div>
+        </div>
+      )
+    })()}
+    {bloco.tipo === 'arquivo_ftp' && bloco.arquivo_ftp_url && (
+      <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
+        <div className="flex items-center gap-2 mb-3">
+          <FaFilePdf className="text-red-600" />
+          <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{bloco.arquivo_ftp_nome}</span>
+        </div>
+        <div style={{ height: 600 }}>
+          <iframe src={bloco.arquivo_ftp_url} className="w-full h-full border-0 rounded" title={bloco.arquivo_ftp_nome} />
+        </div>
+      </div>
+    )}
+  </div>
+))}
+                      </div>
+                    ))
                     ) : (
                       // Fallback sem blocos configurados
                       <div className="overflow-x-auto">
