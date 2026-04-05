@@ -279,11 +279,25 @@ useEffect(() => {
         <div className={`border-b ${themeClasses.searchResultBorder}`}>
           <div className="max-w-7xl mx-auto px-4 py-1.5 flex justify-end items-center gap-2">
 
-            {/* Botão VLibras com visual padrão gov.br */}
-            <button onClick={toggleVLibras} className="vlibras-btn" title="VLibras - Acessibilidade em Libras">
-            <img src="/vlibras.png" alt="VLibras" />
-            <span>VLibras</span>
-          </button>
+
+            {/* Botão Caius */}
+            
+              href="https://wa.me/5583933008713"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="vlibras-btn"
+              title="Caius - Atendente Virtual"
+              style={{ background: '#099cc1' }}
+            >
+              <img src="/caius.png" alt="Caius" />
+              <span>Caius</span>
+            </a>
+
+            {/* Botão VLibras */}
+            <button onClick={toggleVLibras} className="vlibras-btn" title="VLibras">
+              <img src="/vlibras.png" alt="VLibras" />
+              <span>VLibras</span>
+            </button>
 
             <button
               onClick={() => adjustFontSize(1)}
@@ -468,6 +482,16 @@ useEffect(() => {
         <div className={`px-4 py-3 border-t ${themeClasses.searchResultBorder}`}>
           <p className={`text-xs font-semibold mb-2 ${themeClasses.text}`}>ACESSIBILIDADE</p>
           <div className="flex items-center gap-2 flex-wrap">
+              href="https://wa.me/5583933008713"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="vlibras-btn"
+              title="Caius - Atendente Virtual"
+              style={{ background: '#25D366' }}
+            >
+              <img src="/caius.png" alt="Caius" />
+              <span>Caius</span>
+            </a>
             <button onClick={toggleVLibras} className="vlibras-btn" title="VLibras - Acessibilidade em Libras">
               <img src="/vlibras.png" alt="VLibras" />
               <span>VLibras</span>
