@@ -394,38 +394,64 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
   }
 
   const baixar = async () => {
-    const meta = tabelaAtivaMeta
-    if (!meta) return
-    if (formatoDownload === 'pdf') {
-      const pdfsParaBaixar = pdfsSelecionados.length > 0 ? pdfsSalvos.filter(p => pdfsSelecionados.includes(p.nome_pdf)) : []
+  const meta = tabelaAtivaMeta
+  
+  // Verifica se há blocos de tabela no modo exibição
+  const temTabelaNaExibicao = blocosExibicao.some(b => b.tipo === 'tabela')
+  
+  if (formatoDownload === 'pdf') {
+    const pdfsParaBaixar = pdfsSelecionados.length > 0
+      ? pdfsSalvos.filter(p => pdfsSelecionados.includes(p.nome_pdf))
+      : pdfsSalvos
+
+    if (pdfsParaBaixar.length > 0) {
       for (const p of pdfsParaBaixar) {
-        const a = document.createElement('a'); a.href = `data:application/pdf;base64,${p.pdf_base64}`; a.download = `${p.nome_pdf}.pdf`; a.click()
+        const a = document.createElement('a')
+        a.href = `data:application/pdf;base64,${p.pdf_base64}`
+        a.download = `${p.nome_pdf}.pdf`
+        a.click()
       }
-      if (pdfsParaBaixar.length > 0) return
-      const b64 = await gerarPDFDownload(linhasFiltradas)
-      const a = document.createElement('a'); a.href = `data:application/pdf;base64,${b64}`; a.download = `${titulo}.pdf`; a.click()
       return
     }
-    const rows = linhasFiltradas.map(l => l.dados)
-    if (formatoDownload === 'json') {
-      const blob = new Blob([JSON.stringify({ titulo: meta.titulo_tabela, colunas: meta.colunas, linhas: rows }, null, 2)], { type: 'application/json' })
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${titulo}.json`; a.click(); return
+
+    if (!temTabelaNaExibicao) {
+      alert('Nenhum PDF disponível para download.')
+      return
     }
-    if (formatoDownload === 'csv') {
-      const blob = new Blob([[meta.colunas.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n')], { type: 'text/csv;charset=utf-8;' })
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${titulo}.csv`; a.click(); return
-    }
-    if (formatoDownload === 'txt') {
-      const blob = new Blob([[meta.colunas.join('\t'), ...rows.map(r => r.join('\t'))].join('\n')], { type: 'text/plain' })
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${titulo}.txt`; a.click(); return
-    }
-    if (formatoDownload === 'xlsx') {
-      const { utils, writeFile } = await import('xlsx')
-      const ws = utils.aoa_to_sheet([meta.colunas, ...rows])
-      const wb = utils.book_new(); utils.book_append_sheet(wb, ws, 'Dados')
-      writeFile(wb, `${titulo}.xlsx`); return
-    }
+
+    const b64 = await gerarPDFDownload(linhasFiltradas)
+    const a = document.createElement('a')
+    a.href = `data:application/pdf;base64,${b64}`
+    a.download = `${titulo}.pdf`
+    a.click()
+    return
   }
+
+  if (!meta || !temTabelaNaExibicao) {
+    alert('Nenhum dado disponível para exportar.')
+    return
+  }
+
+  const rows = linhasFiltradas.map(l => l.dados)
+  if (formatoDownload === 'json') {
+    const blob = new Blob([JSON.stringify({ titulo: meta.titulo_tabela, colunas: meta.colunas, linhas: rows }, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${titulo}.json`; a.click(); return
+  }
+  if (formatoDownload === 'csv') {
+    const blob = new Blob([[meta.colunas.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${titulo}.csv`; a.click(); return
+  }
+  if (formatoDownload === 'txt') {
+    const blob = new Blob([[meta.colunas.join('\t'), ...rows.map(r => r.join('\t'))].join('\n')], { type: 'text/plain' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${titulo}.txt`; a.click(); return
+  }
+  if (formatoDownload === 'xlsx') {
+    const { utils, writeFile } = await import('xlsx')
+    const ws = utils.aoa_to_sheet([meta.colunas, ...rows])
+    const wb = utils.book_new(); utils.book_append_sheet(wb, ws, 'Dados')
+    writeFile(wb, `${titulo}.xlsx`); return
+  }
+}
 
   // ── Helpers de paginação por bloco ──
   const getPaginaBloco = (blocoId: string) => paginasPorBloco[blocoId] ?? 1

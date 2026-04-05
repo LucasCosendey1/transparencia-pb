@@ -2,7 +2,7 @@
 
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -115,33 +115,44 @@ export default function Header(props?: HeaderProps) {
     }
   }, [])
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value
-    setSearchQuery(query)
-    
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current)
+  const loadCache = useCallback(async () => {
+  try {
+    const raw = localStorage.getItem('home-data-cache')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      return parsed.data?.buttons ?? []
     }
-    
-    if (query.length < 2) {
-      setShowResults(false)
-      setSearchResults([])
-      return
-    }
+    const res = await fetch('/api/home-data')
+    const data = await res.json()
+    localStorage.setItem('home-data-cache', JSON.stringify({ data, timestamp: Date.now() }))
+    return data.buttons ?? []
+  } catch { return [] }
+}, [])
 
-    searchTimeoutRef.current = setTimeout(async () => {
-      try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
-        const results = await response.json()
-        setSearchResults(results)
-        setShowResults(results.length > 0)
-      } catch (error) {
-        console.error('Erro ao buscar:', error)
-        setSearchResults([])
-        setShowResults(false)
-      }
-    }, 500)
+const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const query = e.target.value
+  setSearchQuery(query)
+
+  if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+
+  if (query.length < 2) {
+    setShowResults(false)
+    setSearchResults([])
+    return
   }
+
+  searchTimeoutRef.current = setTimeout(async () => {
+  const buttons = await loadCache()
+  const q = query.toLowerCase()
+  const results = buttons.filter((b: any) =>
+    b.titulo?.toLowerCase().includes(q) ||
+    b.description?.toLowerCase().includes(q) ||
+    b.chave?.toLowerCase().includes(q)
+  ).slice(0, 5)
+  setSearchResults(results)
+  setShowResults(results.length > 0)
+}, 150)
+}
 
   const handleResultClick = (result: any) => {
     if (result.caminho) {
@@ -192,7 +203,7 @@ useEffect(() => {
     { href: 'https://portal.itabaiana.pb.gov.br/perguntas-frequentes/',                      label: 'FAQ'           },
     { href: '/glossario',                                                                     label: 'Glossário'     },
     { href: 'https://transparencia.elmartecnologia.com.br/DadosAbertos?e=201089&ctx=201089', label: 'Dados Abertos' },
-    { href: 'https://transparencia.itabaiana.pb.gov.br/page-sitemap.xml',                    label: 'Mapa do Site'  },
+    { href: '/mapa-do-site',                    label: 'Mapa do Site'  },
   ]
 
   const getThemeClasses = () => {
@@ -340,7 +351,10 @@ useEffect(() => {
                 placeholder="Pesquisar páginas..."
                 value={searchQuery}
                 onChange={handleSearch}
-                onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
+                onFocus={async () => {
+                await loadCache()
+                  if (searchQuery.length >= 2) setShowResults(true)
+                }}
                 onBlur={() => setTimeout(() => setShowResults(false), 200)}
                 className={`w-full px-4 py-2 text-sm border ${themeClasses.input} rounded focus:outline-none focus:ring-2 focus:ring-[#0d6efd] transition-colors`}
               />
