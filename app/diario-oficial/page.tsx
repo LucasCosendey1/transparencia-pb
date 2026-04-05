@@ -2,7 +2,8 @@
 
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+
+import { useState, useEffect, useCallback  } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
@@ -12,7 +13,7 @@ import {
   FaHome, FaCog, FaEye, FaEdit, FaSave, FaTimes, FaSearch,
   FaFilePdf, FaExternalLinkAlt, FaAngleLeft, FaAngleRight,
   FaAngleDoubleLeft, FaAngleDoubleRight, FaNewspaper, FaPlus,
-  FaCalendarAlt, FaTag,
+  FaCalendarAlt, FaTag, FaUpload, FaSpinner,
 } from 'react-icons/fa'
 
 interface Diario {
@@ -95,6 +96,8 @@ export default function DiarioOficial() {
   const [diarios, setDiarios] = useState<Diario[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
+  const [uploadingPdf, setUploadingPdf] = useState(false)
+
 
   // Filtros
   const [busca, setBusca] = useState('')
@@ -348,11 +351,52 @@ export default function DiarioOficial() {
                             className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                         </div>
                         <div className="md:col-span-2">
-                          <label className="text-xs text-gray-600 block mb-1">URL do PDF *</label>
+                        <label className="text-xs text-gray-600 block mb-1">URL do PDF *</label>
+                        <div className="flex gap-2">
                           <input value={form.url || ''} onChange={e => setForm(p => ({ ...p, url: e.target.value }))}
-                            placeholder="https://..."
-                            className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            placeholder="https://... ou faça upload abaixo"
+                            className="flex-1 px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                         </div>
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs text-gray-400">ou</span>
+                          <label className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded cursor-pointer hover:bg-blue-700">
+                            {uploadingPdf ? <><FaSpinner className="animate-spin" size={10} /> Enviando...</> : <><FaUpload size={10} /> Upload PDF</>}
+                            <input type="file" accept="application/pdf" className="hidden"
+                              disabled={uploadingPdf}
+                              onChange={async e => {
+                                const file = e.target.files?.[0]
+                                if (!file) return
+                                setUploadingPdf(true)
+                                try {
+                                  const formData = new FormData()
+                                  formData.append('arquivo', file)
+                                  formData.append('pagina_id', 'diario-oficial')
+                                  formData.append('categoria', 'pdf')
+                                  const r = await fetch('/api/upload-arquivo', { method: 'POST', body: formData })
+                                  const d = await r.json()
+                                  if (!r.ok) throw new Error(d.error)
+                                  setForm(p => ({ ...p, url: d.arquivo?.url }))
+                                } catch (err: any) {
+                                  alert(`❌ Erro: ${err.message}`)
+                                } finally {
+                                  setUploadingPdf(false)
+                                }
+                              }} />
+                          </label>
+                          {form.url && (
+  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+    <FaFilePdf size={10} />
+    <span className="font-medium truncate max-w-[200px]" title={form.url}>
+      {form.url.split('/').pop() || 'arquivo.pdf'}
+    </span>
+    <button onClick={() => setForm(p => ({ ...p, url: '' }))}
+      className="ml-1 text-red-400 hover:text-red-600">
+      <FaTimes size={9} />
+    </button>
+  </div>
+)}
+                        </div>
+                      </div>
                         <div>
                           <label className="text-xs text-gray-600 block mb-1">Data de Publicação *</label>
                           <input type="date" value={form.data_publicacao || ''} onChange={e => setForm(p => ({ ...p, data_publicacao: e.target.value }))}
