@@ -1,3 +1,5 @@
+// components/AdvancedTextEditor.tsx
+
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
@@ -13,13 +15,12 @@ export default function AdvancedTextEditor() {
   const [isOpen, setIsOpen] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [manualSize, setManualSize] = useState('')
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
-  useEffect(() => {
-    setIsAdmin(localStorage.getItem('isAdmin') === 'true')
-  }, [])
+useEffect(() => {
+  setIsAdmin(localStorage.getItem('isAdmin') === 'true')
+}, [])
 
-  if (isAdmin === null || !isAdmin) return null
 
   const applyFormat = (command: string, value?: string) => {
     document.execCommand(command, false, value)
@@ -59,6 +60,9 @@ export default function AdvancedTextEditor() {
     '#8B0000', '#8B4513', '#2E8B57', '#191970', '#4B0082',
     '#800000', '#FF6347', '#FFD700', '#ADFF2F', '#7FFFD4',
   ]
+
+  if (!isAdmin) return null
+
 
   return (
     <>

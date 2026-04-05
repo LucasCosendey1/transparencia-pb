@@ -2,6 +2,7 @@
 
 'use client'
 
+import AdvancedTextEditor from '@/components/AdvancedTextEditor'
 import { useEffect } from 'react'
 import Header from '@/components/Header'
 import './globals.css'
@@ -36,6 +37,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
+      <AdvancedTextEditor />
       <HomeDataProvider>
         {children}
       </HomeDataProvider>

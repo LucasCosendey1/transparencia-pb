@@ -726,7 +726,7 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                         { label: 'Texto', tipo: 'texto' as const },
                         { label: 'Tabela', tipo: 'tabela' as const },
                         { label: 'PDF', tipo: 'pdf' as const, disabled: pdfsSalvos.length === 0 },
-                        { label: 'Arquivo FTP', tipo: 'arquivo_ftp' as const, disabled: arquivosFTP.length === 0 },
+                        { label: 'Arquivo FTP', tipo: 'arquivo_ftp' as const },
                         { label: 'Gráfico', tipo: 'grafico' as const, disabled: graficos.filter(g => g.aparecer_pagina).length === 0 },
                       ].map(({ label, tipo, disabled }) => (
                         <button key={tipo} disabled={disabled}
