@@ -251,31 +251,19 @@ body {
 }
 
 /* ============================================
-   VLIBRAS - SEM RETÂNGULO
+   VLIBRAS
    ============================================ */
-[vw] {
+[vw="true"] {
   position: fixed !important;
+  top: -9999px !important;
+  left: -9999px !important;
   z-index: 999999 !important;
 }
 
-[vw-access-button] {
-  position: fixed !important;
-  bottom: 20px !important;
-  right: 20px !important;
-  z-index: 999999 !important;
-}
-
-[vw-plugin-wrapper] {
-  z-index: 999998 !important;
-}
-
-/* Esconde o retângulo que aparece no hover */
-[vw-access-button] .vw-plugin-wrapper {
-  display: none !important;
-}
-
-[vw-access-button]:hover .vw-plugin-wrapper {
-  display: flex !important;
+[vw="true"].vlibras-active {
+  top: 50% !important;
+  left: initial !important;
+  right: 0px !important;
 }
 
 /* ============================================

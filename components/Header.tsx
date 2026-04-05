@@ -153,13 +153,37 @@ export default function Header(props?: HeaderProps) {
   }
 
   const toggleVLibras = () => {
-  const btn = document.querySelector('.vp-btn, [class*="vp-btn"], .vp-access-button') as HTMLElement
-  if (btn) {
-    btn.style.display = 'block'
-    btn.click()
-    setTimeout(() => { btn.style.display = 'none' }, 100)
+  const widget = document.querySelector('[vw="true"]') as HTMLElement
+  if (widget) {
+    widget.classList.add('vlibras-active')
+    const btn = widget.querySelector('[vw-access-button="true"]') as HTMLElement
+    if (btn) btn.click()
   }
 }
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    const widget = document.querySelector('[vw="true"]') as HTMLElement
+    if (widget) {
+      observer.observe(widget, { subtree: true, attributes: true, attributeFilter: ['class', 'style'] })
+      clearInterval(interval)
+    }
+  }, 500)
+
+  const observer = new MutationObserver(() => {
+    const widget = document.querySelector('[vw="true"]') as HTMLElement
+    const accessBtn = document.querySelector('[vw-access-button="true"]') as HTMLElement
+    if (!widget || !accessBtn) return
+    // O widget fecha quando vw-access-button perde a classe 'active' ou similar
+    // Verifica se o plugin wrapper está visível
+    const pluginWrapper = document.querySelector('[vw-plugin-wrapper="true"]') as HTMLElement
+    if (pluginWrapper && pluginWrapper.style.display === 'none') {
+      widget.classList.remove('vlibras-active')
+    }
+  })
+
+  return () => { observer.disconnect(); clearInterval(interval) }
+}, [])
 
   const navLinks = [
     { href: '/portal',                                                                        label: 'O Portal'      },
