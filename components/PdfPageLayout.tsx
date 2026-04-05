@@ -1,3 +1,5 @@
+// components/PdfPageLayout.tsx
+
 'use client'
 
 import GraficoEditor, { GraficoConfig, RenderGrafico } from '@/components/GraficoEditor'
@@ -6,7 +8,7 @@ import AbaGerarPdf from './AbaGerarPdf'
 import AbaHistorico from './AbaHistorico'
 import AbaArquivos from './AbaArquivos'
 import { FaFolderOpen } from 'react-icons/fa'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Header from './Header'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
@@ -93,9 +95,12 @@ const converterUrlArquivo = (texto: string) => {
   return texto
 }
 
+
+
 // ── Componente principal ──────────────────────────────────────
 
 export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
+  
   const { highContrast, fontSize } = usePreferences()
   const [isAdmin, setIsAdmin]           = useState(false)
   const [painelAberto, setPainelAberto] = useState(false)
@@ -136,7 +141,8 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
   const [dropdownFonte, setDropdownFonte]       = useState(false)
   const [tabelasSelecionadas, setTabelasSelecionadas] = useState<string[]>([])
   const [pdfsSelecionados, setPdfsSelecionados]       = useState<string[]>([])
-
+  const arquivosFTPCarregado = useRef(false)
+  
   const tabelaAtivaMeta = tabelas.find(t => t.nome_tabela === tabelaAtiva)
   const linhasFiltradas = termoBusca.trim()
     ? linhas.filter(l => l.dados.some(d => d?.toLowerCase().includes(termoBusca.toLowerCase())))
@@ -178,10 +184,10 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
 
   // Carrega arquivos FTP apenas se painel aberto OU se há blocos arquivo_ftp na página
   useEffect(() => {
-    if (painelAberto && isAdmin) {
-      carregarArquivosFTP()
-    }
-  }, [painelAberto, isAdmin, paginaId])
+  if (!painelAberto || !isAdmin || arquivosFTPCarregado.current) return
+  carregarArquivosFTP()
+  arquivosFTPCarregado.current = true
+}, [painelAberto, isAdmin])
 
   const carregar = async () => {
     setLoading(true)
@@ -243,6 +249,7 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
               ? dArquivos.filter(a => a.tipo === 'application/pdf').map(a => ({ nome: a.nome, url: a.url }))
               : []
             setArquivosFTP(pdfsFTP)
+              arquivosFTPCarregado.current = true
           }
         }
       }
@@ -457,28 +464,18 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
   const getPaginaBloco = (blocoId: string) => paginasPorBloco[blocoId] ?? 1
   const setPaginaBloco = (blocoId: string, p: number) => setPaginasPorBloco(prev => ({ ...prev, [blocoId]: p }))
 
-  // ← AQUI
  const linhasAgrupadas = useMemo(() => {
   const grupos: BlocoExibicao[][] = []
   const visto = new Set<string>()
   for (const bloco of blocosExibicao) {
     if (visto.has(bloco.id)) continue
-    if (!bloco.linhaId) {
-      // Bloco sem linhaId — verifica se algum outro aponta para ele
-      const dependente = blocosExibicao.find(b => b.linhaId === bloco.id && !visto.has(b.id))
-      if (dependente) {
-        grupos.push([bloco, dependente])
-        visto.add(bloco.id); visto.add(dependente.id)
-      } else {
-        grupos.push([bloco])
-        visto.add(bloco.id)
-      }
+    visto.add(bloco.id)
+    const filho = blocosExibicao.find(b => b.linhaId === bloco.id && !visto.has(b.id))
+    if (filho) {
+      visto.add(filho.id)
+      grupos.push([bloco, filho])
     } else {
-      // Bloco com linhaId — já foi processado junto com seu pai
-      if (!visto.has(bloco.id)) {
-        grupos.push([bloco])
-        visto.add(bloco.id)
-      }
+      grupos.push([bloco])
     }
   }
   return grupos
