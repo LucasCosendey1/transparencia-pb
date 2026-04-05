@@ -282,7 +282,7 @@ useEffect(() => {
 
             {/* Botão Caius */}
             
-              href="https://wa.me/5583933008713"
+            <a  href="https://wa.me/5583933008713"
               target="_blank"
               rel="noopener noreferrer"
               className="vlibras-btn"
@@ -482,7 +482,7 @@ useEffect(() => {
         <div className={`px-4 py-3 border-t ${themeClasses.searchResultBorder}`}>
           <p className={`text-xs font-semibold mb-2 ${themeClasses.text}`}>ACESSIBILIDADE</p>
           <div className="flex items-center gap-2 flex-wrap">
-              href="https://wa.me/5583933008713"
+           <a   href="https://wa.me/5583933008713"
               target="_blank"
               rel="noopener noreferrer"
               className="vlibras-btn"
