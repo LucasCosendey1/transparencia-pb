@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentação Completa - Transparencia-PB</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        header {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        
+        .meta-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .meta-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .meta-label {
+            font-size: 0.85em;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .meta-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        main {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+        
+        h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        h2:first-child {
+            margin-top: 0;
+        }
+        
+        h3 {
+            color: #764ba2;
+            font-size: 1.3em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+            color: #555;
+        }
+        
+        ul, ol {
+            margin-left: 25px;
+            margin-bottom: 20px;
+        }
+        
+        li {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        .component-card {
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            break-inside: avoid;
+        }
+        
+        .component-title {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        
+        .component-file {
+            color: #999;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .component-size {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            margin-bottom: 10px;
+        }
+        
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+        
+        pre {
+            background: #f9f9f9;
+            border: 1px solid #e1e1e1;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+            color: #333;
+            border-left: 4px solid #667eea;
+            font-size: 0.9em;
+            line-height: 1.5;
+            font-family: 'Courier New', 'Monaco', monospace;
+        }
+
+        pre code {
+            color: #333 !important;
+            background: transparent !important;
+            padding: 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-box {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border: 1px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            break-inside: avoid;
+        }
+        
+        .feature-title {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        
+        .feature-desc {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .tech-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-top: 3px solid #667eea;
+        }
+        
+        .tech-item strong {
+            color: #667eea;
+        }
+        
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-right: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .badge-context {
+            background: #17a2b8;
+        }
+        
+        .badge-lib {
+            background: #28a745;
+        }
+        
+        .badge-layout {
+            background: #e83e8c;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            padding: 20px;
+            margin-top: 40px;
+        }
+        
+        .print-note {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 30px;
+            border-radius: 5px;
+            color: #0c5aa0;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .container {
+                padding: 0;
+            }
+            
+            header, main {
+                box-shadow: none;
+                page-break-after: avoid;
+            }
+            
+            .component-card, .feature-box {
+                page-break-inside: avoid;
+            }
+            
+            h2 {
+                page-break-after: avoid;
+            }
+        }
+        
+        .toc {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        
+        .toc h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        
+        .toc ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+        }
+        
+        .toc a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .toc a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏛️ Documentação Completa</h1>
+            <p class="subtitle"><strong>Transparencia-PB</strong> - Portal de Transparência Pública</p>
+            
+            <div class="meta-info">
+                <div class="meta-box">
+                    <div class="meta-label">Repositório</div>
+                    <div class="meta-value">LucasCosendey1/transparencia-pb</div>
+                </div>
+                <div class="meta-box">
+                    <div class="meta-label">Linguagem Principal</div>
+                    <div class="meta-value">TypeScript (98.4%)</div>
+                </div>
+                <div class="meta-box">
+                    <div class="meta-label">Framework</div>
+                    <div class="meta-value">Next.js 16.1.6</div>
+                </div>
+                <div class="meta-box">
+                    <div class="meta-label">Produção</div>
+                    <div class="meta-value">https://transparencia-pb.vercel.app</div>
+                </div>
+                <div class="meta-box">
+                    <div class="meta-label">Banco de Dados</div>
+                    <div class="meta-value">MySQL</div>
+                </div>
+                <div class="meta-box">
+                    <div class="meta-label">Data da Criação</div>
+                    <div class="meta-value">~32 dias atrás</div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="print-note">
+                <strong>💡 Dica:</strong> Este documento pode ser salvo como PDF usando Ctrl+P (Windows/Linux) ou Cmd+P (Mac), seguido de "Salvar como PDF".
+            </div>
+
+            <div class="toc">
+                <h3>📑 Índice</h3>
+                <ul>
+                    <li><a href="#overview">Visão Geral</a></li>
+                    <li><a href="#tech-stack">Stack Tecnológico</a></li>
+                    <li><a href="#components">Componentes Detalhados</a></li>
+                    <li><a href="#contexts">Contexts (Estado Global)</a></li>
+                    <li><a href="#libs">Bibliotecas Auxiliares</a></li>
+                    <li><a href="#routes">Estrutura de Rotas</a></li>
+                    <li><a href="#features">Funcionalidades Principais</a></li>
+                    <li><a href="#getting-started">Guia de Início</a></li>
+                </ul>
+            </div>
+
+            <h2 id="overview">📋 Visão Geral do Projeto</h2>
+            
+            <p><strong>Transparencia-PB</strong> é uma plataforma de transparência governamental construída com Next.js, React e TypeScript. O projeto oferece acesso a informações públicas de forma clara, acessível e interativa, focando em dados orçamentários, contratos, licitações e outros documentos de interesse público do estado da Paraíba.</p>
+            
+            <h3>Objetivos Principais</h3>
+            <ul>
+                <li>✅ Disponibilizar dados públicos de forma acessível e transparente</li>
+                <li>✅ Permitir visualização e filtragem de dados com gráficos interativos</li>
+                <li>✅ Exportar dados em múltiplos formatos (Excel, PDF, CSV, JSON)</li>
+                <li>✅ Garantir acessibilidade com suporte a Libras e alto contraste</li>
+                <li>✅ Proporcionar interface responsiva para desktop e mobile</li>
+            </ul>
+
+            <h2 id="tech-stack">🛠️ Stack Tecnológico Detalhado</h2>
+            
+            <h3>Frontend</h3>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <strong>Next.js 16.1.6</strong><br>
+                    Framework React full-stack com App Router, SSR, e otimizações automáticas
+                </div>
+                <div class="tech-item">
+                    <strong>React 19.2.3</strong><br>
+                    Biblioteca UI moderna com hooks, context API e componentes funcionais
+                </div>
+                <div class="tech-item">
+                    <strong>TypeScript 5</strong><br>
+                    Tipagem estática para maior segurança e produtividade
+                </div>
+                <div class="tech-item">
+                    <strong>Tailwind CSS 4</strong><br>
+                    Framework CSS utilitário para estilização rápida e consistente
+                </div>
+            </div>
+
+            <h3>Backend & Dados</h3>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <strong>MySQL2 3.20.0</strong><br>
+                    Driver MySQL moderno para Node.js com suporte a promises
+                </div>
+                <div class="tech-item">
+                    <strong>Node.js (Runtime)</strong><br>
+                    Ambiente de execução JavaScript no servidor
+                </div>
+                <div class="tech-item">
+                    <strong>basic-ftp 5.2.0</strong><br>
+                    Cliente FTP para sincronização de dados
+                </div>
+            </div>
+
+            <h3>Segurança & Autenticação</h3>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <strong>JWT (jsonwebtoken 9.0.3)</strong><br>
+                    Token-based authentication para gerenciamento de sessões
+                </div>
+                <div class="tech-item">
+                    <strong>bcryptjs 3.0.3</strong><br>
+                    Hash criptográfico seguro de senhas
+                </div>
+            </div>
+
+            <h3>Visualização & Exportação</h3>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <strong>Recharts 3.8.0</strong><br>
+                    Biblioteca de gráficos React com suporte a múltiplos tipos
+                </div>
+                <div class="tech-item">
+                    <strong>XLSX 0.18.5</strong><br>
+                    Leitura e escrita de arquivos Excel (XLS, XLSX)
+                </div>
+                <div class="tech-item">
+                    <strong>jsPDF 4.2.1</strong><br>
+                    Geração de documentos PDF no navegador
+                </div>
+                <div class="tech-item">
+                    <strong>react-pdf 10.4.1</strong><br>
+                    Visualização de PDFs em componentes React
+                </div>
+            </div>
+
+            <h3>Acessibilidade</h3>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <strong>VLibras Next.js 1.1.2</strong><br>
+                    Integração de Libras para acessibilidade em linguagem de sinais
+                </div>
+                <div class="tech-item">
+                    <strong>react-icons 5.6.0</strong><br>
+                    Biblioteca de ícones SVG acessíveis
+                </div>
+            </div>
+
+            <h2 id="components">🧩 Componentes Detalhados</h2>
+
+            <div class="highlight">
+                <strong>ℹ️ Informação:</strong> O projeto contém <strong>15 componentes principais</strong> no diretório <code>/components</code>. Abaixo está o detalhamento de cada um.
+            </div>
+
+            <!-- Header Component -->
+            <div class="component-card">
+                <div class="component-title">Header.tsx</div>
+                <div class="component-file">components/Header.tsx</div>
+                <div class="component-size">20.6 KB</div>
+                <span class="badge badge-layout">Layout</span>
+                <span class="badge badge-context">Context Consumer</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Componente principal de navegação e header da aplicação. Oferece navegação completa, busca funcional, controles de acessibilidade (zoom, contraste, VLibras) e integração com o Caius (atendente virtual).</p>
+
+                <h4>Principais Funcionalidades</h4>
+                <ul>
+                    <li><strong>Navegação Responsiva:</strong> Menu desktop com dropdown mobile (hamburger)</li>
+                    <li><strong>Busca Global:</strong> Busca em tempo real por títulos e descrições de páginas</li>
+                    <li><strong>Controles de Acessibilidade:</strong> A+, A, A-, Contraste Alto, VLibras</li>
+                    <li><strong>Barra de Cores Dinâmica:</strong> Muda de cor ao scrollar entre seções temáticas</li>
+                    <li><strong>Integração Caius:</strong> Link para atendimento via WhatsApp</li>
+                    <li><strong>Cache Local:</strong> Armazena dados de navegação em localStorage</li>
+                </ul>
+
+                <h4>Props Esperadas</h4>
+                <ul>
+                    <li><code>highContrast?: boolean</code> - Modo de alto contraste</li>
+                    <li><code>fontSize?: number</code> - Tamanho da fonte em pixels</li>
+                    <li><code>adjustFontSize?: (change: number) => void</code> - Função para ajustar fonte</li>
+                    <li><code>setHighContrast?: (value: boolean) => void</code> - Função para toggle contraste</li>
+                    <li><code>setFontSize?: (size: number) => void</code> - Função para definir tamanho</li>
+                </ul>
+
+                <h4>Estados Gerenciados</h4>
+                <ul>
+                    <li><code>mobileOpen</code> - Menu mobile aberto/fechado</li>
+                    <li><code>searchQuery</code> - Termo de busca atual</li>
+                    <li><code>searchResults</code> - Resultados da busca</li>
+                    <li><code>isScrolled</code> - Indica se a página foi scrollada</li>
+                    <li><code>currentColor</code> - Cor atual da barra de animação</li>
+                </ul>
+            </div>
+
+            <!-- ApiPageLayout Component -->
+            <div class="component-card">
+                <div class="component-title">ApiPageLayout.tsx</div>
+                <div class="component-file">components/ApiPageLayout.tsx</div>
+                <div class="component-size">73.2 KB</div>
+                <span class="badge badge-layout">Layout</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Layout universal para páginas de dados que consomem APIs. Oferece visualização em tabelas e gráficos, filtros avançados, exportação de dados em múltiplos formatos e suporte a comparação entre períodos.</p>
+
+                <h4>Principais Funcionalidades</h4>
+                <ul>
+                    <li><strong>Visualização Dual:</strong> Abas para alternar entre Tabela e Gráficos</li>
+                    <li><strong>Filtros Avançados:</strong> Por ano, mês, movimento, busca e por coluna</li>
+                    <li><strong>Gráficos Múltiplos:</strong> 6 tipos diferentes (Barras, Linha, Pizza, Gauge, Comparação, etc)</li>
+                    <li><strong>Exportação:</strong> CSV, Excel, JSON, PDF, TXT, RTF</li>
+                    <li><strong>Agrupamento:</strong> Agrupa dados por coluna com totalizações</li>
+                    <li><strong>Paginação:</strong> 20 registros por página com navegação</li>
+                    <li><strong>Glossário:</strong> Termos e definições contextuais</li>
+                    <li><strong>Seleção de Colunas:</strong> Mostrar/ocultar colunas da tabela</li>
+                </ul>
+
+                <h4>Tipos de Gráficos Suportados</h4>
+                <ul>
+                    <li><strong>Combinado:</strong> Barras + Linhas para comparação</li>
+                    <li><strong>Pizza/Donut:</strong> Distribuição de proporções</li>
+                    <li><strong>Barras Horizontais:</strong> Ranking com rótulos longos</li>
+                    <li><strong>Evolução Mensal:</strong> Tendência temporal</li>
+                    <li><strong>Gauge:</strong> Indicador de meta/progresso</li>
+                    <li><strong>Comparação de Anos:</strong> Análise multianual</li>
+                </ul>
+
+                <h4>Formatos de Exportação</h4>
+                <table>
+                    <tr>
+                        <th>Formato</th>
+                        <th>Descrição</th>
+                        <th>Ícone</th>
+                    </tr>
+                    <tr>
+                        <td>CSV</td>
+                        <td>Valores separados por ponto-e-vírgula</td>
+                        <td>📊</td>
+                    </tr>
+                    <tr>
+                        <td>Excel (XLS)</td>
+                        <td>Planilha compatível com Excel</td>
+                        <td>📈</td>
+                    </tr>
+                    <tr>
+                        <td>JSON</td>
+                        <td>Formato de dados estruturado</td>
+                        <td>{ }</td>
+                    </tr>
+                    <tr>
+                        <td>PDF</td>
+                        <td>Documento imprimível com tabela</td>
+                        <td>📄</td>
+                    </tr>
+                    <tr>
+                        <td>TXT</td>
+                        <td>Texto simples com abas</td>
+                        <td>📝</td>
+                    </tr>
+                    <tr>
+                        <td>RTF</td>
+                        <td>Formato Rich Text</td>
+                        <td>✍️</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- AbaTabelas Component -->
+            <div class="component-card">
+                <div class="component-title">AbaTabelas.tsx</div>
+                <div class="component-file">components/AbaTabelas.tsx</div>
+                <div class="component-size">28.3 KB</div>
+                <span class="badge badge-layout">Admin</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Editor completo de tabelas para administradores. Permite criar, editar, deletar tabelas e importar dados de Excel/JSON com interface intuitiva de drag-and-drop.</p>
+
+                <h4>Principais Funcionalidades</h4>
+                <ul>
+                    <li><strong>CRUD Completo:</strong> Criar, ler, atualizar e deletar tabelas</li>
+                    <li><strong>Gerenciamento de Colunas:</strong> Adicionar, remover e reordenar colunas</li>
+                    <li><strong>Edição de Linhas:</strong> Adicionar, editar e deletar linhas com validação</li>
+                    <li><strong>Importação Avançada:</strong> Suporta Excel (.xlsx, .xls) e JSON</li>
+                    <li><strong>Detecção Automática:</strong> Detecta cabeçalhos e estrutura de dados</li>
+                    <li><strong>Paginação Local:</strong> Carrega mais linhas sob demanda</li>
+                    <li><strong>Perseverança ao Banco:</strong> Sincroniza com API em tempo real</li>
+                </ul>
+
+                <h4>Fluxo de Importação</h4>
+                <ol>
+                    <li>Selecionar arquivo Excel ou JSON</li>
+                    <li>Indicar se possui cabeçalho (linha de nomes de colunas)</li>
+                    <li>Escolher número da linha com cabeçalho (se aplicável)</li>
+                    <li>Decidir: Substituir todos os dados ou Acrescentar abaixo</li>
+                    <li>Importação confirmada com mensagem de sucesso</li>
+                </ol>
+            </div>
+
+            <!-- GraficoEditor Component -->
+            <div class="component-card">
+                <div class="component-title">GraficoEditor.tsx</div>
+                <div class="component-file">components/GraficoEditor.tsx</div>
+                <div class="component-size">52.5 KB</div>
+                <span class="badge badge-layout">Admin</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Editor visual de gráficos com preview em tempo real. Interface completa com drag-and-drop de colunas, seleção de tipo de gráfico, cores customizáveis e sugestões de IA baseadas nos dados.</p>
+
+                <h4>Tipos de Gráficos Disponíveis</h4>
+                <div class="section-grid">
+                    <div class="feature-box">
+                        <div class="feature-title">📊 Barras Verticais</div>
+                        <div class="feature-desc">Comparação simples de valores em formato de colunas</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-title">📈 Barras Horizontais</div>
+                        <div class="feature-desc">Ideal para rótulos longos e ranking de dados</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-title">📉 Linha</div>
+                        <div class="feature-desc">Visualiza evolução temporal ou tendências</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-title">🎨 Área</div>
+                        <div class="feature-desc">Linha com preenchimento para visual de tendência</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-title">🥧 Pizza</div>
+                        <div class="feature-desc">Distribuição de proporções em círculo</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-title">🍩 Donut</div>
+                        <div class="feature-desc">Pizza com centro vazio para espaço de informação</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-title">🎯 Gauge</div>
+                        <div class="feature-desc">Indicador circular de progresso/meta</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-title">🏷️ Card KPI</div>
+                        <div class="feature-desc">Destaque de valores-chave com barra de progresso</div>
+                    </div>
+                </div>
+
+                <h4>Operações de Dados Suportadas</h4>
+                <table>
+                    <tr>
+                        <th>Operação</th>
+                        <th>Símbolo</th>
+                        <th>Descrição</th>
+                    </tr>
+                    <tr>
+                        <td>Soma</td>
+                        <td>Σ</td>
+                        <td>Soma todos os valores da coluna</td>
+                    </tr>
+                    <tr>
+                        <td>Média</td>
+                        <td>x̄</td>
+                        <td>Calcula a média aritmética</td>
+                    </tr>
+                    <tr>
+                        <td>Contagem</td>
+                        <td>#</td>
+                        <td>Conta o número de registros</td>
+                    </tr>
+                    <tr>
+                        <td>Máximo</td>
+                        <td>↑</td>
+                        <td>Maior valor da coluna</td>
+                    </tr>
+                    <tr>
+                        <td>Mínimo</td>
+                        <td>↓</td>
+                        <td>Menor valor da coluna</td>
+                    </tr>
+                    <tr>
+                        <td>A × B</td>
+                        <td>×</td>
+                        <td>Multiplicação de duas colunas</td>
+                    </tr>
+                    <tr>
+                        <td>A ÷ B</td>
+                        <td>÷</td>
+                        <td>Divisão entre duas colunas</td>
+                    </tr>
+                    <tr>
+                        <td>A/B × 100%</td>
+                        <td>%</td>
+                        <td>Percentual de uma coluna sobre outra</td>
+                    </tr>
+                </table>
+
+                <h4>Paletas de Cores Predefinidas</h4>
+                <ul>
+                    <li><strong>Power BI:</strong> Cores corporativas vibrantes</li>
+                    <li><strong>Oceano:</strong> Tons azuis e verdes aquáticos</li>
+                    <li><strong>Pôr do Sol:</strong> Tons quentes e vibrantes</li>
+                    <li><strong>Floresta:</strong> Tons naturais verdes e terrosos</li>
+                    <li><strong>Mono:</strong> Escala cinza monocromática</li>
+                </ul>
+
+                <h4>Sugestão Automática de IA</h4>
+                <p>O componente analisa os dados e sugere o tipo de gráfico mais apropriado:</p>
+                <ul>
+                    <li>Se houver coluna de data → Recomenda Linha</li>
+                    <li>Se houver múltiplas colunas numéricas → Recomenda Barras</li>
+                    <li>Se houver poucas categorias → Recomenda Pizza/Donut</li>
+                </ul>
+            </div>
+
+            <!-- LoadingBar Component -->
+            <div class="component-card">
+                <div class="component-title">LoadingBar.tsx</div>
+                <div class="component-file">components/LoadingBar.tsx</div>
+                <div class="component-size">1 KB</div>
+                <span class="badge">Utilitário</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Componente minimalista que exibe uma barra de carregamento animada durante operações assíncronas.</p>
+            </div>
+
+            <!-- VLibrasWrapper Component -->
+            <div class="component-card">
+                <div class="component-title">VLibrasWrapper.tsx</div>
+                <div class="component-file">components/VLibrasWrapper.tsx</div>
+                <div class="component-size">162 bytes</div>
+                <span class="badge">Acessibilidade</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Wrapper que integra o VLibras (tradutor para Libras) em toda a aplicação, fornecendo acessibilidade para pessoas surdas.</p>
+            </div>
+
+            <!-- Layout Components -->
+            <div class="component-card">
+                <div class="component-title">PdfPageLayout.tsx</div>
+                <div class="component-file">components/PdfPageLayout.tsx</div>
+                <div class="component-size">61.7 KB</div>
+                <span class="badge badge-layout">Layout</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Layout especial para renderização e exibição de PDFs com dados tabulares, suportando blocos customizáveis, gráficos e formatação profissional.</p>
+            </div>
+
+            <!-- Specialized Layouts -->
+            <div class="component-card">
+                <div class="component-title">PlanoAcaoLayout.tsx</div>
+                <div class="component-file">components/PlanoAcaoLayout.tsx</div>
+                <div class="component-size">46.9 KB</div>
+                <span class="badge badge-layout">Especializado</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Layout especializado para visualização e edição de Planos de Ação com estrutura hierárquica, objetivos, metas e indicadores.</p>
+            </div>
+
+            <div class="component-card">
+                <div class="component-title">PlanoGovernoLayout.tsx</div>
+                <div class="component-file">components/PlanoGovernoLayout.tsx</div>
+                <div class="component-size">70.3 KB</div>
+                <span class="badge badge-layout">Especializado</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Layout completo para Plano de Governo com capítulos, seções, metas e indicadores de desempenho.</p>
+            </div>
+
+            <div class="component-card">
+                <div class="component-title">PmsLayout.tsx</div>
+                <div class="component-file">components/PmsLayout.tsx</div>
+                <div class="component-size">63.6 KB</div>
+                <span class="badge badge-layout">Especializado</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Layout para gerenciamento de PMS (Planejamento Municipal de Saúde) com integração de dados epidemiológicos.</p>
+            </div>
+
+            <!-- Editor Components -->
+            <div class="component-card">
+                <div class="component-title">AdvancedTextEditor.tsx</div>
+                <div class="component-file">components/AdvancedTextEditor.tsx</div>
+                <div class="component-size">11.7 KB</div>
+                <span class="badge">Editor</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Editor de texto avançado com suporte a formatação rich text, listas, tabelas e referências cruzadas.</p>
+            </div>
+
+            <!-- Admin Components -->
+            <div class="component-card">
+                <div class="component-title">AdminInactivityLogout.tsx</div>
+                <div class="component-file">components/AdminInactivityLogout.tsx</div>
+                <div class="component-size">1.1 KB</div>
+                <span class="badge">Segurança</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Monitora inatividade do usuário administrador e realiza logout automático por segurança após período configurável de inatividade.</p>
+            </div>
+
+            <!-- Aba Components -->
+            <div class="component-card">
+                <div class="component-title">AbaGerarPdf.tsx</div>
+                <div class="component-file">components/AbaGerarPdf.tsx</div>
+                <div class="component-size">14.4 KB</div>
+                <span class="badge">PDF</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Aba para geração de PDFs com layout customizável, seleção de elementos (gráficos, tabelas) e preview antes da geração.</p>
+            </div>
+
+            <div class="component-card">
+                <div class="component-title">AbaHistorico.tsx</div>
+                <div class="component-file">components/AbaHistorico.tsx</div>
+                <div class="component-size">5.5 KB</div>
+                <span class="badge">Auditoria</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Exibe histórico de modificações com timestamps, usuário responsável e alterações realizadas.</p>
+            </div>
+
+            <div class="component-card">
+                <div class="component-title">AbaArquivos.tsx</div>
+                <div class="component-file">components/AbaArquivos.tsx</div>
+                <div class="component-size">10.3 KB</div>
+                <span class="badge">Gerenciador</span>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Gerenciador de arquivos com upload, download, pré-visualização e metadados de documentos.</p>
+            </div>
+
+            <h2 id="contexts">🔄 Contexts (Gerenciamento de Estado Global)</h2>
+
+            <div class="component-card">
+                <div class="component-title">PreferencesContext.tsx</div>
+                <div class="component-file">contexts/PreferencesContext.tsx</div>
+                <div class="component-size">2.1 KB</div>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Context que gerencia preferências de acessibilidade do usuário como tamanho de fonte, modo de contraste alto e tema.</p>
+
+                <h4>Dados Gerenciados</h4>
+                <ul>
+                    <li><code>highContrast: boolean</code> - Modo de alto contraste ativado/desativado</li>
+                    <li><code>fontSize: number</code> - Tamanho da fonte em pixels (padrão: 16)</li>
+                    <li><code>setHighContrast: (value: boolean) => void</code> - Função para toggle</li>
+                    <li><code>setFontSize: (size: number) => void</code> - Função para definir tamanho</li>
+                    <li><code>adjustFontSize: (change: number) => void</code> - Função incremental</li>
+                </ul>
+
+                <h4>Armazenamento</h4>
+                <p>As preferências são salvas em <code>localStorage</code> com chave <code>'user-preferences'</code> para persistência entre sessões.</p>
+            </div>
+
+            <div class="component-card">
+                <div class="component-title">HomeDataContext.tsx</div>
+                <div class="component-file">contexts/HomeDataContext.tsx</div>
+                <div class="component-size">2.9 KB</div>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Context que gerencia dados da página inicial como botões de navegação, links rápidos e informações destacadas.</p>
+
+                <h4>Dados Gerenciados</h4>
+                <ul>
+                    <li><code>buttons: Array</code> - Array de botões/cards da home</li>
+                    <li><code>loading: boolean</code> - Indicador de carregamento</li>
+                    <li><code>error: string | null</code> - Mensagem de erro se houver</li>
+                    <li><code>refreshData: () => Promise<void></code> - Função para atualizar dados</li>
+                </ul>
+
+                <h4>Consumo de API</h4>
+                <p>Busca dados via <code>GET /api/home-data</code> e implementa cache em localStorage com chave <code>'home-data-cache'</code>.</p>
+            </div>
+
+            <h2 id="libs">📚 Bibliotecas Auxiliares</h2>
+
+            <div class="component-card">
+                <div class="component-title">lib/db.ts</div>
+                <div class="component-file">lib/db.ts</div>
+                <div class="component-size">449 bytes</div>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Configuração da conexão MySQL com pool de conexões para melhor performance e gerenciamento de recursos.</p>
+
+                <h4>Funcionalidades</h4>
+                <ul>
+                    <li>Pool de conexões MySQL2</li>
+                    <li>Configuração via variáveis de ambiente</li>
+                    <li>Tratamento de erros de conexão</li>
+                </ul>
+            </div>
+
+            <div class="component-card">
+                <div class="component-title">lib/ftp.ts</div>
+                <div class="component-file">lib/ftp.ts</div>
+                <div class="component-size">4.5 KB</div>
+
+                <h4 style="margin-top: 15px; color: #666;">Descrição</h4>
+                <p>Cliente FTP para sincronização de dados com servidor remoto, permitindo importação de planilhas e documentos.</p>
+
+                <h4>Funcionalidades</h4>
+                <ul>
+                    <li>Download de arquivos via FTP</li>
+                    <li>Upload de arquivos processados</li>
+                    <li>Listagem de diretórios remotos</li>
+                    <li>Tratamento de erros de conexão</li>
+                </ul>
+            </div>
+
+            <h2 id="routes">🗂️ Estrutura de Rotas (App Router)</h2>
+
+            <p>O projeto utiliza Next.js App Router com as seguintes rotas principais:</p>
+
+            <h3>Rotas Públicas</h3>
+            <table>
+                <tr>
+                    <th>Rota</th>
+                    <th>Descrição</th>
+                </tr>
+                <tr>
+                    <td><code>/</code></td>
+                    <td>Página inicial com cards de acesso rápido</td>
+                </tr>
+                <tr>
+                    <td><code>/portal</code></td>
+                    <td>Informações sobre o portal de transparência</td>
+                </tr>
+                <tr>
+                    <td><code>/contato</code></td>
+                    <td>Formulário de contato e fale conosco</td>
+                </tr>
+                <tr>
+                    <td><code>/glossario</code></td>
+                    <td>Glossário de termos técnicos</td>
+                </tr>
+                <tr>
+                    <td><code>/mapa-do-site</code></td>
+                    <td>Mapa de navegação do site</td>
+                </tr>
+                <tr>
+                    <td><code>/politica-privacidade</code></td>
+                    <td>Política de privacidade e proteção de dados</td>
+                </tr>
+            </table>
+
+            <h3>Rotas de Dados (Consultas Públicas)</h3>
+            <table>
+                <tr>
+                    <th>Categoria</th>
+                    <th>Exemplos de Rotas</th>
+                </tr>
+                <tr>
+                    <td>Receitas</td>
+                    <td>/receita-prevista, /receita-realizada, /receita-extra</td>
+                </tr>
+                <tr>
+                    <td>Despesas</td>
+                    <td>/despesa-fixada, /despesa-extra, /despesas-covid</td>
+                </tr>
+                <tr>
+                    <td>Licitações</td>
+                    <td>/licitacoes, /avisos-licitacao, /editais</td>
+                </tr>
+                <tr>
+                    <td>Contratos</td>
+                    <td>/contratos, /aditivos, /empenhos</td>
+                </tr>
+                <tr>
+                    <td>RH</td>
+                    <td>/folha-pagamento, /quadro-funcional, /estagiarios</td>
+                </tr>
+                <tr>
+                    <td>Saúde</td>
+                    <td>/programacao-saude, /servicos-saude, /lista-de-medicamentos</td>
+                </tr>
+                <tr>
+                    <td>Documentos</td>
+                    <td>/diario-oficial, /decretos, /portarias</td>
+                </tr>
+            </table>
+
+            <h3>Rotas Administrativas</h3>
+            <table>
+                <tr>
+                    <th>Rota</th>
+                    <th>Descrição</th>
+                    <th>Requer Auth?</th>
+                </tr>
+                <tr>
+                    <td><code>/admin</code></td>
+                    <td>Dashboard administrativo</td>
+                    <td>✅ Sim</td>
+                </tr>
+                <tr>
+                    <td><code>/admin/tabelas</code></td>
+                    <td>Gerenciador de tabelas</td>
+                    <td>✅ Sim</td>
+                </tr>
+                <tr>
+                    <td><code>/admin/graficos</code></td>
+                    <td>Editor de gráficos</td>
+                    <td>✅ Sim</td>
+                </tr>
+                <tr>
+                    <td><code>/admin/usuarios</code></td>
+                    <td>Gerenciamento de usuários</td>
+                    <td>✅ Sim</td>
+                </tr>
+                <tr>
+                    <td><code>/admin/configuracoes</code></td>
+                    <td>Configurações gerais</td>
+                    <td>✅ Sim</td>
+                </tr>
+            </table>
+
+            <h3>Rotas API (Backend)</h3>
+            <table>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Método</th>
+                    <th>Descrição</th>
+                </tr>
+                <tr>
+                    <td><code>/api/home-data</code></td>
+                    <td>GET</td>
+                    <td>Dados para página inicial</td>
+                </tr>
+                <tr>
+                    <td><code>/api/tabela/[pageId]</code></td>
+                    <td>GET, POST, DELETE</td>
+                    <td>CRUD de tabelas</td>
+                </tr>
+                <tr>
+                    <td><code>/api/linhas/[pageId]</code></td>
+                    <td>GET, POST, PUT, DELETE</td>
+                    <td>CRUD de linhas em tabelas</td>
+                </tr>
+                <tr>
+                    <td><code>/api/grafico/[pageId]</code></td>
+                    <td>GET, POST, PUT, DELETE</td>
+                    <td>CRUD de gráficos</td>
+                </tr>
+                <tr>
+                    <td><code>/api/auth/login</code></td>
+                    <td>POST</td>
+                    <td>Autenticação de usuários</td>
+                </tr>
+                <tr>
+                    <td><code>/api/auth/logout</code></td>
+                    <td>POST</td>
+                    <td>Encerrar sessão</td>
+                </tr>
+                <tr>
+                    <td><code>/api/upload</code></td>
+                    <td>POST</td>
+                    <td>Upload de arquivos</td>
+                </tr>
+            </table>
+
+            <h2 id="features">✨ Funcionalidades Principais</h2>
+
+            <h3>🔐 Autenticação e Segurança</h3>
+            <div class="section-grid">
+                <div class="feature-box">
+                    <div class="feature-title">JWT Tokens</div>
+                    <div class="feature-desc">Sistema de token-based authentication com renovação automática de sessão</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Hash de Senhas</div>
+                    <div class="feature-desc">Senhas criptografadas com bcryptjs com salt rounds configurável</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Logout por Inatividade</div>
+                    <div class="feature-desc">Encerramento automático de sessão após período de inatividade</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Controle de Acesso</div>
+                    <div class="feature-desc">Diferentes níveis de permissão para usuários e administradores</div>
+                </div>
+            </div>
+
+            <h3>📊 Visualização de Dados</h3>
+            <div class="section-grid">
+                <div class="feature-box">
+                    <div class="feature-title">Tabelas Interativas</div>
+                    <div class="feature-desc">Filtros, busca, ordenação e paginação com até 20 registros por página</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">6 Tipos de Gráficos</div>
+                    <div class="feature-desc">Barras, Linhas, Pizza, Gauge, Comparação de períodos e Card KPI</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Agrupamento de Dados</div>
+                    <div class="feature-desc">Agrupa registros por coluna com cálculos de totais automáticos</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Preview em Tempo Real</div>
+                    <div class="feature-desc">Visualização instantânea de gráficos conforme dados são configurados</div>
+                </div>
+            </div>
+
+            <h3>💾 Exportação de Dados</h3>
+            <div class="section-grid">
+                <div class="feature-box">
+                    <div class="feature-title">Excel (XLSX)</div>
+                    <div class="feature-desc">Exportação em formato Excel com formatação preservada</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">PDF</div>
+                    <div class="feature-desc">Geração de PDFs com tabelas, gráficos e layout customizável</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">CSV</div>
+                    <div class="feature-desc">Formato de valores separados por ponto-e-vírgula</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">JSON</div>
+                    <div class="feature-desc">Dados estruturados em formato JSON para integração</div>
+                </div>
+            </div>
+
+            <h3>♿ Acessibilidade</h3>
+            <div class="section-grid">
+                <div class="feature-box">
+                    <div class="feature-title">Libras (VLibras)</div>
+                    <div class="feature-desc">Tradução em tempo real para Linguagem Brasileira de Sinais</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Alto Contraste</div>
+                    <div class="feature-desc">Modo de alto contraste com cores otimizadas para deficientes visuais</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Ajuste de Fonte</div>
+                    <div class="feature-desc">Aumentar (A+), Padrão (A) ou Diminuir (A-) tamanho do texto</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Caius - Atendente Virtual</div>
+                    <div class="feature-desc">Integração com WhatsApp para suporte e orientações</div>
+                </div>
+            </div>
+
+            <h3>🎨 Customização</h3>
+            <div class="section-grid">
+                <div class="feature-box">
+                    <div class="feature-title">Paletas de Cores</div>
+                    <div class="feature-desc">5 paletas pré-definidas ou customização manual de cores por série</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Layouts Especializados</div>
+                    <div class="feature-desc">Layouts específicos para Plano de Ação, Plano de Governo, PMS</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Temas</div>
+                    <div class="feature-desc">Modo claro e escuro com suporte a preferências do sistema</div>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-title">Responsividade</div>
+                    <div class="feature-desc">Interface adaptável para desktop, tablet e mobile</div>
+                </div>
+            </div>
+
+            <h2 id="getting-started">🚀 Guia de Início Rápido</h2>
+
+            <h3>Pré-requisitos</h3>
+            <ul>
+                <li>Node.js 18+ instalado</li>
+                <li>MySQL 8.0+ configurado</li>
+                <li>npm ou yarn como gerenciador de pacotes</li>
+            </ul>
+
+            <h3>Instalação</h3>
+            <pre><code># 1. Clonar repositório
+git clone https://github.com/LucasCosendey1/transparencia-pb.git
+cd transparencia-pb
+
+# 2. Instalar dependências
+npm install
+
+# 3. Configurar variáveis de ambiente
+cp .env.example .env.local
+# Editar .env.local com credenciais do MySQL, JWT secret, etc.
+
+# 4. Iniciar servidor de desenvolvimento
+npm run dev
+
+# 5. Acessar aplicação
+# Abra http://localhost:3000 no navegador</code></pre>
+
+            <h3>Estrutura de Diretórios</h3>
+            <pre><code>transparencia-pb/
+├── app/                    # Rotas e páginas (Next.js App Router)
+│   ├── page.tsx           # Página inicial
+│   ├── layout.tsx         # Layout raiz
+│   ├── api/               # Rotas de API backend
+│   ├── [datapage]/        # Rotas dinâmicas de dados
+│   └── admin/             # Rotas administrativas
+├── components/            # Componentes React reutilizáveis
+│   ├── Header.tsx         # Navegação principal
+│   ├── ApiPageLayout.tsx  # Layout universal para dados
+│   ├── AbaTabelas.tsx     # Editor de tabelas
+│   ├── GraficoEditor.tsx  # Editor de gráficos
+│   └── ...
+├── contexts/              # Context API para estado global
+│   ├── PreferencesContext.tsx
+│   └── HomeDataContext.tsx
+├── lib/                   # Funções utilitárias
+│   ├── db.ts             # Conexão MySQL
+│   └── ftp.ts            # Cliente FTP
+├── public/                # Arquivos estáticos
+├── package.json           # Dependências do projeto
+├── tsconfig.json          # Configuração TypeScript
+├── tailwind.config.ts     # Configuração Tailwind CSS
+└── next.config.ts         # Configuração Next.js</code></pre>
+
+            <h3>Scripts Disponíveis</h3>
+            <table>
+                <tr>
+                    <th>Script</th>
+                    <th>Comando</th>
+                    <th>Descrição</th>
+                </tr>
+                <tr>
+                    <td>Desenvolvimento</td>
+                    <td><code>npm run dev</code></td>
+                    <td>Inicia servidor de desenvolvimento com hot-reload</td>
+                </tr>
+                <tr>
+                    <td>Build</td>
+                    <td><code>npm run build</code></td>
+                    <td>Compila aplicação para produção</td>
+                </tr>
+                <tr>
+                    <td>Produção</td>
+                    <td><code>npm start</code></td>
+                    <td>Inicia servidor otimizado de produção</td>
+                </tr>
+                <tr>
+                    <td>Lint</td>
+                    <td><code>npm run lint</code></td>
+                    <td>Verifica código com ESLint</td>
+                </tr>
+            </table>
+
+            <h3>Variáveis de Ambiente Essenciais</h3>
+            <pre><code># .env.local
+DATABASE_HOST=localhost
+DATABASE_USER=root
+DATABASE_PASSWORD=sua_senha
+DATABASE_NAME=transparencia_pb
+
+JWT_SECRET=sua_chave_secreta_longa_e_segura
+
+NEXT_PUBLIC_API_URL=http://localhost:3000
+NEXT_PUBLIC_VERCEL_URL=https://transparencia-pb.vercel.app
+
+# FTP (opcional)
+FTP_HOST=ftp.example.com
+FTP_USER=usuario
+FTP_PASSWORD=senha</code></pre>
+
+            <h3>Próximos Passos</h3>
+            <ol>
+                <li>Consulte a documentação das <strong>APIs</strong> em <code>/api</code></li>
+                <li>Explore os <strong>componentes</strong> reutilizáveis</li>
+                <li>Customize <strong>estilos</strong> usando Tailwind CSS</li>
+                <li>Configure <strong>variáveis de ambiente</strong> para seu ambiente</li>
+                <li>Implante em <strong>Vercel</strong> ou seu servidor preferido</li>
+            </ol>
+
+            <h2>📞 Suporte e Contato</h2>
+            
+            <div class="highlight">
+                <strong>ℹ️ Informações de Contato:</strong>
+                <ul>
+                    <li>📧 Email: contato@transparencia-pb.gov.br</li>
+                    <li>💬 WhatsApp: (83) 93300-8713 (Caius - Atendente Virtual)</li>
+                    <li>🔗 Repositório: https://github.com/LucasCosendey1/transparencia-pb</li>
+                    <li>🌐 Site: https://transparencia-pb.vercel.app</li>
+                </ul>
+            </div>
+
+            <h2>📄 Licença e Referências</h2>
+            
+            <p>Este projeto foi desenvolvido para promover a transparência e acesso à informação pública no estado da Paraíba.</p>
+
+            <p><strong>Versão da Documentação:</strong> 1.0 | <strong>Data:</strong> 6 de abril de 2026</p>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Transparencia-PB. Desenvolvido com ❤️ para transparência pública.</p>
+            <p>Documentação gerada automaticamente do repositório GitHub.</p>
+        </footer>
+    </div>
+</body>
+</html>
