@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -86,7 +86,11 @@ export default function AdminLoginPage() {
     }
   }
 
-  const nivelAtual = Number(localStorage.getItem('adminNivel') ?? 0)
+  const [nivelAtual, setNivelAtual] = useState(0)
+
+useEffect(() => {
+  setNivelAtual(Number(localStorage.getItem('adminNivel') ?? 0))
+}, [])
 
   return (
   <div className="fixed inset-0 z-[9999] bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center px-4 overflow-y-auto">
