@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePreferences } from '@/contexts/PreferencesContext'
 import Link from 'next/link'
 import Header from './Header'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
@@ -129,7 +130,7 @@ function ModalDiretriz({ diretriz, objetivos, metas, indice, onClose }: {
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
       onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}>
@@ -240,8 +241,7 @@ function ModalDiretriz({ diretriz, objetivos, metas, indice, onClose }: {
 
 // ── Componente principal ───────────────────────────────────────
 export default function PmsLayout({ paginaId, breadcrumb }: Props) {
-  const [fontSize, setFontSize] = useState(16)
-  const [highContrast, setHighContrast] = useState(false)
+  const { fontSize, highContrast, adjustFontSize, setFontSize, setHighContrast } = usePreferences()
   const [isAdmin, setIsAdmin] = useState(false)
   const [painelAberto, setPainelAberto] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -278,7 +278,6 @@ export default function PmsLayout({ paginaId, breadcrumb }: Props) {
   const [criandoGrafico, setCriandoGrafico] = useState(false)
 
   const hc = highContrast
-  const adjustFontSize = (n: number) => setFontSize(p => Math.max(12, Math.min(24, p + n)))
 
   useEffect(() => {
     setIsAdmin(localStorage.getItem('isAdmin') === 'true')
@@ -429,8 +428,7 @@ export default function PmsLayout({ paginaId, breadcrumb }: Props) {
 
   return (
     <div className={`min-h-screen ${hc ? 'bg-black' : 'bg-gray-50'}`} style={{ fontSize }}>
-      <Header highContrast={hc} fontSize={fontSize} adjustFontSize={adjustFontSize}
-        setHighContrast={setHighContrast} setFontSize={setFontSize} />
+      <Header />
 
       <div className={`${hc ? 'bg-black' : 'bg-white'} border-b mt-32`}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
