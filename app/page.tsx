@@ -414,7 +414,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-white/20 pt-6 flex flex-col md:flex-row justify-between items-center text-xs">
-            <p className="opacity-90">© 2025 Prefeitura Municipal de Itabaiana - Todos os direitos reservados</p>
+            <p className="opacity-90">© 2026 Prefeitura Municipal de Itabaiana - Todos os direitos reservados</p>
             <div className="flex space-x-4 mt-4 md:mt-0 relative">
               <FooterLink chave="politica-privacidade" defaultTitulo="Política de Privacidade" defaultCaminho="/politica-privacidade" isAdmin={isAdmin} footerData={footerData} onEdit={handleEditFooter} inline />
               <span className="opacity-50">|</span>

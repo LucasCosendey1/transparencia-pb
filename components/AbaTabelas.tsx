@@ -30,6 +30,7 @@ interface Linha {
 }
 
 interface AbaTabemasProps {
+  nivelAdmin?: number
   paginaId: string
   tabelas: TabelaMeta[]
   setTabelas: React.Dispatch<React.SetStateAction<TabelaMeta[]>>
@@ -51,6 +52,7 @@ export default function AbaTabelas({
   paginaId, tabelas, setTabelas, tabelaAtiva, setTabelaAtiva,
   linhas, setLinhas, linhasPorTabela, setLinhasPorTabela,
   salvando, setSalvando, salvarMeta, carregarLinhas,
+  nivelAdmin = 2,
 }: AbaTabemasProps) {
   const [novoNome, setNovoNome] = useState('')
   const [criandoNova, setCriandoNova] = useState(false)
@@ -332,12 +334,14 @@ export default function AbaTabelas({
                 }`}
               >
                 <span className="truncate">{t.nome_tabela}</span>
+                {nivelAdmin === 1 && (
                 <button
                   onClick={e => { e.stopPropagation(); deletarTabela(t.nome_tabela) }}
                   className={`opacity-0 group-hover:opacity-100 ${tabelaAtiva === t.nome_tabela ? 'text-white' : 'text-red-400'}`}
                 >
                   <FaTrash size={10} />
                 </button>
+                )}
               </div>
             </li>
           ))}
@@ -390,7 +394,9 @@ export default function AbaTabelas({
                     const c = [...t.colunas]; c[ci] = e.target.value; return { ...t, colunas: c }
                   }))} className="w-24 bg-transparent text-black text-xs focus:outline-none" />
                   <button onClick={() => moverColuna(ci, 'dir')} disabled={ci === tabelaAtivaMeta.colunas.length - 1} className="text-gray-400 hover:text-gray-600 disabled:opacity-20"><FaArrowDown size={8} /></button>
-                  <button onClick={() => removeColuna(ci)} className="text-red-400 hover:text-red-600"><FaTimes size={8} /></button>
+                  {nivelAdmin === 1 && (
+                    <button onClick={() => removeColuna(ci)} className="text-red-400 hover:text-red-600"><FaTimes size={8} /></button>
+                  )}
                 </div>
               ))}
             </div>
@@ -438,7 +444,9 @@ export default function AbaTabelas({
                 {linhasExibidas.map(l => (
                   <tr key={l.id} className="border-b hover:bg-gray-50">
                     <td className="p-1 text-center">
-                      <button onClick={() => deletarLinha(l.id)} className="text-red-400 hover:text-red-600"><FaTrash size={9} /></button>
+                      {nivelAdmin === 1 && (
+                        <button onClick={() => deletarLinha(l.id)} className="text-red-400 hover:text-red-600"><FaTrash size={9} /></button>
+                      )}
                     </td>
                     {tabelaAtivaMeta.colunas.map((_, ci) => (
                       <td key={ci} className="p-1">
@@ -570,10 +578,12 @@ export default function AbaTabelas({
                   Esta tabela já possui <strong>{linhas.length}</strong> linha(s). O que deseja fazer?
                 </p>
                 <div className="flex gap-2">
-                  <button onClick={() => setImportSubstituir(true)}
-                    className={`flex-1 py-3 rounded text-sm border-2 transition ${importSubstituir === true ? 'border-red-500 bg-red-50 text-red-700 font-semibold' : 'border-gray-200 text-black hover:border-red-300'}`}>
-                    🗑️ Substituir tudo
+                  <button disabled={nivelAdmin !== 1}
+                    onClick={() => setImportSubstituir(true)}
+                    className={`flex-1 py-3 rounded text-sm border-2 transition ${importSubstituir === true ? 'border-red-500 bg-red-50 text-red-700 font-semibold' : 'border-gray-200 text-black hover:border-red-300'} ${nivelAdmin !== 1 ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                    🗑️ Substituir tudo {nivelAdmin !== 1 && '(sem permissão)'}
                   </button>
+
                   <button onClick={() => setImportSubstituir(false)}
                     className={`flex-1 py-3 rounded text-sm border-2 transition ${importSubstituir === false ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold' : 'border-gray-200 text-black hover:border-blue-300'}`}>
                     ➕ Acrescentar abaixo
