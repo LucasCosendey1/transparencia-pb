@@ -138,6 +138,7 @@ const CARDS: { chave: string; icon: IconType; defaultTitulo: string }[] = [
   { chave: 'plano-de-governo',      icon: FaChartLine,        defaultTitulo: 'Execução do Plano de Governo' },
   { chave: 'plano-de-acao',         icon: FaClipboardCheck,   defaultTitulo: 'Plano de Ação TCE/PB' },
   { chave: 'pme',                   icon: FaGraduationCap,    defaultTitulo: 'Plano Municipal de Educação' },
+  { chave: 'assistencia-social',    icon: FaUserFriends,      defaultTitulo: 'Assistência Social' },
   { chave: 'relatorio-pme',         icon: FaBook,             defaultTitulo: 'Relatório do Plano Municipal de Educação' },
   { chave: 'lista-creches',         icon: FaBriefcaseMedical, defaultTitulo: 'Lista de Espera Creches' },
   { chave: 'primeira-infancia',     icon: FaUsers,            defaultTitulo: 'Diagnóstico Primeira Infância' },
@@ -159,7 +160,7 @@ const SECOES = [
   { titulo: 'Consultas sobre licitações, contratos e obras', color: 'orange' as const, chaves: ['avisos-licitacao','licitacoes','editais','documentos-licitacao','inexigibilidade','dispensas','adesoes-srp','plano-contratacao','sancionados','contratos','aditivos','gestores-contratos','ordem-pagamentos','mapa-obras','obras-paralisadas','fiscais-obras','convenios-celebrados'] },  { titulo: 'Consultas sobre responsabilidade fiscal',             color: 'indigo' as const, chaves: ['prestacoes-contas','relatorio-gestao','pareceres-tce','julgamentos-contas','rgf','rreo','ppa','loa','ldo-atual','ldo-projeto'] },
   { titulo: 'Consultas sobre a gestão municipal',                  color: 'green'  as const, chaves: ['plano-estrategico','estrutura-org','competencias','responsaveis-gestao','contatos','decretos','diario-oficial','faq','conselhos'] },
   { titulo: 'Consultas sobre participação cidadã',                 color: 'cyan'   as const, chaves: ['sic','esic','relatorio-sic','docs-classificados','docs-desclassificados','ouvidoria','ouvidoria-falabr','carta-servicos','plano-de-governo','plano-de-acao'] },
-  { titulo: 'Consultas sobre assistência social, educação, saúde & primeira infância', color: 'yellow' as const, chaves: ['pme','relatorio-pme','lista-creches','primeira-infancia','pms','programacao-saude','relatorio-saude','servicos-saude','especialidades','lista-regulacao','lista-medicamentos','estoque-farmacia'] },
+  { titulo: 'Consultas sobre assistência social, educação, saúde & primeira infância', color: 'yellow' as const, chaves: ['pme', 'assistencia-social', 'relatorio-pme','lista-creches','primeira-infancia','pms','programacao-saude','relatorio-saude','servicos-saude','especialidades','lista-regulacao','lista-medicamentos','estoque-farmacia'] },
 ]
 
 const CARD_MAP = Object.fromEntries(CARDS.map(c => [c.chave, c]))
