@@ -1,3 +1,5 @@
+// app/admin/page.tsx
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -70,7 +72,7 @@ export default function AdminLoginPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ username: novoUsername, password: novoPassword, nome: novoNome, nivel: novoNivel })
+        body: JSON.stringify({ username: novoUsername.replace(/\D/g, ''), password: novoPassword, nome: novoNome, nivel: novoNivel })
       })
       const data = await res.json()
       if (res.ok) {
@@ -151,8 +153,18 @@ useEffect(() => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Usuário (CPF)</label>
-              <input type="text" value={novoUsername} onChange={e => setNovoUsername(e.target.value)} required
-                placeholder="CPF sem pontuação"
+              <input type="text" value={novoUsername}
+                onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11)
+                  const masked = digits
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+                  setNovoUsername(masked)
+                }}
+                required
+                placeholder="000.000.000-00"
+                maxLength={14}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800" />
             </div>
             <div>

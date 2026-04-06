@@ -1,7 +1,5 @@
 // app/api/auth/login/route.ts
 
-// app/api/auth/login/route.ts
-
 import { NextResponse } from 'next/server'
 import mysql from 'mysql2/promise'
 import bcrypt from 'bcryptjs'
@@ -90,9 +88,10 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ success: true, message: 'Conta criada com sucesso' })
   } catch (error: any) {
-    if (error.name === 'JsonWebTokenError') {
-      return NextResponse.json({ message: 'Token inválido' }, { status: 401 })
-    }
-    return NextResponse.json({ message: 'Erro interno', details: error.message }, { status: 500 })
+  console.error('Erro PUT criar conta:', JSON.stringify(error), error.message)
+  if (error.name === 'JsonWebTokenError') {
+    return NextResponse.json({ message: 'Token inválido' }, { status: 401 })
   }
+  return NextResponse.json({ message: 'Erro interno', details: error.message }, { status: 500 })
+}
 }
