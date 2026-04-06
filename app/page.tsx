@@ -390,11 +390,26 @@ export default function HomePage() {
             <div>
               <h3 className="font-bold mb-4 text-sm uppercase tracking-wide border-b-2 border-[#ffc107] pb-2 inline-block">Contato</h3>
               <div className="text-sm space-y-3 mt-4">
-                <div><p className="font-semibold mb-1">PREFEITURA MUNICIPAL DE ITABAIANA</p><p className="text-xs opacity-90">Itabaiana - PB</p></div>
-                <div className="flex items-start space-x-2"><span className="text-[#ffc107]">📍</span><p className="text-xs opacity-90">Endereço da prefeitura<br/>CEP: 00000-000</p></div>
-                <div className="flex items-center space-x-2"><span className="text-[#ffc107]">📞</span><p className="text-xs opacity-90">(83) 0000-0000</p></div>
-                <div className="flex items-center space-x-2"><span className="text-[#ffc107]">✉️</span><p className="text-xs opacity-90">contato@itabaiana.pb.gov.br</p></div>
-                <div className="pt-3"><p className="text-xs font-semibold mb-2">Redes Sociais:</p><div className="flex space-x-3"><a href="#" className="hover:text-[#ffc107] transition text-xl">📘</a><a href="#" className="hover:text-[#ffc107] transition text-xl">📷</a><a href="#" className="hover:text-[#ffc107] transition text-xl">▶️</a></div></div>
+                <div>
+                  <p className="font-semibold mb-1">PREFEITURA MUNICIPAL DE ITABAIANA</p>
+                  <p className="text-xs opacity-90">CNPJ: 09.072.430/0001-93</p>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <span className="text-[#ffc107]">📍</span>
+                  <p className="text-xs opacity-90">Avenida Presidente João Pessoa, 422/430<br/>Centro, Itabaiana-PB</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[#ffc107]">📞</span>
+                  <p className="text-xs opacity-90">(83) 93300-8713</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[#ffc107]">✉️</span>
+                  <p className="text-xs opacity-90">contato@itabaiana.pb.gov.br</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[#ffc107]">🌐</span>
+                  <a href="https://itabaiana.pb.gov.br" target="_blank" rel="noopener noreferrer" className="text-xs opacity-90 hover:text-[#ffc107] transition">itabaiana.pb.gov.br</a>
+                </div>
               </div>
             </div>
           </div>
