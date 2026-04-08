@@ -184,6 +184,13 @@ export default function HomePage() {
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set())
 
   const { buttonsData, footerData, ultimasAt, refetch } = useHomeData()
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+
+useEffect(() => {
+  const fn = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY })
+  window.addEventListener('mousemove', fn)
+  return () => window.removeEventListener('mousemove', fn)
+}, [])
 
   useEffect(() => {
     setIsAdmin(localStorage.getItem('isAdmin') === 'true')
@@ -304,7 +311,7 @@ export default function HomePage() {
             const sectionId = secao.titulo.toLowerCase().replace(/\s+/g, '-')
             const isVisible = visibleSections.has(sectionId)
             return (
-              <Section key={secao.titulo} title={secao.titulo} color={secao.color} visible={isVisible}>
+              <Section key={secao.titulo} title={secao.titulo} color={secao.color} visible={isVisible} mousePos={mousePos}>
                 {secao.chaves.map((chave, cardIndex) => {
                   const def = CARD_MAP[chave]
                   if (!def) return null
@@ -436,9 +443,32 @@ export default function HomePage() {
 // ── Section ───────────────────────────────────────────────────
 type SectionColor = 'yellow' | 'blue' | 'pink' | 'orange' | 'indigo' | 'green' | 'cyan'
 
-function Section({ title, color, children, visible }: {
+function Section({ title, color, children, visible, mousePos }: {
   title: string; color: SectionColor; children: React.ReactNode; visible?: boolean
+  mousePos: { x: number; y: number }
 }) {
+  const titleRef = useRef<HTMLHeadingElement>(null)
+
+  const colorMap: Record<SectionColor, string> = {
+    yellow: '#ffc107', blue: '#0d6efd', pink: '#e91e63',
+    orange: '#ff9800', indigo: '#5c6bc0', green: '#8bc34a', cyan: '#00bcd4',
+  }
+
+  const spotlightStyle = (() => {
+    if (!titleRef.current) return { color: '#374151' }
+    const rect = titleRef.current.getBoundingClientRect()
+    const x = mousePos.x - rect.left
+    const y = mousePos.y - rect.top
+    const cor = colorMap[color]
+    return {
+      background: `radial-gradient(circle 80px at ${x}px ${y}px, ${cor} 0%, ${cor}88 30%, #374151 70%)`,
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      backgroundClip: 'text',
+      color: 'transparent',
+    }
+  })()
+
   const underline = {
     yellow: 'bg-gradient-to-r from-transparent via-[#ffc107] to-transparent',
     blue:   'bg-gradient-to-r from-transparent via-[#0d6efd] to-transparent',
@@ -448,6 +478,7 @@ function Section({ title, color, children, visible }: {
     green:  'bg-gradient-to-r from-transparent via-[#8bc34a] to-transparent',
     cyan:   'bg-gradient-to-r from-transparent via-[#00bcd4] to-transparent',
   }
+
   return (
     <section
       className={`mb-16 transition-all ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
@@ -455,7 +486,13 @@ function Section({ title, color, children, visible }: {
       id={title.toLowerCase().replace(/\s+/g, '-')}
       data-section
     >
-      <h2 className="text-3xl font-bold text-center mb-3 text-gray-700">{title}</h2>
+      <h2
+        ref={titleRef}
+        className="text-3xl font-bold text-center mb-3"
+        style={spotlightStyle}
+      >
+        {title}
+      </h2>
       <div className={`h-1 w-64 mx-auto mb-8 ${underline[color]}`} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{children}</div>
     </section>
@@ -595,6 +632,7 @@ function Carousel() {
     const t = setInterval(() => setCurrent(p => (p + 1) % slides.length), 30000)
     return () => clearInterval(t)
   }, [slides.length])
+
 
   return (
     <div className="relative rounded-lg overflow-hidden shadow-xl">
