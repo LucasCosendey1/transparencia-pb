@@ -485,27 +485,29 @@ function Section({ title, color, children, visible, mousePos }: {
       id={title.toLowerCase().replace(/\s+/g, '-')}
       data-section
     >
-      <h2 ref={titleRef} className="text-3xl font-bold text-center mb-3 relative">
-  <span
-    className="absolute inset-0"
-    style={{
-      background: (() => {
-        if (!titleRef.current) return 'transparent'
-        const rect = titleRef.current.getBoundingClientRect()
-        const x = mousePos.x - rect.left
-        const y = mousePos.y - rect.top
-        return `radial-gradient(circle 80px at ${x}px ${y}px, ${colorMap[color]} 0%, ${colorMap[color]}44 40%, transparent 70%)`
-      })(),
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text',
-    }}
-    aria-hidden="true"
-  >
-    {title}
-  </span>
-  <span className="text-gray-700">{title}</span>
-</h2>
+      <h2 ref={titleRef} className="text-3xl font-bold text-center mb-3 relative select-none">
+        <span className="text-gray-700">{title}</span>
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 flex items-center justify-center"
+          style={{
+            background: (() => {
+              if (!titleRef.current) return 'transparent'
+              const rect = titleRef.current.getBoundingClientRect()
+              const x = mousePos.x - rect.left
+              const y = mousePos.y - rect.top
+              const cor = colorMap[color]
+              return `radial-gradient(circle 80px at ${x}px ${y}px, ${cor} 0%, ${cor}99 25%, transparent 60%)`
+            })(),
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            mixBlendMode: 'multiply',
+          }}
+        >
+          {title}
+        </span>
+      </h2>
       <div className={`h-1 w-64 mx-auto mb-8 ${underline[color]}`} />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{children}</div>
     </section>
