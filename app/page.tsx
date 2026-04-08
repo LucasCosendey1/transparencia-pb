@@ -455,19 +455,18 @@ function Section({ title, color, children, visible, mousePos }: {
   }
 
   const spotlightStyle = (() => {
-    if (!titleRef.current) return { color: '#374151' }
-    const rect = titleRef.current.getBoundingClientRect()
-    const x = mousePos.x - rect.left
-    const y = mousePos.y - rect.top
-    const cor = colorMap[color]
-    return {
-      background: `radial-gradient(circle 80px at ${x}px ${y}px, ${cor} 0%, ${cor}88 30%, #374151 70%)`,
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      backgroundClip: 'text',
-      color: 'transparent',
-    }
-  })()
+  if (!titleRef.current) return {}
+  const rect = titleRef.current.getBoundingClientRect()
+  const x = mousePos.x - rect.left
+  const y = mousePos.y - rect.top
+  const cor = colorMap[color]
+  return {
+    background: `radial-gradient(circle 80px at ${x}px ${y}px, ${cor} 0%, ${cor}44 40%, transparent 70%), linear-gradient(#374151, #374151)`,
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+  }
+})()
 
   const underline = {
     yellow: 'bg-gradient-to-r from-transparent via-[#ffc107] to-transparent',
