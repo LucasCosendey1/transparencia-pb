@@ -61,7 +61,6 @@ const CARDS: { chave: string; icon: IconType; defaultTitulo: string }[] = [
   { chave: 'liquidacao',            icon: FaCheckCircle,      defaultTitulo: 'Liquidação' },
   { chave: 'despesa-extra',         icon: FaMoneyBillWave,    defaultTitulo: 'Despesa Extra Orçamentária' },
   { chave: 'restos-pagar',          icon: FaFileInvoiceDollar,defaultTitulo: 'Restos à Pagar' },
-  { chave: 'cronograma-pagamentos', icon: FaCalendarAlt,      defaultTitulo: 'Cronograma de Pagamentos' },
   { chave: 'diarias-viagens',       icon: FaMapMarkedAlt,     defaultTitulo: 'Diárias e Viagens' },
   { chave: 'convenios-estaduais',   icon: FaHandHoldingUsd,   defaultTitulo: 'Convênios Estaduais' },
   { chave: 'convenios-federais',    icon: FaHandHoldingUsd,   defaultTitulo: 'Convênios Federais' },
@@ -154,7 +153,7 @@ const CARDS: { chave: string; icon: IconType; defaultTitulo: string }[] = [
 
 const SECOES = [
   { titulo: 'LGPD & Governo Digital',                              color: 'yellow' as const, chaves: ['encarregado-dados','politica-privacidade','prefeitura-digital','decreto-governo-digital','pesquisa-satisfacao','governanca-compliance','regulamentacao-lgpd','regulamentacao-lai'] },
-  { titulo: 'Consultas sobre despesas',                            color: 'green'  as const, chaves: ['despesa-fixada','empenhos','subempenhos','pagamentos','liquidacao','despesa-extra','restos-pagar','cronograma-pagamentos','diarias-viagens','convenios-estaduais','convenios-federais','transferencia-realizada','tabela-diarias','despesas-covid'] },
+  { titulo: 'Consultas sobre despesas',                            color: 'green'  as const, chaves: ['despesa-fixada','empenhos','subempenhos','pagamentos','liquidacao','despesa-extra','restos-pagar','diarias-viagens','convenios-estaduais','convenios-federais','transferencia-realizada','tabela-diarias','despesas-covid'] },
   { titulo: 'Consultas sobre receitas',                            color: 'blue'   as const, chaves: ['receita-prevista','receita-realizada','receita-extra','divida-ativa','receitas-covid','desoneracoes','renuncia-fiscal','beneficiarios','incentivo-cultura','emendas-federais','emendas-estaduais','transferencias-especiais','recursos-federais'] },
   { titulo: 'Consultas sobre recursos humanos',                    color: 'pink'   as const, chaves: ['folha-pagamento','quadro-funcional','temporarios','cedidos','requisitados','plano-cargos','folha-covid','estagiarios','terceirizados','selecoes'] },
   { titulo: 'Consultas sobre licitações, contratos e obras', color: 'orange' as const, chaves: ['avisos-licitacao','licitacoes','editais','documentos-licitacao','inexigibilidade','dispensas','adesoes-srp','plano-contratacao','sancionados','contratos','aditivos','gestores-contratos','ordem-pagamentos','mapa-obras','obras-paralisadas','fiscais-obras','convenios-celebrados'] },  { titulo: 'Consultas sobre responsabilidade fiscal',             color: 'indigo' as const, chaves: ['prestacoes-contas','relatorio-gestao','pareceres-tce','julgamentos-contas','rgf','rreo','ppa','loa','ldo-atual','ldo-projeto'] },
