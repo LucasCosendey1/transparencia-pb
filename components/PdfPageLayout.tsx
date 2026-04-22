@@ -65,7 +65,8 @@ interface BlocoExibicao {
   grafico_id?: string
   conteudo?: string
   expandido?: boolean
-  colunas_visiveis?: number[] // índices das colunas a exibir na página
+  colunas_visiveis?: number[] 
+  modo_cards?: boolean
 }
 
 interface PdfSalvo {
@@ -623,7 +624,150 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
   }
 
 
-  // ── Render ──
+  const COR_MES_CARDS = [
+    'bg-blue-600','bg-purple-600','bg-green-700','bg-teal-600',
+    'bg-cyan-600','bg-indigo-600','bg-orange-600','bg-yellow-600',
+    'bg-amber-600','bg-lime-700','bg-emerald-600','bg-sky-700',
+  ]
+
+  const [cardsExpandidos, setCardsExpandidos] = useState<Set<string>>(new Set())
+
+const renderCardsVisitante = (bloco: BlocoExibicao) => {
+  const meta = tabelas.find(t => t.nome_tabela === bloco.nome_tabela)
+  if (!meta) return null
+
+  const colsVisiveis = bloco.colunas_visiveis && bloco.colunas_visiveis.length > 0
+    ? bloco.colunas_visiveis
+    : meta.colunas.map((_, i) => i)
+
+  const linhasBloco = linhasPorTabela[bloco.nome_tabela!] || []
+
+  const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+
+  // Agrupa por mês/ano usando created_at
+  const grupos: Record<string, { mesNum: number; ano: number; label: string; linhas: Linha[] }> = {}
+  for (const linha of linhasBloco) {
+    const d = new Date(linha.created_at)
+    const chave = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`
+    if (!grupos[chave]) grupos[chave] = {
+      mesNum: d.getMonth(), ano: d.getFullYear(),
+      label: `${MESES_NOME[d.getMonth()]} ${d.getFullYear()}`,
+      linhas: [],
+    }
+    grupos[chave].linhas.push(linha)
+  }
+
+  const gruposOrdenados = Object.entries(grupos).sort((a, b) => b[0].localeCompare(a[0]))
+  const CARDS_PER_PAGE = 50
+  const paginaCards = getPaginaBloco(`${bloco.id}_cards`)
+  const totalPaginasCards = Math.ceil(gruposOrdenados.length / CARDS_PER_PAGE)
+  const gruposPagina = gruposOrdenados.slice((paginaCards - 1) * CARDS_PER_PAGE, paginaCards * CARDS_PER_PAGE)
+
+  return (
+  <div>
+    {meta.texto_intro && <div className={`text-sm mb-3 ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: meta.texto_intro }} />}
+    
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {gruposPagina.map(([chave, grupo]) => {
+        const cardKey = `${bloco.id}_${chave}`
+        const expandido = cardsExpandidos.has(cardKey)
+        const cor = COR_MES_CARDS[grupo.mesNum]
+        return (
+          <div key={chave} className={`rounded-xl border-2 bg-white transition-all hover:shadow-md ${expandido ? 'border-blue-500' : 'border-gray-200 hover:border-blue-400'}`}>
+            <button onClick={() => setCardsExpandidos(prev => {
+              const next = new Set(prev)
+              next.has(cardKey) ? next.delete(cardKey) : next.add(cardKey)
+              return next
+            })} className="w-full text-left">
+              <div className={`${cor} px-4 py-3 flex items-center gap-3 rounded-t-xl`}>
+                <div className="bg-white/20 rounded-lg px-3 py-1 text-center flex-shrink-0">
+                  <div className="text-white text-2xl font-bold leading-none">{String(grupo.mesNum + 1).padStart(2,'0')}</div>
+                  <div className="text-white/80 text-xs font-medium">{MESES_NOME[grupo.mesNum].slice(0,3).toUpperCase()}</div>
+                </div>
+                <div className="flex-1">
+                  <div className="text-white text-sm font-semibold">{grupo.label}</div>
+                  <div className="text-white/70 text-xs">{grupo.linhas.length} registro(s)</div>
+                </div>
+                <div className={`text-white/80 transition-transform ${expandido ? 'rotate-180' : ''}`}>
+                  <FaChevronDown size={12} />
+                </div>
+              </div>
+            </button>
+          </div>
+        )
+      })}
+    </div>
+
+    {/* Tabela expandida — fora do grid, ocupa largura total */}
+    {gruposPagina.map(([chave, grupo]) => {
+      const cardKey = `${bloco.id}_${chave}`
+      if (!cardsExpandidos.has(cardKey)) return null
+      return (
+        <div key={`tabela_${chave}`} className="mt-2 mb-6 overflow-x-auto border border-blue-200 rounded-xl">
+          <table className="min-w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-blue-600 text-white">
+                {colsVisiveis.map(ci => (
+                  <th key={ci} className="px-4 py-3 text-left font-semibold border border-blue-500 whitespace-nowrap">
+                    {meta.colunas[ci]}
+                  </th>
+                ))}
+                {(bloco.mostrar_data ?? false) && (
+                  <th className="px-4 py-3 text-left font-semibold border border-blue-500 text-xs whitespace-nowrap">Adicionado em</th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {grupo.linhas.map((linha, li) => (
+                <tr key={linha.id} className={li % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                  {colsVisiveis.map(ci => (
+                    <td key={ci} className="px-4 py-3 border border-gray-200 text-black">
+                      <span dangerouslySetInnerHTML={{ __html: converterUrlArquivo(linha.dados[ci] || '') }} />
+                    </td>
+                  ))}
+                  {(bloco.mostrar_data ?? false) && (
+                    <td className="px-4 py-3 border border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                      {new Date(linha.created_at).toLocaleDateString('pt-BR')}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    })}
+
+    {totalPaginasCards > 1 && (
+      <div className="flex items-center justify-between mt-4 flex-wrap gap-2">
+        <p className="text-xs text-gray-500">
+          Mostrando {(paginaCards - 1) * CARDS_PER_PAGE + 1}–{Math.min(paginaCards * CARDS_PER_PAGE, gruposOrdenados.length)} de {gruposOrdenados.length} meses
+        </p>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setPaginaBloco(`${bloco.id}_cards`, 1)} disabled={paginaCards === 1} className="px-2 py-1 rounded text-xs disabled:opacity-30 text-gray-600 hover:bg-gray-100">«</button>
+          <button onClick={() => setPaginaBloco(`${bloco.id}_cards`, paginaCards - 1)} disabled={paginaCards === 1} className="px-2 py-1 rounded text-xs disabled:opacity-30 text-gray-600 hover:bg-gray-100"><FaChevronLeft size={10} /></button>
+          {Array.from({ length: Math.min(5, totalPaginasCards) }, (_, i) => {
+            const p = Math.max(1, Math.min(totalPaginasCards - 4, paginaCards - 2)) + i
+            return (
+              <button key={p} onClick={() => setPaginaBloco(`${bloco.id}_cards`, p)}
+                className={`w-7 h-7 rounded text-xs font-medium ${p === paginaCards ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                {p}
+              </button>
+            )
+          })}
+          <button onClick={() => setPaginaBloco(`${bloco.id}_cards`, paginaCards + 1)} disabled={paginaCards === totalPaginasCards} className="px-2 py-1 rounded text-xs disabled:opacity-30 text-gray-600 hover:bg-gray-100"><FaChevronRight size={10} /></button>
+          <button onClick={() => setPaginaBloco(`${bloco.id}_cards`, totalPaginasCards)} disabled={paginaCards === totalPaginasCards} className="px-2 py-1 rounded text-xs disabled:opacity-30 text-gray-600 hover:bg-gray-100">»</button>
+        </div>
+      </div>
+    )}
+
+    {meta.texto_final && (
+      <div className={`text-sm mt-3 ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: meta.texto_final }} />
+    )}
+  </div>
+)
+}
+
   return (
     <div className={`min-h-screen ${hc ? 'bg-black' : 'bg-gray-50'}`} style={{ fontSize }}>
       <Header />
@@ -820,6 +964,17 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
                                     className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                                     {tabelas.map(t => <option key={t.nome_tabela} value={t.nome_tabela}>{t.nome_tabela}</option>)}
                                   </select>
+
+                                  <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer mt-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={bloco.modo_cards ?? false}
+                                      onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, modo_cards: e.target.checked } : b))}
+                                      className="w-3 h-3 accent-blue-600"
+                                    />
+                                    Exibir como cards
+                                  </label>
+
                                   {/* Seleção de colunas visíveis */}
                                   {metaBloco && metaBloco.colunas.length > 0 && (
                                     <div>
@@ -1065,7 +1220,7 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
       if (!g) return null
       return <RenderGrafico grafico={g} linhasPorTabela={linhasPorTabela} tabelas={tabelas} />
     })()}
-    {bloco.tipo === 'tabela' && renderTabelaVisitante(bloco)}
+    {bloco.tipo === 'tabela' && (bloco.modo_cards ? renderCardsVisitante(bloco) : renderTabelaVisitante(bloco))}
     {bloco.tipo === 'pdf' && (() => {
       const pdf = pdfsSalvos.find(p => p.nome_pdf === bloco.nome_pdf)
       if (!pdf) return null
@@ -1137,6 +1292,8 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
           Última atualização: {new Date(ultimaAtualizacao).toLocaleString('pt-BR')}
         </div>
       )}
+
+
       <VLibrasWrapper />
     </div>
   )

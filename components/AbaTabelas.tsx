@@ -1,3 +1,5 @@
+//AbaTabelas.tsx
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -178,13 +180,6 @@ export default function AbaTabelas({
     }))
     setLinhas(linhasAtualizadas)
     setLinhasPorTabela(p => ({ ...p, [tabelaAtiva]: linhasAtualizadas }))
-
-    for (const l of linhasAtualizadas) {
-      await fetch(`/api/linhas/${paginaId}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: l.id, dados: l.dados }),
-      })
-    }
   }
 
   const moverColuna = (ci: number, dir: 'esq' | 'dir') => {
@@ -490,7 +485,16 @@ export default function AbaTabelas({
 
           {/* Ações */}
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => salvarMeta(tabelaAtivaMeta)} disabled={salvando}
+            <button onClick={async () => {
+              await salvarMeta(tabelaAtivaMeta)
+              // Persiste linhas se houve remoção/reordenação de colunas
+              for (const l of linhas) {
+                await fetch(`/api/linhas/${paginaId}`, {
+                  method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: l.id, dados: l.dados }),
+                })
+              }
+            }} disabled={salvando}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition disabled:opacity-60">
               <FaSave size={11} /> {salvando ? 'Salvando…' : 'Salvar tabela'}
             </button>

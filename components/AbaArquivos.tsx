@@ -1,4 +1,4 @@
-//components/AbaArquivos.tsx
+//AbaArquivos.tsx
 
 'use client'
 
