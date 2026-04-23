@@ -12,6 +12,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Header from './Header'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
+import IframeBloco from '@/components/IframeBloco'
 import { usePreferences } from '@/contexts/PreferencesContext'
 import {
   FaHome, FaFilePdf, FaDownload, FaPlus, FaTrash,
@@ -54,7 +55,7 @@ interface BlocoPDF {
 
 interface BlocoExibicao {
   id: string
-  tipo: 'texto' | 'tabela' | 'pdf' | 'grafico' | 'arquivo_ftp'
+  tipo: 'texto' | 'tabela' | 'pdf' | 'grafico' | 'arquivo_ftp' | 'iframe'
   nome_tabela?: string
   mostrar_data?: boolean
   coluna?: 1 | 2  
@@ -951,6 +952,7 @@ const renderCardsVisitante = (bloco: BlocoExibicao) => {
                               <button onClick={() => setBlocosExibicao(p => p.filter(b => b.id !== bloco.id))} className="text-red-400 hover:text-red-600"><FaTimes size={11} /></button>
                             </div>
                             <div className="p-3 space-y-3">
+                              
                               {bloco.tipo === 'texto' ? (
                                 <div contentEditable suppressContentEditableWarning
                                   onInput={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, conteudo: (e.target as HTMLDivElement).innerHTML } : b))}
