@@ -1,4 +1,3 @@
-// app/api/despesa-fixada/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
 const BASE    = 'https://transparencia-api.elmartecnologia.com.br/api/201089'
@@ -9,7 +8,7 @@ export async function GET(request: NextRequest) {
   const exercicio = searchParams.get('exercicio') ?? String(new Date().getFullYear())
 
   try {
-    const url = new URL(`${BASE}/contab/despesas/fixada`)
+    const url = new URL(`${BASE}/licitacao/documentos`)
     url.searchParams.set('api-version', VERSION)
     url.searchParams.set('exercicio', exercicio)
 

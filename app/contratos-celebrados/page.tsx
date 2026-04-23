@@ -1,4 +1,4 @@
-// app/termos-aditivos/page.tsx
+// app/contratos-celebrados/page.tsx
 
 'use client'
 
@@ -7,9 +7,9 @@ import ApiPageLayout, { ApiPageConfig } from '@/components/ApiPageLayout'
 
 const config: ApiPageConfig = {
   paginaId: 'termos-aditivos',
-  titulo: 'Termos Aditivos',
+  titulo: 'Contratos Celebrados',
   subtitulo: 'Aditivos e contratos celebrados pelo município de Itabaiana/PB',
-  breadcrumb: 'Termos Aditivos',
+  breadcrumb: 'Contratos Celebrados',
   fonte: 'Sistema de Licitações — Elmar Tecnologia',
 
   apiUrl: '/api/termos-aditivos',
