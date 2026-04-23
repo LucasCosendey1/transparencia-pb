@@ -67,6 +67,11 @@ interface BlocoExibicao {
   conteudo?: string
   expandido?: boolean
   colunas_visiveis?: number[] 
+  iframe_url?: string
+  iframe_zoom?: number
+  iframe_scroll_y?: number
+  iframe_altura?: number
+  iframe_largura?: number
   modo_cards?: boolean
 }
 
@@ -895,6 +900,7 @@ const renderCardsVisitante = (bloco: BlocoExibicao) => {
                         { label: 'Tabela', tipo: 'tabela' as const },
                         { label: 'PDF', tipo: 'pdf' as const, disabled: pdfsSalvos.length === 0 },
                         { label: 'Arquivo FTP', tipo: 'arquivo_ftp' as const },
+                        { label: 'Portal Externo', tipo: 'iframe' as const },
                         { label: 'Gráfico', tipo: 'grafico' as const, disabled: graficos.filter(g => g.aparecer_pagina).length === 0 },
                       ].map(({ label, tipo, disabled }) => (
                         <button key={tipo} disabled={disabled}
@@ -941,6 +947,7 @@ const renderCardsVisitante = (bloco: BlocoExibicao) => {
                                 : bloco.tipo === 'tabela' ? `📊 Tabela: ${bloco.nome_tabela}`
                                 : bloco.tipo === 'pdf' ? `📄 PDF: ${bloco.nome_pdf}`
                                 : bloco.tipo === 'arquivo_ftp' ? `📎 Arquivo: ${bloco.arquivo_ftp_nome}`
+                                : bloco.tipo === 'iframe' ? `🌐 Portal: ${bloco.iframe_url || 'sem URL'}`
                                 : `📈 Gráfico: ${graficos.find(g => g.id === bloco.grafico_id)?.titulo ?? ''}`}
                               </span>
                               {bloco.tipo === 'texto' && (
@@ -1036,13 +1043,47 @@ const renderCardsVisitante = (bloco: BlocoExibicao) => {
                                   className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                                   {arquivosFTP.map(a => <option key={a.url} value={a.url}>{a.nome}</option>)}
                                 </select>
-                              ) : (
-                                <select value={bloco.grafico_id}
-                                  onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, grafico_id: e.target.value } : b))}
-                                  className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
-                                  {graficos.filter(g => g.aparecer_pagina).map(g => <option key={g.id} value={g.id}>{g.titulo}</option>)}
-                                </select>
-                              )}
+                              ) : bloco.tipo === 'iframe' ? (
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="text-xs text-gray-600 block mb-1">URL da página *</label>
+                                  <input value={bloco.iframe_url || ''} onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, iframe_url: e.target.value } : b))}
+                                    placeholder="https://..." className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-xs text-gray-600 block mb-1">Largura (px)</label>
+                                    <input type="number" value={bloco.iframe_largura || 1200}
+                                      onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, iframe_largura: Number(e.target.value) } : b))}
+                                      className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-gray-600 block mb-1">Altura (px)</label>
+                                    <input type="number" value={bloco.iframe_altura || 600}
+                                      onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, iframe_altura: Number(e.target.value) } : b))}
+                                      className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-600 block mb-1">Zoom: {bloco.iframe_zoom || 100}%</label>
+                                  <input type="range" min={25} max={150} step={5} value={bloco.iframe_zoom || 100}
+                                    onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, iframe_zoom: Number(e.target.value) } : b))}
+                                    className="w-full accent-blue-600" />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-600 block mb-1">Posição vertical: {bloco.iframe_scroll_y || 0}px</label>
+                                  <input type="range" min={0} max={3000} step={10} value={bloco.iframe_scroll_y || 0}
+                                    onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, iframe_scroll_y: Number(e.target.value) } : b))}
+                                    className="w-full accent-blue-600" />
+                                </div>
+                              </div>
+                            ) : (
+  <select value={bloco.grafico_id}
+    onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, grafico_id: e.target.value } : b))}
+    className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+    {graficos.filter(g => g.aparecer_pagina).map(g => <option key={g.id} value={g.id}>{g.titulo}</option>)}
+  </select>
+)}
                             </div>
                           </div>
                         )
@@ -1213,44 +1254,47 @@ const renderCardsVisitante = (bloco: BlocoExibicao) => {
                       linhasAgrupadas.map((grupo, gi) => (
                       <div key={gi} className={`mb-8 ${grupo.length === 2 ? 'flex gap-4' : ''}`}>
                         {grupo.map(bloco => (
-  <div key={bloco.id} className={grupo.length === 2 ? 'flex-1 min-w-0' : ''}>
-    {bloco.tipo === 'texto' && bloco.conteudo && (
-      <div className={`text-sm ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: bloco.conteudo }} />
-    )}
-    {bloco.tipo === 'grafico' && (() => {
-      const g = graficos.find(x => x.id === bloco.grafico_id)
-      if (!g) return null
-      return <RenderGrafico grafico={g} linhasPorTabela={linhasPorTabela} tabelas={tabelas} />
-    })()}
-    {bloco.tipo === 'tabela' && (bloco.modo_cards ? renderCardsVisitante(bloco) : renderTabelaVisitante(bloco))}
-    {bloco.tipo === 'pdf' && (() => {
-      const pdf = pdfsSalvos.find(p => p.nome_pdf === bloco.nome_pdf)
-      if (!pdf) return null
-      return (
-        <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
-          <div className="flex items-center gap-2 mb-3">
-            <FaFilePdf className="text-red-600" />
-            <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{pdf.nome_pdf}</span>
-          </div>
-          <div style={{ height: 600 }}>
-            <iframe src={`data:application/pdf;base64,${pdf.pdf_base64}`} className="w-full h-full border-0 rounded" title={pdf.nome_pdf} />
-          </div>
-        </div>
-      )
-    })()}
-    {bloco.tipo === 'arquivo_ftp' && bloco.arquivo_ftp_url && (
-      <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
-        <div className="flex items-center gap-2 mb-3">
-          <FaFilePdf className="text-red-600" />
-          <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{bloco.arquivo_ftp_nome}</span>
-        </div>
-        <div style={{ height: 600 }}>
-          <iframe src={bloco.arquivo_ftp_url} className="w-full h-full border-0 rounded" title={bloco.arquivo_ftp_nome} />
-        </div>
-      </div>
-    )}
-  </div>
-))}
+                    <div key={bloco.id} className={grupo.length === 2 ? 'flex-1 min-w-0' : ''}>
+                      {bloco.tipo === 'texto' && bloco.conteudo && (
+                        <div className={`text-sm ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: bloco.conteudo }} />
+                      )}
+                      {bloco.tipo === 'grafico' && (() => {
+                        const g = graficos.find(x => x.id === bloco.grafico_id)
+                        if (!g) return null
+                        return <RenderGrafico grafico={g} linhasPorTabela={linhasPorTabela} tabelas={tabelas} />
+                      })()}
+                      {bloco.tipo === 'tabela' && (bloco.modo_cards ? renderCardsVisitante(bloco) : renderTabelaVisitante(bloco))}
+                      {bloco.tipo === 'pdf' && (() => {
+                        const pdf = pdfsSalvos.find(p => p.nome_pdf === bloco.nome_pdf)
+                        if (!pdf) return null
+                        return (
+                          <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
+                            <div className="flex items-center gap-2 mb-3">
+                              <FaFilePdf className="text-red-600" />
+                              <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{pdf.nome_pdf}</span>
+                            </div>
+                            <div style={{ height: 600 }}>
+                              <iframe src={`data:application/pdf;base64,${pdf.pdf_base64}`} className="w-full h-full border-0 rounded" title={pdf.nome_pdf} />
+                            </div>
+                          </div>
+                        )
+                      })()}
+                      {bloco.tipo === 'arquivo_ftp' && bloco.arquivo_ftp_url && (
+                        <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
+                          <div className="flex items-center gap-2 mb-3">
+                            <FaFilePdf className="text-red-600" />
+                            <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{bloco.arquivo_ftp_nome}</span>
+                          </div>
+                          <div style={{ height: 600 }}>
+                            <iframe src={bloco.arquivo_ftp_url} className="w-full h-full border-0 rounded" title={bloco.arquivo_ftp_nome} />
+                          </div>
+                        </div>
+                      )}
+                  {bloco.tipo === 'iframe' && bloco.iframe_url && (
+                    <IframeBloco bloco={bloco} />
+                  )}
+                  </div>
+                  ))}
                       </div>
                     ))
                     ) : (
