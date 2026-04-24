@@ -32,6 +32,7 @@ const config: ApiPageConfig = {
     { key: 'funcao_do_fiscal', label: 'Função do Fiscal', type: 'text', hidden: true },
     { key: 'observacoes',      label: 'Observações',     type: 'text', hidden: true },
     { key: 'cpfcnpj',          label: 'CPF/CNPJ',        type: 'text', hidden: true },
+    
   ],
 
   cards: [

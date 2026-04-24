@@ -1,3 +1,5 @@
+// components/PlanoAcaoLayout.tsx
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -151,6 +153,8 @@ export default function PlanoAcaoLayout({ paginaId, breadcrumb }: Props) {
   const [buscaTemp, setBuscaTemp] = useState('')
   const [statusFiltro, setStatusFiltro] = useState('')
   const [page, setPage] = useState(1)
+  const [criando, setCriando] = useState(false)
+  const [formNovo, setFormNovo] = useState<Partial<Recomendacao>>({ status: 'nao_iniciado', ordem: 0 })
 
   const hc = highContrast
   const adjustFontSize = (n: number) => setFontSize(p => Math.max(12, Math.min(24, p + n)))
@@ -159,6 +163,31 @@ export default function PlanoAcaoLayout({ paginaId, breadcrumb }: Props) {
     setIsAdmin(localStorage.getItem('isAdmin') === 'true')
     carregar()
   }, [])
+
+  const criar = async () => {
+  if (!formNovo.codigo?.trim()) return alert('Informe o código.')
+  if (!formNovo.recomendacao?.trim()) return alert('Informe a recomendação.')
+  setSalvando(true)
+  try {
+    await fetch(`/api/plano-acao/${paginaId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...formNovo, pagina_id: paginaId }),
+    })
+    await carregar()
+    setCriando(false)
+    setFormNovo({ status: 'nao_iniciado', ordem: 0 })
+  } catch { alert('❌ Erro ao criar.') }
+  finally { setSalvando(false) }
+  }
+
+  const deletar = async (id: number) => {
+    if (!confirm('Deletar esta recomendação?')) return
+    await fetch(`/api/plano-acao/${paginaId}`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    await carregar()
+  }
 
   const carregar = async () => {
     setLoading(true)
@@ -616,8 +645,77 @@ export default function PlanoAcaoLayout({ paginaId, breadcrumb }: Props) {
                     </div>
 
                   ) : painelAberto ? (
-                    <div className="space-y-4">
-                      {itens.map(item => (
+                  <div className="space-y-4">
+                    <div className="flex justify-end mb-2">
+                      <button onClick={() => { setCriando(true); setFormNovo({ status: 'nao_iniciado', ordem: itens.length + 1 }) }}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
+                        + Nova Recomendação
+                      </button>
+                    </div>
+
+                    {criando && (
+                      <div className="border border-blue-300 bg-blue-50 rounded-xl p-5 mb-4">
+                        <p className="text-sm font-semibold text-black mb-3">Nova Recomendação</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-black mb-1 block font-medium">Código *</label>
+                            <input value={formNovo.codigo || ''} onChange={e => setFormNovo(p => ({ ...p, codigo: e.target.value }))}
+                              placeholder="Ex: R.5" className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-black mb-1 block font-medium">Status</label>
+                            <select value={formNovo.status || 'nao_iniciado'} onChange={e => setFormNovo(p => ({ ...p, status: e.target.value as Recomendacao['status'] }))}
+                              className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                              <option value="nao_iniciado">Não Iniciado</option>
+                              <option value="em_andamento">Em andamento</option>
+                              <option value="concluido">Concluído</option>
+                            </select>
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-xs text-black mb-1 block font-medium">Recomendação *</label>
+                            <textarea value={formNovo.recomendacao || ''} onChange={e => setFormNovo(p => ({ ...p, recomendacao: e.target.value }))}
+                              rows={3} className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="text-xs text-black mb-1 block font-medium">Ações adotadas</label>
+                            <textarea value={formNovo.acoes_adotadas || ''} onChange={e => setFormNovo(p => ({ ...p, acoes_adotadas: e.target.value }))}
+                              rows={2} className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-black mb-1 block font-medium">Prazo</label>
+                            <input value={formNovo.prazo || ''} onChange={e => setFormNovo(p => ({ ...p, prazo: e.target.value }))}
+                              placeholder="Ex: Dezembro/2025" className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-black mb-1 block font-medium">Responsável</label>
+                            <input value={formNovo.responsavel || ''} onChange={e => setFormNovo(p => ({ ...p, responsavel: e.target.value }))}
+                              className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-black mb-1 block font-medium">Benefício esperado</label>
+                            <input value={formNovo.beneficio || ''} onChange={e => setFormNovo(p => ({ ...p, beneficio: e.target.value }))}
+                              className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-black mb-1 block font-medium">Ordem</label>
+                            <input type="number" value={formNovo.ordem ?? ''} onChange={e => setFormNovo(p => ({ ...p, ordem: Number(e.target.value) }))}
+                              className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-4">
+                          <button onClick={criar} disabled={salvando}
+                            className="px-4 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-60 flex items-center gap-1">
+                            <FaSave size={10} />{salvando ? 'Salvando…' : 'Criar'}
+                          </button>
+                          <button onClick={() => setCriando(false)}
+                            className="px-4 py-2 bg-gray-200 text-black text-xs rounded hover:bg-gray-300 flex items-center gap-1">
+                            <FaTimes size={10} />Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {itens.map(item => (
                         <div key={item.id} className={`border rounded-xl p-5 ${hc ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
                           {editando === item.id ? (
                             <div className="space-y-3">
@@ -688,10 +786,16 @@ export default function PlanoAcaoLayout({ paginaId, breadcrumb }: Props) {
                                   ))}
                                 </div>
                               </div>
-                              <button onClick={() => { setEditando(item.id); setForm({ ...item }) }}
-                                className="p-2 text-blue-500 hover:bg-blue-50 rounded flex-shrink-0">
-                                <FaEdit size={14} />
-                              </button>
+                              <div className="flex gap-1 flex-shrink-0">
+                                <button onClick={() => { setEditando(item.id); setForm({ ...item }) }}
+                                  className="p-2 text-blue-500 hover:bg-blue-50 rounded">
+                                  <FaEdit size={14} />
+                                </button>
+                                <button onClick={() => deletar(item.id)}
+                                  className="p-2 text-red-400 hover:bg-red-50 rounded">
+                                  <FaTimes size={14} />
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
