@@ -8,7 +8,7 @@ import AbaGerarPdf from './AbaGerarPdf'
 import AbaHistorico from './AbaHistorico'
 import AbaArquivos from './AbaArquivos'
 import { FaFolderOpen } from 'react-icons/fa'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Header from './Header'
 import VLibrasWrapper from '@/components/VLibrasWrapper'
@@ -73,6 +73,8 @@ interface BlocoExibicao {
   iframe_altura?: number
   iframe_largura?: number
   modo_cards?: boolean
+  cards_titulo?: string
+  cards_descricao?: string
 }
 
 interface PdfSalvo {
@@ -638,140 +640,158 @@ export default function PdfPageLayout({ paginaId, titulo, breadcrumb }: Props) {
 
   const [cardsExpandidos, setCardsExpandidos] = useState<Set<string>>(new Set())
 
-const renderCardsVisitante = (bloco: BlocoExibicao) => {
-  const meta = tabelas.find(t => t.nome_tabela === bloco.nome_tabela)
-  if (!meta) return null
-
-  const colsVisiveis = bloco.colunas_visiveis && bloco.colunas_visiveis.length > 0
-    ? bloco.colunas_visiveis
-    : meta.colunas.map((_, i) => i)
-
-  const linhasBloco = linhasPorTabela[bloco.nome_tabela!] || []
-
+const renderCardsVisitante = (blocos: BlocoExibicao[]) => {
   const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
-  // Agrupa por mês/ano usando created_at
-  const grupos: Record<string, { mesNum: number; ano: number; label: string; linhas: Linha[] }> = {}
-  for (const linha of linhasBloco) {
-    const d = new Date(linha.created_at)
-    const chave = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`
-    if (!grupos[chave]) grupos[chave] = {
-      mesNum: d.getMonth(), ano: d.getFullYear(),
-      label: `${MESES_NOME[d.getMonth()]} ${d.getFullYear()}`,
-      linhas: [],
+  const todosGrupos: Array<{ chave: string; mesNum: number; label: string; linhas: Linha[]; bloco: BlocoExibicao; meta: TabelaMeta; colsVisiveis: number[] }> = []
+
+  for (const b of blocos) {
+    const metaB = tabelas.find(t => t.nome_tabela === b.nome_tabela)
+    if (!metaB) continue
+    const colsB = b.colunas_visiveis?.length ? b.colunas_visiveis : metaB.colunas.map((_, i) => i)
+    const linhasB = linhasPorTabela[b.nome_tabela!] || []
+    const gruposB: Record<string, any> = {}
+    for (const linha of linhasB) {
+      const d = new Date(linha.created_at)
+      const chave = `${b.id}_${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`
+      if (!gruposB[chave]) gruposB[chave] = { chave, mesNum: d.getMonth(), label: `${MESES_NOME[d.getMonth()]} ${d.getFullYear()}`, linhas: [], bloco: b, meta: metaB, colsVisiveis: colsB }
+      gruposB[chave].linhas.push(linha)
     }
-    grupos[chave].linhas.push(linha)
+    Object.values(gruposB).forEach(g => todosGrupos.push(g))
   }
 
-  const gruposOrdenados = Object.entries(grupos).sort((a, b) => b[0].localeCompare(a[0]))
-  const CARDS_PER_PAGE = 50
-  const paginaCards = getPaginaBloco(`${bloco.id}_cards`)
-  const totalPaginasCards = Math.ceil(gruposOrdenados.length / CARDS_PER_PAGE)
-  const gruposPagina = gruposOrdenados.slice((paginaCards - 1) * CARDS_PER_PAGE, paginaCards * CARDS_PER_PAGE)
+  todosGrupos.sort((a, b) => {
+  // Ordena por ano-mês (parte depois do id_)
+  const aMes = a.chave.split('_').slice(-1)[0]  // ex: "2026-03"
+  const bMes = b.chave.split('_').slice(-1)[0]
+  return bMes.localeCompare(aMes)
+})
 
   return (
-  <div>
-    {meta.texto_intro && <div className={`text-sm mb-3 ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: meta.texto_intro }} />}
-    
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {gruposPagina.map(([chave, grupo]) => {
-        const cardKey = `${bloco.id}_${chave}`
-        const expandido = cardsExpandidos.has(cardKey)
-        const cor = COR_MES_CARDS[grupo.mesNum]
-        return (
-          <div key={chave} className={`rounded-xl border-2 bg-white transition-all hover:shadow-md ${expandido ? 'border-blue-500' : 'border-gray-200 hover:border-blue-400'}`}>
-            <button onClick={() => setCardsExpandidos(prev => {
-              const next = new Set(prev)
-              next.has(cardKey) ? next.delete(cardKey) : next.add(cardKey)
-              return next
-            })} className="w-full text-left">
-              <div className={`${cor} px-4 py-3 flex items-center gap-3 rounded-t-xl`}>
-                <div className="bg-white/20 rounded-lg px-3 py-1 text-center flex-shrink-0">
-                  <div className="text-white text-2xl font-bold leading-none">{String(grupo.mesNum + 1).padStart(2,'0')}</div>
-                  <div className="text-white/80 text-xs font-medium">{MESES_NOME[grupo.mesNum].slice(0,3).toUpperCase()}</div>
+    <div>
+
+
+
+
+
+
+
+
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'flex-start' }}>
+  {todosGrupos.map(grupo => {
+    const expandido = cardsExpandidos.has(grupo.chave)
+    const cor = COR_MES_CARDS[grupo.mesNum]
+    return (
+      <div key={grupo.chave} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ width: '192px' }} className={`rounded-xl border-2 bg-white transition-all hover:shadow-md ${expandido ? 'border-blue-500' : 'border-gray-200 hover:border-blue-400'}`}>
+          <button onClick={() => setCardsExpandidos(prev => {
+            const next = new Set(prev)
+            next.has(grupo.chave) ? next.delete(grupo.chave) : next.add(grupo.chave)
+            return next
+          })} className="w-full text-left">
+            <div className={`${cor} px-3 py-3 flex items-center gap-2 rounded-t-xl`}>
+              <div className="bg-white/20 rounded-lg px-2 py-1 text-center flex-shrink-0">
+                <div className="text-white text-2xl font-bold leading-none">{String(grupo.mesNum + 1).padStart(2,'0')}</div>
+                <div className="text-white/80 text-xs font-medium">{MESES_NOME[grupo.mesNum].slice(0,3).toUpperCase()}</div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-white text-xs font-bold leading-tight truncate">
+                  {(() => { const t = grupo.bloco.cards_titulo || grupo.meta.titulo_tabela || ''; return t.length > 30 ? t.slice(0,27)+'...' : t })()}
                 </div>
-                <div className="flex-1">
-                  <div className="text-white text-sm font-semibold">{grupo.label}</div>
-                  <div className="text-white/70 text-xs">{grupo.linhas.length} registro(s)</div>
-                </div>
-                <div className={`text-white/80 transition-transform ${expandido ? 'rotate-180' : ''}`}>
-                  <FaChevronDown size={12} />
+                <div className="text-white/80 text-xs leading-tight">{grupo.label}</div>
+                <div className="text-white/70 text-xs leading-tight">
+                  {(() => { const d = grupo.bloco.cards_descricao || `${grupo.linhas.length} registro(s)`; return d.length > 30 ? d.slice(0,27)+'...' : d })()}
                 </div>
               </div>
-            </button>
-          </div>
-        )
-      })}
-    </div>
+              <div className={`text-white/80 transition-transform flex-shrink-0 ${expandido ? 'rotate-180' : ''}`}>
+                <FaChevronDown size={12} />
+              </div>
+            </div>
+          </button>
+        </div>
 
-    {/* Tabela expandida — fora do grid, ocupa largura total */}
-    {gruposPagina.map(([chave, grupo]) => {
-      const cardKey = `${bloco.id}_${chave}`
-      if (!cardsExpandidos.has(cardKey)) return null
-      return (
-        <div key={`tabela_${chave}`} className="mt-2 mb-6 overflow-x-auto border border-blue-200 rounded-xl">
-          <table className="min-w-full border-collapse text-sm">
-            <thead>
-              <tr className="bg-blue-600 text-white">
-                {colsVisiveis.map(ci => (
-                  <th key={ci} className="px-4 py-3 text-left font-semibold border border-blue-500 whitespace-nowrap">
-                    {meta.colunas[ci]}
-                  </th>
-                ))}
-                {(bloco.mostrar_data ?? false) && (
-                  <th className="px-4 py-3 text-left font-semibold border border-blue-500 text-xs whitespace-nowrap">Adicionado em</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {grupo.linhas.map((linha, li) => (
-                <tr key={linha.id} className={li % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                  {colsVisiveis.map(ci => (
-                    <td key={ci} className="px-4 py-3 border border-gray-200 text-black">
-                      <span dangerouslySetInnerHTML={{ __html: converterUrlArquivo(linha.dados[ci] || '') }} />
-                    </td>
-                  ))}
-                  {(bloco.mostrar_data ?? false) && (
-                    <td className="px-4 py-3 border border-gray-200 text-xs text-gray-500 whitespace-nowrap">
-                      {new Date(linha.created_at).toLocaleDateString('pt-BR')}
-                    </td>
+        {expandido && (
+  <div style={{ width: 'max-content', maxWidth: '90vw' }} className="overflow-x-auto border border-blue-200 rounded-xl">
+    <table className="border-collapse text-sm w-full">
+             
+             
+             
+             
+             
+             
+             
+              <thead>
+                <tr className="bg-blue-600 text-white">
+                  {grupo.colsVisiveis.map((ci: number) => {
+                    const sorted = sortPorBloco[grupo.chave]
+                    const isActive = sorted?.col === ci
+                    return (
+                      <th key={ci}
+                        onClick={() => setSortPorBloco(prev => ({ ...prev, [grupo.chave]: { col: ci, dir: isActive && sorted.dir === 'asc' ? 'desc' : 'asc' } }))}
+                        className="px-4 py-3 text-left font-semibold border border-blue-500 whitespace-nowrap cursor-pointer select-none hover:bg-blue-700 transition">
+                        <span className="flex items-center gap-1">
+                          {grupo.meta.colunas[ci]}
+                          {isActive ? (sorted.dir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}
+                        </span>
+                      </th>
+                    )
+                  })}
+                  {(grupo.bloco.mostrar_data ?? false) && (
+                    <th className="px-4 py-3 text-left font-semibold border border-blue-500 text-xs whitespace-nowrap">Adicionado em</th>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )
-    })}
+              </thead>
+              <tbody>
+                {[...grupo.linhas].sort((a, b) => {
+                  const sorted = sortPorBloco[grupo.chave]
+                  if (!sorted) return 0
+                  const va = String(a.dados[sorted.col] ?? '')
+                  const vb = String(b.dados[sorted.col] ?? '')
+                  const na = parseFloat(va.replace(/[^\d,.\-]/g, '').replace(',', '.'))
+                  const nb = parseFloat(vb.replace(/[^\d,.\-]/g, '').replace(',', '.'))
+                  const ambosNumericos = va.trim() !== '' && vb.trim() !== '' && !isNaN(na) && !isNaN(nb)
+                  const cmp = ambosNumericos ? na - nb : va.localeCompare(vb, 'pt-BR', { sensitivity: 'base' })
+                  return sorted.dir === 'asc' ? cmp : -cmp
+                }).map((linha: Linha, li: number) => (
 
-    {totalPaginasCards > 1 && (
-      <div className="flex items-center justify-between mt-4 flex-wrap gap-2">
-        <p className="text-xs text-gray-500">
-          Mostrando {(paginaCards - 1) * CARDS_PER_PAGE + 1}–{Math.min(paginaCards * CARDS_PER_PAGE, gruposOrdenados.length)} de {gruposOrdenados.length} meses
-        </p>
-        <div className="flex items-center gap-1">
-          <button onClick={() => setPaginaBloco(`${bloco.id}_cards`, 1)} disabled={paginaCards === 1} className="px-2 py-1 rounded text-xs disabled:opacity-30 text-gray-600 hover:bg-gray-100">«</button>
-          <button onClick={() => setPaginaBloco(`${bloco.id}_cards`, paginaCards - 1)} disabled={paginaCards === 1} className="px-2 py-1 rounded text-xs disabled:opacity-30 text-gray-600 hover:bg-gray-100"><FaChevronLeft size={10} /></button>
-          {Array.from({ length: Math.min(5, totalPaginasCards) }, (_, i) => {
-            const p = Math.max(1, Math.min(totalPaginasCards - 4, paginaCards - 2)) + i
-            return (
-              <button key={p} onClick={() => setPaginaBloco(`${bloco.id}_cards`, p)}
-                className={`w-7 h-7 rounded text-xs font-medium ${p === paginaCards ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
-                {p}
-              </button>
-            )
-          })}
-          <button onClick={() => setPaginaBloco(`${bloco.id}_cards`, paginaCards + 1)} disabled={paginaCards === totalPaginasCards} className="px-2 py-1 rounded text-xs disabled:opacity-30 text-gray-600 hover:bg-gray-100"><FaChevronRight size={10} /></button>
-          <button onClick={() => setPaginaBloco(`${bloco.id}_cards`, totalPaginasCards)} disabled={paginaCards === totalPaginasCards} className="px-2 py-1 rounded text-xs disabled:opacity-30 text-gray-600 hover:bg-gray-100">»</button>
-        </div>
+
+
+
+
+
+
+                  <tr key={linha.id} className={li % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                    {grupo.colsVisiveis.map((ci: number) => (
+                      <td key={ci} className="px-4 py-3 border border-gray-200 text-black">
+                        <span dangerouslySetInnerHTML={{ __html: converterUrlArquivo(linha.dados[ci] || '') }} />
+                      </td>
+                    ))}
+                    {(grupo.bloco.mostrar_data ?? false) && (
+                      <td className="px-4 py-3 border border-gray-200 text-xs text-gray-500 whitespace-nowrap">
+                        {new Date(linha.created_at).toLocaleDateString('pt-BR')}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-    )}
+    )
+  })}
+</div>
 
-    {meta.texto_final && (
-      <div className={`text-sm mt-3 ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: meta.texto_final }} />
-    )}
-  </div>
-)
+
+
+
+
+
+
+
+    </div>
+  )
 }
 
   return (
@@ -983,6 +1003,21 @@ const renderCardsVisitante = (bloco: BlocoExibicao) => {
                                     />
                                     Exibir como cards
                                   </label>
+
+                                  {bloco.modo_cards && (
+                                    <div className="space-y-2 mt-2">
+                                      <div>
+                                        <label className="text-xs text-gray-600 block mb-1">Título dos cards</label>
+                                        <input value={bloco.cards_titulo || ''} onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, cards_titulo: e.target.value } : b))}
+                                          placeholder="Ex: Folha de Pagamento" className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                                      </div>
+                                      <div>
+                                        <label className="text-xs text-gray-600 block mb-1">Descrição</label>
+                                        <input value={bloco.cards_descricao || ''} onChange={e => setBlocosExibicao(p => p.map(b => b.id === bloco.id ? { ...b, cards_descricao: e.target.value } : b))}
+                                          placeholder="Ex: Registros mensais de servidores" className="w-full px-3 py-2 border rounded text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                                      </div>
+                                    </div>
+                                  )}
 
                                   {/* Seleção de colunas visíveis */}
                                   {metaBloco && metaBloco.colunas.length > 0 && (
@@ -1249,83 +1284,110 @@ const renderCardsVisitante = (bloco: BlocoExibicao) => {
                   </div>
 
                   {/* Conteúdo */}
-                  <div className="p-6">
-                    {blocosExibicao.length > 0 ? (
-                      linhasAgrupadas.map((grupo, gi) => (
-                      <div key={gi} className={`mb-8 ${grupo.length === 2 ? 'flex gap-4' : ''}`}>
-                        {grupo.map(bloco => (
-                    <div key={bloco.id} className={grupo.length === 2 ? 'flex-1 min-w-0' : ''}>
-                      {bloco.tipo === 'texto' && bloco.conteudo && (
-                        <div className={`text-sm ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: bloco.conteudo }} />
-                      )}
-                      {bloco.tipo === 'grafico' && (() => {
-                        const g = graficos.find(x => x.id === bloco.grafico_id)
-                        if (!g) return null
-                        return <RenderGrafico grafico={g} linhasPorTabela={linhasPorTabela} tabelas={tabelas} />
-                      })()}
-                      {bloco.tipo === 'tabela' && (bloco.modo_cards ? renderCardsVisitante(bloco) : renderTabelaVisitante(bloco))}
-                      {bloco.tipo === 'pdf' && (() => {
-                        const pdf = pdfsSalvos.find(p => p.nome_pdf === bloco.nome_pdf)
-                        if (!pdf) return null
-                        return (
-                          <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
-                            <div className="flex items-center gap-2 mb-3">
-                              <FaFilePdf className="text-red-600" />
-                              <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{pdf.nome_pdf}</span>
-                            </div>
-                            <div style={{ height: 600 }}>
-                              <iframe src={`data:application/pdf;base64,${pdf.pdf_base64}`} className="w-full h-full border-0 rounded" title={pdf.nome_pdf} />
-                            </div>
-                          </div>
-                        )
-                      })()}
-                      {bloco.tipo === 'arquivo_ftp' && bloco.arquivo_ftp_url && (
-                        <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
-                          <div className="flex items-center gap-2 mb-3">
-                            <FaFilePdf className="text-red-600" />
-                            <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{bloco.arquivo_ftp_nome}</span>
-                          </div>
-                          <div style={{ height: 600 }}>
-                            <iframe src={bloco.arquivo_ftp_url} className="w-full h-full border-0 rounded" title={bloco.arquivo_ftp_nome} />
-                          </div>
-                        </div>
-                      )}
-                  {bloco.tipo === 'iframe' && bloco.iframe_url && (
-                    <IframeBloco bloco={bloco} />
-                  )}
+            <div className="p-6">
+              {blocosExibicao.length > 0 ? (() => {
+                // Agrupa blocos modo_cards consecutivos num único grupo visual
+                const grupos: BlocoExibicao[][] = []
+                const visto = new Set<string>()
+                for (const bloco of blocosExibicao) {
+                  if (visto.has(bloco.id)) continue
+                  visto.add(bloco.id)
+                  const filho = blocosExibicao.find(b => b.linhaId === bloco.id && !visto.has(b.id))
+                  if (filho) {
+                    visto.add(filho.id)
+                    grupos.push([bloco, filho])
+                  } else {
+                    grupos.push([bloco])
+                  }
+                }
+
+                const blocosCards = blocosExibicao.filter(b => b.tipo === 'tabela' && b.modo_cards)
+const blocosNaoCards = grupos.filter(g => !g.every(b => b.tipo === 'tabela' && b.modo_cards))
+
+return (
+  <>
+    {blocosCards.length > 0 && (
+      <div className="mb-8">
+        {renderCardsVisitante(blocosCards)}
+      </div>
+    )}
+    {blocosNaoCards.map((grupo, gi) => (
+      <div key={gi} className={`mb-8 ${grupo.length === 2 ? 'flex gap-4' : ''}`}>
+        {grupo.map(bloco => (
+          <div key={bloco.id} className={grupo.length === 2 ? 'flex-1 min-w-0' : ''}>
+            {bloco.tipo === 'texto' && bloco.conteudo && (
+              <div className={`text-sm ${hc ? 'text-yellow-200' : 'text-black'}`} dangerouslySetInnerHTML={{ __html: bloco.conteudo }} />
+            )}
+            {bloco.tipo === 'grafico' && (() => {
+              const g = graficos.find(x => x.id === bloco.grafico_id)
+              if (!g) return null
+              return <RenderGrafico grafico={g} linhasPorTabela={linhasPorTabela} tabelas={tabelas} />
+            })()}
+            {bloco.tipo === 'tabela' && !bloco.modo_cards && renderTabelaVisitante(bloco)}
+            {bloco.tipo === 'pdf' && (() => {
+              const pdf = pdfsSalvos.find(p => p.nome_pdf === bloco.nome_pdf)
+              if (!pdf) return null
+              return (
+                <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FaFilePdf className="text-red-600" />
+                    <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{pdf.nome_pdf}</span>
                   </div>
-                  ))}
-                      </div>
-                    ))
-                    ) : (
-                      // Fallback sem blocos configurados
-                      <div className="overflow-x-auto">
-                        <p className={`text-xs mb-3 ${hc ? 'text-yellow-200' : 'text-black'}`}>{linhasFiltradas.length} registro(s)</p>
-                        <table className="min-w-full border-collapse text-sm">
-                          <thead>
-                            <tr className="bg-blue-600 text-white">
-                              {tabelaAtivaMeta?.colunas.map((col, i) => <th key={i} className="px-4 py-3 text-left font-semibold border border-blue-500">{col}</th>)}
-                              <th className="px-4 py-3 text-left font-semibold border border-blue-500 text-xs">Adicionado em</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {linhasFiltradas.map((l, li) => (
-                              <tr key={l.id} className={li % 2 === 0 ? (hc ? 'bg-gray-800' : 'bg-gray-50') : (hc ? 'bg-gray-900' : 'bg-white')}>
-                                {tabelaAtivaMeta?.colunas.map((_, ci) => (
-                                  <td key={ci} className={`px-4 py-3 border ${hc ? 'border-gray-700 text-yellow-200' : 'border-gray-200 text-black'}`}>
-                                    <span dangerouslySetInnerHTML={{ __html: converterUrlArquivo(l.dados[ci] || '') }} />
-                                  </td>
-                                ))}
-                                <td className={`px-4 py-3 border text-xs ${hc ? 'border-gray-700 text-yellow-300' : 'border-gray-200 text-black'}`}>
-                                {new Date(l.created_at).toLocaleString('pt-BR')}
-                              </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                  <div style={{ height: 600 }}>
+                    <iframe src={`data:application/pdf;base64,${pdf.pdf_base64}`} className="w-full h-full border-0 rounded" title={pdf.nome_pdf} />
                   </div>
+                </div>
+              )
+            })()}
+            {bloco.tipo === 'arquivo_ftp' && bloco.arquivo_ftp_url && (
+              <div className={`${hc ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg p-4`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <FaFilePdf className="text-red-600" />
+                  <span className={`font-medium text-sm ${hc ? 'text-yellow-300' : 'text-black'}`}>{bloco.arquivo_ftp_nome}</span>
+                </div>
+                <div style={{ height: 600 }}>
+                  <iframe src={bloco.arquivo_ftp_url} className="w-full h-full border-0 rounded" title={bloco.arquivo_ftp_nome} />
+                </div>
+              </div>
+            )}
+            {bloco.tipo === 'iframe' && bloco.iframe_url && (
+              <IframeBloco bloco={bloco} />
+            )}
+          </div>
+        ))}
+      </div>
+    ))}
+  </>
+)
+              })() : (
+                // Fallback sem blocos configurados
+                <div className="overflow-x-auto">
+                  <p className={`text-xs mb-3 ${hc ? 'text-yellow-200' : 'text-black'}`}>{linhasFiltradas.length} registro(s)</p>
+                  <table className="min-w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-blue-600 text-white">
+                        {tabelaAtivaMeta?.colunas.map((col, i) => <th key={i} className="px-4 py-3 text-left font-semibold border border-blue-500">{col}</th>)}
+                        <th className="px-4 py-3 text-left font-semibold border border-blue-500 text-xs">Adicionado em</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {linhasFiltradas.map((l, li) => (
+                        <tr key={l.id} className={li % 2 === 0 ? (hc ? 'bg-gray-800' : 'bg-gray-50') : (hc ? 'bg-gray-900' : 'bg-white')}>
+                          {tabelaAtivaMeta?.colunas.map((_, ci) => (
+                            <td key={ci} className={`px-4 py-3 border ${hc ? 'border-gray-700 text-yellow-200' : 'border-gray-200 text-black'}`}>
+                              <span dangerouslySetInnerHTML={{ __html: converterUrlArquivo(l.dados[ci] || '') }} />
+                            </td>
+                          ))}
+                          <td className={`px-4 py-3 border text-xs ${hc ? 'border-gray-700 text-yellow-300' : 'border-gray-200 text-black'}`}>
+                            {new Date(l.created_at).toLocaleString('pt-BR')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
                 </div>
               )}
             </>
