@@ -20,7 +20,8 @@ const config: ApiPageConfig = {
 
   columns: [
     { key: 'n_contrato',       label: 'Nº Contrato',    type: 'text' },
-    { key: 'n_licitacao',      label: 'Nº Licitação',   type: 'text', hidden: true },
+    { key: 'n_licitacao',     label: 'Nº Licitação', type: 'text', hidden: true },
+    { key: 'n_licitacao_url', label: 'Licitação',     type: 'link', hidden: false, tooltip: 'Ver detalhamento da licitação' },
     { key: 'assinatura',       label: 'Assinatura',     type: 'date' },
     { key: 'vigencia',         label: 'Vigência',       type: 'date' },
     { key: 'licitacao',        label: 'Modalidade',     type: 'text', chartRole: 'category' },
