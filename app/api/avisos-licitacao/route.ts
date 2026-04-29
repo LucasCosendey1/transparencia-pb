@@ -1,5 +1,3 @@
-// app/api/avisos-licitacao/route.ts
-
 import { NextRequest, NextResponse } from 'next/server'
 
 const BASE    = 'https://transparencia-api.elmartecnologia.com.br/api/201089'
@@ -21,16 +19,28 @@ export async function GET(request: NextRequest) {
     if (!res.ok) throw new Error(`Erro ${res.status}`)
 
     const json = await res.json()
-    const data = Array.isArray(json) ? json : (json.data ?? [])
+    const raw: Record<string, unknown>[] = Array.isArray(json) ? json : (json.data ?? [])
 
-    // Filtra pelo exercício
-    const filtered = data.filter((r: Record<string, unknown>) => {
+    const filtered = raw.filter((r: Record<string, unknown>) => {
       const assinatura = String(r['assinatura'] ?? '')
       return assinatura.startsWith(exercicio)
     })
 
+    const data = filtered.map(r => {
+      const licNum = String(r['lic_num'] ?? '')
+      const licTipo = String(r['lic_tipo'] ?? '').padStart(2, '0')
+      const chave = `${licNum}${licTipo}`
+      const nContrato = String(r['n_contrato'] ?? '')
+      return {
+        ...r,
+        contrato: `https://transparencia.elmartecnologia.com.br/uploads/201089/${chave}/Contrato - ${nContrato}.pdf`,
+        extrato: `https://transparencia.elmartecnologia.com.br/uploads/201089/${chave}/Extrato do Contrato - ${nContrato}.pdf`,
+        n_licitacao: `https://transparencia.elmartecnologia.com.br/Licitacao/LicitacaoView?Lic_Num=${licNum}&Lic_Tipo=${r['lic_tipo']}&ECODE=201089`,
+      }
+    })
+
     return NextResponse.json({
-      data: filtered,
+      data,
       exercicio,
       ultimaAtualizacao: json.infoUltimaAtualizacao,
     })
