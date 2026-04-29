@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const raw: Record<string, unknown>[] = Array.isArray(json) ? json : (json.data ?? [])
     const data = raw.map(r => ({
       ...r,
-      docs: String(r['docs'] ?? '').replace('&isPartial=true', '').replace('?isPartial=true', ''),
+      docs: `https://transparencia.elmartecnologia.com.br/Contab/EmpenhoView?Empenho=${r['empenho']}&ecode=201089&Data=${encodeURIComponent(String(r['data']).replace('T00:00:00-03:00', ' 00:00:00'))}`,
     }))
 
     return NextResponse.json({
