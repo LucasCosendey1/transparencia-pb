@@ -22,7 +22,17 @@ export async function GET(request: NextRequest) {
     if (!res.ok) throw new Error(`Erro ${res.status}`)
 
     const json = await res.json()
-    const data = Array.isArray(json) ? json : (json.data ?? [])
+    const raw: Record<string, unknown>[] = Array.isArray(json) ? json : (json.data ?? [])
+const data = raw.map(r => {
+  const licNum = String(r['lic_num'] ?? '')
+  const licTipo = String(r['lic_tipo'] ?? '').padStart(2, '0')
+  const chave = `${licNum}${licTipo}`
+  return {
+    ...r,
+    docs: `https://transparencia.elmartecnologia.com.br/Licitacao/LicitacaoView?Lic_Num=${licNum}&Lic_Tipo=${r['lic_tipo']}&ECODE=201089`,
+    edital: `https://intranet.elmartecnologia.com.br/ci/uploads/201089/${chave}/Edital.pdf`,
+  }
+})
 
     return NextResponse.json({
       data,
