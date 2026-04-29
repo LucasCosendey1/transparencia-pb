@@ -20,7 +20,11 @@ export async function GET(request: NextRequest) {
     if (!res.ok) throw new Error(`Erro ${res.status}`)
 
     const json = await res.json()
-    const data = Array.isArray(json) ? json : (json.data ?? [])
+    const raw: Record<string, unknown>[] = Array.isArray(json) ? json : (json.data ?? [])
+    const data = raw.map(r => ({
+      ...r,
+      docs: `https://transparencia.elmartecnologia.com.br/Export/Data?ecode=201089&ctx=201089&showResult=True&module=Empenhos&returnType=grid&exercicio=${exercicio}&empenho=${r['empenho']}&showUrl=False`,
+    }))
 
     return NextResponse.json({
       data,
