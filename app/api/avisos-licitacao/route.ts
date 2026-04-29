@@ -35,7 +35,8 @@ export async function GET(request: NextRequest) {
         ...r,
         contrato: `https://transparencia.elmartecnologia.com.br/uploads/201089/${chave}/Contrato - ${nContrato}.pdf`,
         extrato: `https://transparencia.elmartecnologia.com.br/uploads/201089/${chave}/Extrato do Contrato - ${nContrato}.pdf`,
-        n_licitacao: `https://transparencia.elmartecnologia.com.br/Licitacao/LicitacaoView?Lic_Num=${licNum}&Lic_Tipo=${r['lic_tipo']}&ECODE=201089`,
+        n_licitacao: r['n_licitacao'],
+        n_licitacao_url: `https://transparencia.elmartecnologia.com.br/Licitacao/LicitacaoView?Lic_Num=${licNum}&Lic_Tipo=${r['lic_tipo']}&ECODE=201089`,
       }
     })
 
