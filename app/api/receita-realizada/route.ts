@@ -1,3 +1,5 @@
+//app/api/receita-realizada/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 
 const BASE = 'https://transparencia-api.elmartecnologia.com.br/api/201089'
@@ -24,7 +26,12 @@ export async function GET(request: NextRequest) {
   const exercicio = searchParams.get('exercicio') ?? String(new Date().getFullYear())
 
   try {
-    const data = await fetchApi('/contab/receitas/realizada', exercicio)
+    const raw = await fetchApi('/contab/receitas/realizada', exercicio)
+    const data = raw.map(r => ({
+      ...r,
+      código: r['código'],
+      código_url: `https://transparencia.elmartecnologia.com.br/Contab/ReceitaView?CodReceita=${r['codReceita']}&ecode=201089&cpt=${r['cpt']}&sequencia=${r['sequencia']}&Data=${encodeURIComponent(String(r['data']).replace(/T.*/, ' 00:00:00'))}`,
+    }))
     return NextResponse.json({ data, exercicio })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Erro ao buscar dados'

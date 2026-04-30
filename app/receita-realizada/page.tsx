@@ -1,3 +1,5 @@
+//app/receita-realizada/page.tsx
+
 'use client'
 
 import { useState } from 'react'
@@ -18,7 +20,7 @@ const config: ApiPageConfig = {
   showMovimentoFilter: false,
 
   columns: [
-    { key: 'código',       label: 'Código',        type: 'text' },
+    { key: 'código',       label: 'Código',        type: 'link' },
     { key: 'descrição',    label: 'Descrição',      type: 'text',     chartRole: 'category' },
     { key: 'competência',  label: 'Competência',    type: 'text' },
     { key: 'data',         label: 'Data',           type: 'date' },

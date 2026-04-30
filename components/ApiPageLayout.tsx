@@ -324,6 +324,7 @@ export default function ApiPageLayout({ config }: Props) {
   const [showGlossario, setShowGlossario] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [showFilters, setShowFilters] = useState(true)
+  const [modalUrl, setModalUrl] = useState<string | null>(null)
 
   // ── Estado de gráficos ──
   const [chartIndex, setChartIndex] = useState(0)
@@ -647,6 +648,27 @@ export default function ApiPageLayout({ config }: Props) {
 
   const currentChart = CHARTS[chartIndex]
 
+const Modal = modalUrl ? (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60">
+    <div className={`relative w-[90vw] h-[85vh] rounded-xl overflow-hidden flex flex-col ${hc ? 'bg-gray-900 border border-yellow-300' : 'bg-white shadow-2xl'}`}>
+      <div className={`flex items-center justify-between px-4 py-3 border-b ${hc ? 'border-yellow-300' : 'border-gray-200'}`}>
+        <p className={`text-sm font-semibold truncate flex-1 mr-4 ${hc ? 'text-yellow-300' : 'text-gray-700'}`}>{modalUrl}</p>
+        <div className="flex items-center gap-2">
+          <button onClick={() => { const w = window.open(modalUrl, '_blank'); w?.focus() }}
+            className={`text-xs px-3 py-1.5 rounded border transition ${hc ? 'border-yellow-300 text-yellow-300 hover:bg-yellow-300 hover:text-black' : 'border-blue-300 text-blue-600 hover:bg-blue-50'}`}>
+            Abrir em outra aba
+          </button>
+          <button onClick={() => setModalUrl(null)}
+            className={`text-xs px-3 py-1.5 rounded border transition ${hc ? 'border-red-400 text-red-400 hover:bg-red-400 hover:text-black' : 'border-red-300 text-red-500 hover:bg-red-50'}`}>
+            ✕ Fechar
+          </button>
+        </div>
+      </div>
+      <iframe id="modal-iframe" src={modalUrl} className="flex-1 w-full border-0" title="Visualizador" />
+    </div>
+  </div>
+) : null
+
   const CARD_BG   = hc ? 'bg-gray-900 border border-yellow-300' : 'bg-white shadow-md'
   const INPUT     = hc ? 'bg-gray-900 border border-yellow-300 text-yellow-300 placeholder-yellow-600' : 'bg-white border border-gray-300 text-gray-700'
   const TH        = hc ? 'bg-gray-800 text-yellow-300 border-b border-yellow-300' : 'bg-blue-700 text-white'
@@ -656,7 +678,9 @@ export default function ApiPageLayout({ config }: Props) {
 
   return (
     <div className={`min-h-screen ${hc ? 'bg-black text-yellow-300' : 'bg-gray-50 text-gray-800'}`} style={{ fontSize: `${fontSize}px` }}>
+      
       <Header />
+      {Modal}
 
       <div className={`${hc ? 'bg-black' : 'bg-white'} border-b mt-32`}>
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center text-sm">
@@ -1030,7 +1054,7 @@ export default function ApiPageLayout({ config }: Props) {
                                           return url
                                             ? <span className="flex items-center gap-1">
                                                 {display && <span>{display}</span>}
-                                                <a href={String(url)} target="_blank" rel="noopener noreferrer" className={`text-xs underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>ver</a>
+                                                <button onClick={() => setModalUrl(String(url))} className={`text-xs underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>ver</button>
                                               </span>
                                             : display ? <span>{display}</span> : null
                                         })()
@@ -1097,7 +1121,7 @@ export default function ApiPageLayout({ config }: Props) {
                                     return url
                                       ? <span className="flex items-center gap-1">
                                           {display && <span>{display}</span>}
-                                          <a href={String(url)} target="_blank" rel="noopener noreferrer" className={`text-xs underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>ver</a>
+                                          <button onClick={() => setModalUrl(String(url))} className={`text-xs underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>ver</button>
                                         </span>
                                       : display ? <span>{display}</span> : null
                                   })()
