@@ -1,3 +1,5 @@
+//app/api/pagamentos/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 
 const BASE    = 'https://transparencia-api.elmartecnologia.com.br/api/201089'
@@ -20,8 +22,13 @@ export async function GET(request: NextRequest) {
     if (!res.ok) throw new Error(`Erro ${res.status}`)
 
     const json = await res.json()
-    const data = Array.isArray(json) ? json : (json.data ?? [])
 
+    const raw: Record<string, unknown>[] = Array.isArray(json) ? json : (json.data ?? [])
+    const data = raw.map(r => ({
+      ...r,
+      docs: r['empenho'],
+      docs_url: `https://transparencia.elmartecnologia.com.br/Contab/EmpenhoView?Empenho=${r['empenho']}&ecode=201089&Data=${encodeURIComponent(String(r['data']).replace(/T.*/, ' 00:00:00'))}`,
+    }))
     return NextResponse.json({
       data,
       exercicio,

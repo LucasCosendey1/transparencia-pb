@@ -29,10 +29,17 @@ const data = raw.map(r => {
   const chave = `${licNum}${licTipo}`
   return {
     ...r,
-    docs: `https://transparencia.elmartecnologia.com.br/Licitacao/LicitacaoView?Lic_Num=${licNum}&Lic_Tipo=${r['lic_tipo']}&ECODE=201089`,
-    edital: `https://intranet.elmartecnologia.com.br/ci/uploads/201089/${chave}/Edital.pdf`,
+    docs: licNum,
+    docs_url: `https://transparencia.elmartecnologia.com.br/Licitacao/LicitacaoView?Lic_Num=${licNum}&Lic_Tipo=${r['lic_tipo']}&ECODE=201089`,
+    edital: null,
+    edital_url: `https://intranet.elmartecnologia.com.br/ci/uploads/201089/${chave}/Edital.pdf`,
+    n_licitacao: r['n_licitacao'],
+    n_licitacao_url: `https://transparencia.elmartecnologia.com.br/Licitacao/LicitacaoView?Lic_Num=${licNum}&Lic_Tipo=${r['lic_tipo']}&ECODE=201089`,
+    n_processo: r['n_processo'],
+    n_processo_url: `https://transparencia.elmartecnologia.com.br/Licitacao/LicitacaoView?Lic_Num=${licNum}&Lic_Tipo=${r['lic_tipo']}&ECODE=201089`,
   }
 })
+
 
     return NextResponse.json({
       data,

@@ -20,8 +20,8 @@ const config: ApiPageConfig = {
   showMovimentoFilter: false,
 
   columns: [
-    { key: 'n_licitacao',     label: 'Nº Licitação',    type: 'text' },
-    { key: 'n_processo',      label: 'Nº Processo',     type: 'text',     hidden: true },
+    { key: 'n_licitacao', label: 'Nº Licitação', type: 'link' },
+    { key: 'n_processo',  label: 'Nº Processo',  type: 'link', hidden: true },
     { key: 'data',            label: 'Data',            type: 'date',     chartRole: 'category' },
     { key: 'modalidade',      label: 'Modalidade',      type: 'text',     chartRole: 'category' },
     { key: 'tipo_objeto',     label: 'Tipo de Objeto',  type: 'text',     hidden: true },

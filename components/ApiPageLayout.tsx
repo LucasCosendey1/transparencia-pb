@@ -1022,10 +1022,20 @@ export default function ApiPageLayout({ config }: Props) {
                                   <td key={col.key} className={`px-3 py-2.5 ${TD_BORDER} ${col.type === 'currency' ? 'text-right font-mono' : ''}`}>
                                     {col.type === 'currency'
                                       ? <span className={Number(row[col.key]) < 0 ? 'text-red-500' : ''}>{fmt(row[col.key], col.type)}</span>
-                                      : col.type === 'link' && row[col.key]
-                                        ? <a href={String(row[col.key])} target="_blank" rel="noopener noreferrer" className={`underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>Ver</a>
-                                        : fmt(row[col.key], col.type)}
-                                  </td>
+                                      : col.type === 'link'
+                                      ? (() => {
+                                          const val = row[col.key]
+                                          const url = row[col.key + '_url'] ?? (val && String(val).startsWith('http') ? val : null)
+                                          const display = val && !String(val).startsWith('http') ? String(val) : null
+                                          return url
+                                            ? <span className="flex items-center gap-1">
+                                                {display && <span>{display}</span>}
+                                                <a href={String(url)} target="_blank" rel="noopener noreferrer" className={`text-xs underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>ver</a>
+                                              </span>
+                                            : display ? <span>{display}</span> : null
+                                        })()
+                                      : fmt(row[col.key], col.type)}
+                                  </td> 
                                 ))}
                               </tr>
                             ))}
@@ -1079,12 +1089,19 @@ export default function ApiPageLayout({ config }: Props) {
                             <td key={col.key} className={`px-3 py-2.5 ${TD_BORDER} ${col.type === 'currency' ? 'text-right font-mono' : ''}`}>
                               {col.type === 'currency'
                                 ? <span className={Number(row[col.key]) < 0 ? 'text-red-500' : ''}>{fmt(row[col.key], col.type)}</span>
-                                : col.type === 'link' && row[col.key]
-                                  ? <a href={String(row[col.key])} target="_blank" rel="noopener noreferrer"
-                                      className={`underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>
-                                      Ver
-                                    </a>
-                                  : fmt(row[col.key], col.type)}
+                                : col.type === 'link'
+                                ? (() => {
+                                    const val = row[col.key]
+                                    const url = row[col.key + '_url'] ?? (val && String(val).startsWith('http') ? val : null)
+                                    const display = val && !String(val).startsWith('http') ? String(val) : null
+                                    return url
+                                      ? <span className="flex items-center gap-1">
+                                          {display && <span>{display}</span>}
+                                          <a href={String(url)} target="_blank" rel="noopener noreferrer" className={`text-xs underline ${hc ? 'text-yellow-300' : 'text-blue-600'} hover:opacity-75`}>ver</a>
+                                        </span>
+                                      : display ? <span>{display}</span> : null
+                                  })()
+                                : fmt(row[col.key], col.type)}
                             </td>
                           ))}
                         </tr>
